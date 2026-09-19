@@ -100,7 +100,7 @@ export const categories: Category[] = [
   {
     slug: "accessories",
     name: "Accessories",
-    icon: "usb-square-linear",
+    icon: "plug-circle-linear",
     blurb: "Chargers, cables, cases, storage and the small things that matter.",
     subcategories: ["Power banks", "Chargers", "Cases", "Storage", "Keyboards & mice"],
     brands: ["Anker", "Baseus", "SanDisk", "Logitech", "Belkin"],
