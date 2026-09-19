@@ -27,7 +27,7 @@ const deviceTypes = [
   { label: "Phone", icon: "smartphone-2-linear", category: "smartphones" },
   { label: "Laptop", icon: "laptop-minimalistic-linear", category: "laptops" },
   { label: "Tablet", icon: "tablet-linear", category: "tablets" },
-  { label: "Watch", icon: "smart-watch-linear", category: "wearables" },
+  { label: "Watch", icon: "watch-round-linear", category: "wearables" },
 ];
 
 const steps = [

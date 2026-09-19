@@ -92,7 +92,7 @@ export const categories: Category[] = [
   {
     slug: "wearables",
     name: "Wearables",
-    icon: "smart-watch-linear",
+    icon: "watch-round-linear",
     blurb: "Watches and bands that track the day without fuss.",
     subcategories: ["Smartwatches", "Fitness bands", "Watch straps"],
     brands: ["Apple", "Samsung", "Xiaomi", "Huawei", "Amazfit"],

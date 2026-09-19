@@ -7,7 +7,7 @@ const categoryIcon: Record<string, string> = {
   tablets: "tablet-linear",
   gaming: "gamepad-linear",
   audio: "headphones-round-linear",
-  wearables: "smart-watch-linear",
+  wearables: "watch-round-linear",
   accessories: "usb-square-linear",
   "home-electronics": "tv-linear",
 };
