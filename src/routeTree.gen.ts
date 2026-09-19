@@ -15,6 +15,9 @@ import { Route as CatalogsRouteImport } from './routes/catalogs'
 import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DealsRouteImport } from './routes/deals'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as TradeInRouteImport } from './routes/trade-in'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as ShopsIndexRouteImport } from './routes/shops.index'
@@ -50,6 +53,21 @@ const DealsRoute = DealsRouteImport.update({
   path: '/deals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradeInRoute = TradeInRouteImport.update({
+  id: '/trade-in',
+  path: '/trade-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
@@ -78,6 +96,9 @@ export interface FileRoutesByFullPath {
   '/categories': typeof CategoriesRoute
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
+  '/help': typeof HelpRoute
+  '/search': typeof SearchRoute
+  '/trade-in': typeof TradeInRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
@@ -90,6 +111,9 @@ export interface FileRoutesByTo {
   '/categories': typeof CategoriesRoute
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
+  '/help': typeof HelpRoute
+  '/search': typeof SearchRoute
+  '/trade-in': typeof TradeInRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
@@ -103,6 +127,9 @@ export interface FileRoutesById {
   '/categories': typeof CategoriesRoute
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
+  '/help': typeof HelpRoute
+  '/search': typeof SearchRoute
+  '/trade-in': typeof TradeInRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
@@ -117,6 +144,9 @@ export interface FileRouteTypes {
     | '/categories'
     | '/compare'
     | '/deals'
+    | '/help'
+    | '/search'
+    | '/trade-in'
     | '/category/$slug'
     | '/product/$slug'
     | '/shops/$shopSlug'
@@ -129,6 +159,9 @@ export interface FileRouteTypes {
     | '/categories'
     | '/compare'
     | '/deals'
+    | '/help'
+    | '/search'
+    | '/trade-in'
     | '/category/$slug'
     | '/product/$slug'
     | '/shops/$shopSlug'
@@ -141,6 +174,9 @@ export interface FileRouteTypes {
     | '/categories'
     | '/compare'
     | '/deals'
+    | '/help'
+    | '/search'
+    | '/trade-in'
     | '/category/$slug'
     | '/product/$slug'
     | '/shops/$shopSlug'
@@ -154,6 +190,9 @@ export interface RootRouteChildren {
   CategoriesRoute: typeof CategoriesRoute
   CompareRoute: typeof CompareRoute
   DealsRoute: typeof DealsRoute
+  HelpRoute: typeof HelpRoute
+  SearchRoute: typeof SearchRoute
+  TradeInRoute: typeof TradeInRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
   ShopsShopSlugRoute: typeof ShopsShopSlugRoute
@@ -204,6 +243,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trade-in': {
+      id: '/trade-in'
+      path: '/trade-in'
+      fullPath: '/trade-in'
+      preLoaderRoute: typeof TradeInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/category/$slug': {
       id: '/category/$slug'
       path: '/category/$slug'
@@ -242,6 +302,9 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriesRoute: CategoriesRoute,
   CompareRoute: CompareRoute,
   DealsRoute: DealsRoute,
+  HelpRoute: HelpRoute,
+  SearchRoute: SearchRoute,
+  TradeInRoute: TradeInRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
   ShopsShopSlugRoute: ShopsShopSlugRoute,
