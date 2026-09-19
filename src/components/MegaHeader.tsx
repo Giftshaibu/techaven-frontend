@@ -105,7 +105,7 @@ export function MegaHeader({
         </div>
 
         {stages.length ? (
-          <div className="relative hidden lg:block">
+          <div className="relative">
             <div className="flex items-end gap-4 lg:-mr-24">
               {stages.slice(0, 3).map((s, i) => (
                 <ImageStage
@@ -115,7 +115,8 @@ export function MegaHeader({
                   tone="white"
                   className={cn(
                     "flex-1 rounded-2xl",
-                    i === 0 && "z-10 scale-105",
+                    i === 0 && "z-10 lg:scale-105",
+                    i === 1 && "hidden sm:flex",
                     i === 2 && "hidden xl:flex",
                   )}
                 />
