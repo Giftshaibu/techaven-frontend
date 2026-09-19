@@ -7,7 +7,7 @@ import { TrustStrip } from "@/components/TrustStrip";
 import { shopProductCount, shops } from "@/data/catalog";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/shops")({
+export const Route = createFileRoute("/shops/")({
   head: () => ({
     meta: [
       { title: "Shop the mall — all Techaven shops" },

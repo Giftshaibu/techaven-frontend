@@ -11,7 +11,7 @@ type Search = { brand?: string };
 
 export const Route = createFileRoute("/category/$slug")({
   validateSearch: (search: Record<string, unknown>): Search =>
-    typeof search.brand === "string" ? { brand: search.brand } : {},
+    typeof search["brand"] === "string" ? { brand: search["brand"] } : {},
   loader: ({ params }) => {
     const category = getCategory(params.slug);
     if (!category) throw notFound();
