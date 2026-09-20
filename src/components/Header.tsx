@@ -334,6 +334,9 @@ export function Header() {
                 { label: "Compare", to: "/compare" },
                 { label: "Trade-in", to: "/trade-in" },
                 { label: "Help", to: "/help" },
+                session
+                  ? { label: "Your account", to: "/account" }
+                  : { label: "Sign in", to: "/auth" },
               ].map((l) => (
                 <Link
                   key={l.label}
