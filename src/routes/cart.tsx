@@ -174,14 +174,15 @@ function CartPage() {
               </div>
             </dl>
 
-            <button
-              type="button"
-              className="mt-6 w-full rounded-lg bg-ink-900 px-5 py-3.5 text-[15px] font-semibold text-white hover:bg-ink-800"
+            <Link
+              to="/checkout"
+              className="mt-6 block w-full rounded-lg bg-ink-900 px-5 py-3.5 text-center text-[15px] font-semibold text-white hover:bg-ink-800"
             >
               Continue to checkout
-            </button>
+            </Link>
             <p className="mt-3 text-xs text-muted-foreground">
-              Checkout isn't connected yet — this basket is saved in your browser.
+              You'll sign in on the next step so we can save your delivery details and order
+              history.
             </p>
 
             <p className="mt-5 flex items-start gap-2 rounded-2xl bg-info-soft p-4 text-xs text-ink-800/80">

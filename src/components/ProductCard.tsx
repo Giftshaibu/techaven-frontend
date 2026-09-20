@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { discountPercent, formatMwk, getShop, type Product } from "@/data/catalog";
+import { useSavedSlugs, useToggleSaved } from "@/lib/saved";
 import { cn } from "@/lib/utils";
 
 export function ProductCard({
@@ -13,6 +14,10 @@ export function ProductCard({
 }) {
   const shop = getShop(product.shop);
   const discount = discountPercent(product);
+  const navigate = useNavigate();
+  const { slugs, signedIn } = useSavedSlugs();
+  const toggleSaved = useToggleSaved();
+  const saved = slugs.includes(product.slug);
 
   return (
     <article className="group relative">
@@ -32,10 +37,23 @@ export function ProductCard({
 
         <button
           type="button"
-          aria-label={`Save ${product.name} to wishlist`}
-          className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-surface/90 text-ink-800 transition-colors hover:text-brand-500"
+          aria-label={
+            saved ? `Remove ${product.name} from saved` : `Save ${product.name} to your list`
+          }
+          aria-pressed={saved}
+          onClick={() => {
+            if (!signedIn) {
+              navigate({ to: "/auth", search: { redirect: "/account/saved" } });
+              return;
+            }
+            toggleSaved.mutate({ slug: product.slug, saved });
+          }}
+          className={cn(
+            "absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
+            saved ? "text-brand-500" : "text-ink-800",
+          )}
         >
-          <Icon name="heart-linear" className="h-[18px] w-[18px]" />
+          <Icon name={saved ? "heart-bold" : "heart-linear"} className="h-[18px] w-[18px]" />
         </button>
 
         {discount > 0 ? (
