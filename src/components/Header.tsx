@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { categories, popularBrands, shops } from "@/data/catalog";
+import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
@@ -155,6 +156,7 @@ function MegaMenu({ slug }: { slug: string }) {
 
 export function Header() {
   const { count } = useCart();
+  const { session } = useAuth();
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
 
@@ -228,16 +230,26 @@ export function Header() {
             >
               Trade-in
             </Link>
+            {session ? (
+              <Link
+                to="/account"
+                aria-label="Your account"
+                className="grid h-10 w-10 place-items-center rounded-lg text-brand-500 hover:text-brand-700"
+              >
+                <Icon name="user-circle-bold" className="h-[22px] w-[22px]" />
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500"
+              >
+                <Icon name="user-circle-linear" className="h-[22px] w-[22px]" />
+                <span className="hidden sm:inline">Sign in</span>
+              </Link>
+            )}
             <Link
-              to="/help"
-              aria-label="Account"
-              className="grid h-10 w-10 place-items-center rounded-lg text-ink-800 hover:text-brand-500"
-            >
-              <Icon name="user-circle-linear" className="h-[22px] w-[22px]" />
-            </Link>
-            <Link
-              to="/help"
-              aria-label="Wishlist"
+              to={session ? "/account/saved" : "/auth"}
+              aria-label="Saved products"
               className="hidden h-10 w-10 place-items-center rounded-lg text-ink-800 hover:text-brand-500 sm:grid"
             >
               <Icon name="heart-linear" className="h-[22px] w-[22px]" />
@@ -322,6 +334,9 @@ export function Header() {
                 { label: "Compare", to: "/compare" },
                 { label: "Trade-in", to: "/trade-in" },
                 { label: "Help", to: "/help" },
+                session
+                  ? { label: "Your account", to: "/account" }
+                  : { label: "Sign in", to: "/auth" },
               ].map((l) => (
                 <Link
                   key={l.label}
