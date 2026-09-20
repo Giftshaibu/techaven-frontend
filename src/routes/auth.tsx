@@ -1,20 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import { Icon } from "@/components/Icon";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { safeRedirect, useAuth } from "@/lib/auth";
 
-const searchSchema = z.object({
-  redirect: fallback(z.string(), "").default(""),
-});
+type Search = { redirect?: string };
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search: Record<string, unknown>): Search =>
+    typeof search["redirect"] === "string" ? { redirect: search["redirect"] } : {},
   head: () => ({
     meta: [
       { title: "Sign in — Techaven" },
