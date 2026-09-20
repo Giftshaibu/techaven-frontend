@@ -37,7 +37,7 @@ export function ProductGrid({
 
 export function ProductRail({ products }: { products: Product[] }) {
   return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0 2xl:grid-cols-5">
+    <div className="no-scrollbar flex snap-x gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0 2xl:grid-cols-5">
       {products.map((p) => (
         <div key={p.slug} className="w-[62%] shrink-0 snap-start md:w-auto">
           <ProductCard product={p} />

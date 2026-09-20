@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { discountPercent, formatMwk, getShop, type Product } from "@/data/catalog";
+import { useCompareSelection } from "@/lib/compare";
 import { useSavedSlugs, useToggleSaved } from "@/lib/saved";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,8 @@ export function ProductCard({
   const { slugs, signedIn } = useSavedSlugs();
   const toggleSaved = useToggleSaved();
   const saved = slugs.includes(product.slug);
+  const { toggle, isSelected } = useCompareSelection();
+  const compared = isSelected(product.slug);
 
   return (
     <article className="group relative">
@@ -35,26 +38,48 @@ export function ProductCard({
           />
         </Link>
 
-        <button
-          type="button"
-          aria-label={
-            saved ? `Remove ${product.name} from saved` : `Save ${product.name} to your list`
-          }
-          aria-pressed={saved}
-          onClick={() => {
-            if (!signedIn) {
-              navigate({ to: "/auth", search: { redirect: "/account/saved" } });
-              return;
+        <div className="absolute right-2 top-2 flex gap-1.5">
+          <button
+            type="button"
+            aria-label={
+              saved ? `Remove ${product.name} from saved` : `Save ${product.name} to your list`
             }
-            toggleSaved.mutate({ slug: product.slug, saved });
-          }}
-          className={cn(
-            "absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
-            saved ? "text-brand-500" : "text-ink-800",
-          )}
-        >
-          <Icon name={saved ? "heart-bold" : "heart-linear"} className="h-[18px] w-[18px]" />
-        </button>
+            aria-pressed={saved}
+            onClick={() => {
+              if (!signedIn) {
+                navigate({ to: "/auth", search: { redirect: "/account/saved" } });
+                return;
+              }
+              toggleSaved.mutate({ slug: product.slug, saved });
+            }}
+            className={cn(
+              "grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
+              saved ? "text-brand-500" : "text-ink-800",
+            )}
+          >
+            <Icon name={saved ? "heart-bold" : "heart-linear"} className="h-[18px] w-[18px]" />
+          </button>
+
+          <button
+            type="button"
+            aria-label={compared ? `Remove ${product.name} from compare` : `Add ${product.name} to compare`}
+            aria-pressed={compared}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggle(product.slug);
+            }}
+            className={cn(
+              "grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
+              compared ? "text-brand-500" : "text-ink-800",
+            )}
+          >
+            <Icon
+              name={compared ? "scale-broken-linear" : "scale-linear"}
+              className="h-[18px] w-[18px]"
+            />
+          </button>
+        </div>
 
         {discount > 0 ? (
           <span className="absolute left-2 top-2 rounded-[6px] bg-ink-900 px-2 py-1 text-[11px] font-bold tracking-wide text-white">

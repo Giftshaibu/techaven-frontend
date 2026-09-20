@@ -15,6 +15,7 @@ import {
   shops,
 } from "@/data/catalog";
 import { useCart } from "@/lib/cart";
+import { useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$slug")({
@@ -51,6 +52,7 @@ function ProductPage() {
   const shop = getShop(product.shop)!;
   const category = getCategory(product.category);
   const { add, count } = useCart();
+  const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
@@ -272,12 +274,13 @@ function ProductPage() {
               <p className="mt-1.5 text-sm text-ink-800/70">
                 Compare this with up to three other devices before you buy.
               </p>
-              <Link
-                to="/compare"
+              <button
+                type="button"
+                onClick={() => toggle(product.slug)}
                 className="mt-4 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
               >
-                Add to compare
-              </Link>
+                {isSelected(product.slug) ? "Added to compare" : "Add to compare"}
+              </button>
             </div>
           </div>
         </div>

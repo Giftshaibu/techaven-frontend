@@ -114,7 +114,7 @@ export function MegaHeader({
                   ratio={i === 0 ? "portrait" : "square"}
                   tone="white"
                   className={cn(
-                    "flex-1 rounded-2xl",
+                    "flex-1 max-h-[220px] rounded-2xl md:max-h-none",
                     i === 0 && "z-10 lg:scale-105",
                     i === 1 && "hidden sm:flex",
                     i === 2 && "hidden xl:flex",

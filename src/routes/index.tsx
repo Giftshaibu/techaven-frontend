@@ -113,9 +113,11 @@ function Home() {
           description="Real shops with their own catalogs, stock and delivery options."
           action={<ViewAllLink to="/shops" label="View all shops" />}
         />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:px-0 lg:grid-cols-4">
           {shops.slice(0, 4).map((s) => (
-            <ShopCard key={s.slug} shop={s} />
+            <div key={s.slug} className="w-[72%] shrink-0 snap-start md:w-auto">
+              <ShopCard shop={s} />
+            </div>
           ))}
         </div>
       </section>
@@ -142,7 +144,7 @@ function Home() {
           title="Browse by category"
           description="The full mall taxonomy, with the subcategories shops actually stock."
         />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
           {categories.slice(0, 4).map((c) => (
             <CategoryCard key={c.slug} category={c} />
           ))}

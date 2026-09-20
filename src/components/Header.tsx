@@ -17,11 +17,8 @@ const searchExamples = ["iPhone 15", "gaming laptop", "wireless earbuds", "4K TV
 
 function Wordmark() {
   return (
-    <Link to="/" className="flex items-center gap-2" aria-label="Techaven home">
-      <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-500 text-white">
-        <Icon name="bolt-circle-bold" className="h-5 w-5" />
-      </span>
-      <span className="text-[19px] font-extrabold tracking-tight text-ink-800">Techaven</span>
+    <Link to="/" className="flex items-center" aria-label="Techaven home">
+      <img src="/techaven-logo-transparent.png" alt="Techaven" className="h-[30px] w-auto" />
     </Link>
   );
 }
@@ -159,10 +156,18 @@ export function Header() {
   const { session } = useAuth();
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-surface">
-      {announcement ? (
+    <header className="sticky top-0 z-50 bg-surface shadow-[0_1px_0_rgba(5,5,38,0.04)]">
+      {announcement && !scrolled ? (
         <div className="bg-ink-900 text-white">
           <div className="shell flex items-center justify-center gap-3 py-2 text-[13px]">
             <Icon name="box-minimalistic-linear" className="h-4 w-4 shrink-0" />
@@ -184,7 +189,7 @@ export function Header() {
         </div>
       ) : null}
 
-      <div className="hidden border-b border-border bg-neutral-050 lg:block">
+      <div className={cn("hidden border-b border-border bg-neutral-050 transition-[max-height,opacity] duration-200 lg:block", scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-10 opacity-100")}>
         <div className="shell flex items-center justify-end gap-5 py-1.5 text-xs text-muted-foreground">
           {utilityLinks.map((link) => (
             <Link key={link.label} to={link.to} className="hover:text-brand-500 hover:underline">
@@ -195,7 +200,7 @@ export function Header() {
       </div>
 
       <div className="border-b border-border">
-        <div className="shell flex items-center gap-4 py-3">
+        <div className={cn("shell flex items-center gap-4 transition-[padding] duration-200", scrolled ? "py-2" : "py-3")}>
           <button
             type="button"
             onClick={() => setMobileNav((v) => !v)}
@@ -205,7 +210,9 @@ export function Header() {
             <Icon name={mobileNav ? "close-square-linear" : "hamburger-menu-linear"} className="h-6 w-6" />
           </button>
 
-          <Wordmark />
+          <div className={cn("transition-transform duration-200", scrolled && "scale-[0.9] origin-left")}>
+            <Wordmark />
+          </div>
 
           <div className="hidden flex-1 justify-center md:flex">
             <SearchField />
@@ -269,12 +276,14 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="shell pb-3 md:hidden">
-          <SearchField mobile />
-        </div>
+          {!scrolled ? (
+            <div className="shell pb-3 md:hidden">
+              <SearchField mobile />
+            </div>
+          ) : null}
       </div>
 
-      <div className="relative hidden border-b border-border bg-surface lg:block">
+        <div className={cn("relative hidden border-b border-border bg-surface transition-[max-height,opacity] duration-200 lg:block", scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-14 opacity-100")}>
         <div className="shell flex items-center gap-1 overflow-visible py-2 text-sm">
           <Link
             to="/deals"
