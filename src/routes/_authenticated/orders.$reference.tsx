@@ -73,12 +73,10 @@ function OrderPage() {
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-surface text-brand-500">
           <Icon name="check-circle-bold" className="h-8 w-8" />
         </span>
-        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink-800">
-          Order placed
-        </h1>
+        <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink-800">Order placed</h1>
         <p className="mt-2 text-sm text-ink-800/80">
-          Reference <span className="font-bold">{data.reference}</span> · we're confirming stock with
-          the shop and will message you on {data.phone}.
+          Reference <span className="font-bold">{data.reference}</span> · we're confirming stock
+          with the shop and will message you on {data.phone}.
         </p>
       </div>
 
@@ -111,7 +109,7 @@ function OrderPage() {
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-stage p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[13px] font-semibold tracking-normal text-ink-800">
                 {data.fulfilment === "pickup" ? "Collection contact" : "Delivering to"}
               </p>
               <p className="mt-2 text-sm font-semibold text-ink-800">{data.recipient}</p>
@@ -121,9 +119,7 @@ function OrderPage() {
               <p className="text-xs text-muted-foreground">{data.phone}</p>
             </div>
             <div className="rounded-2xl bg-stage p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Payment
-              </p>
+              <p className="text-[13px] font-semibold tracking-normal text-ink-800">Payment</p>
               <p className="mt-2 text-sm font-semibold text-ink-800">
                 {paymentLabels[data.payment_method] ?? data.payment_method}
               </p>

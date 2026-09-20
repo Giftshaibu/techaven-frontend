@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/ProductCard";
+import { HorizontalRail } from "@/components/HorizontalRail";
 import { InlinePromo, type Promo } from "@/components/PromoTile";
 import type { Product } from "@/data/catalog";
 import { cn } from "@/lib/utils";
@@ -35,14 +36,27 @@ export function ProductGrid({
   );
 }
 
-export function ProductRail({ products }: { products: Product[] }) {
+export function ProductRail({
+  products,
+  label = "Products",
+}: {
+  products: Product[];
+  label?: string;
+}) {
   return (
-    <div className="no-scrollbar flex snap-x gap-5 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0 2xl:grid-cols-5">
+    <HorizontalRail
+      label={label}
+      className="gap-5"
+      desktopClassName="md:grid md:grid-cols-4 md:gap-6 2xl:grid-cols-5"
+    >
       {products.map((p) => (
-        <div key={p.slug} className="w-[62%] shrink-0 snap-start md:w-auto">
+        <div
+          key={p.slug}
+          className="w-[72%] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none"
+        >
           <ProductCard product={p} />
         </div>
       ))}
-    </div>
+    </HorizontalRail>
   );
 }

@@ -4,6 +4,7 @@ import { ImageStage } from "@/components/ImageStage";
 import { cn } from "@/lib/utils";
 
 export type MegaAction = { label: string; to: string; params?: Record<string, string> };
+export type MegaMedia = { src: string; alt: string; position?: string };
 
 /**
  * Reusable mega commerce header for categories, shops, catalogs and campaigns.
@@ -15,6 +16,7 @@ export function MegaHeader({
   support,
   actions = [],
   stages = [],
+  media = [],
   tone = "brand-soft",
   editorial = false,
   aside,
@@ -24,6 +26,7 @@ export function MegaHeader({
   support?: string;
   actions?: MegaAction[];
   stages?: string[];
+  media?: MegaMedia[];
   tone?: "brand-soft" | "dark" | "neutral" | "brand";
   editorial?: boolean;
   aside?: ReactNode;
@@ -45,7 +48,7 @@ export function MegaHeader({
           {eyebrow ? (
             <p
               className={cn(
-                "mb-3 text-xs font-semibold uppercase tracking-[0.12em]",
+                "mb-3 text-sm font-semibold tracking-normal",
                 dark ? "text-white/70" : "text-brand-700",
               )}
             >
@@ -104,23 +107,35 @@ export function MegaHeader({
           ) : null}
         </div>
 
-        {stages.length ? (
+        {stages.length || media.length ? (
           <div className="relative">
             <div className="flex items-end gap-4 lg:-mr-24">
-              {stages.slice(0, 3).map((s, i) => (
-                <ImageStage
-                  key={`${s}-${i}`}
-                  category={s}
-                  ratio={i === 0 ? "portrait" : "square"}
-                  tone="white"
-                  className={cn(
-                    "flex-1 max-h-[220px] rounded-2xl md:max-h-none",
-                    i === 0 && "z-10 lg:scale-105",
-                    i === 1 && "hidden sm:flex",
-                    i === 2 && "hidden xl:flex",
-                  )}
-                />
-              ))}
+              {(media.length ? media : stages.map((category) => ({ category, src: "", alt: "" })))
+                .slice(0, 3)
+                .map((item, i) => (
+                  <ImageStage
+                    key={`${"category" in item ? item.category : item.src}-${i}`}
+                    category={"category" in item ? item.category : stages[i]}
+                    src={item.src || undefined}
+                    alt={item.alt}
+                    position={"position" in item ? item.position : undefined}
+                    priority={i === 0}
+                    sizes={
+                      media.length === 1
+                        ? "(max-width: 1023px) 100vw, 50vw"
+                        : "(max-width: 767px) 80vw, 28vw"
+                    }
+                    ratio={media.length === 1 ? "wide" : i === 0 ? "portrait" : "square"}
+                    tone="white"
+                    className={cn(
+                      "flex-1 rounded-2xl",
+                      media.length !== 1 && "max-h-[220px] md:max-h-none",
+                      i === 0 && "z-10 lg:scale-105",
+                      i === 1 && "hidden sm:flex",
+                      i === 2 && "hidden xl:flex",
+                    )}
+                  />
+                ))}
             </div>
           </div>
         ) : null}

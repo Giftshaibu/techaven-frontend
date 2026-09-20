@@ -5,6 +5,7 @@ import { MegaHeader } from "@/components/MegaHeader";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SectionHeader } from "@/components/SectionHeader";
 import { catalogs, getShop, productsByShop } from "@/data/catalog";
+import { marketplaceMedia } from "@/data/media";
 
 export const Route = createFileRoute("/shops/$shopSlug")({
   loader: ({ params }) => {
@@ -103,13 +104,23 @@ function ShopPage() {
             description="Curated sets this shop keeps up to date."
           />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {shopCatalogs.map((catalog) => (
+            {shopCatalogs.map((catalog, index) => (
               <Link
                 key={catalog.slug}
                 to="/catalogs"
                 className="group rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-brand-300"
               >
-                <ImageStage ratio="wide" tone="brand" />
+                <ImageStage
+                  ratio="wide"
+                  tone="brand"
+                  src={
+                    [marketplaceMedia.shop, marketplaceMedia.workspace, marketplaceMedia.audio][
+                      index % 3
+                    ]!.src
+                  }
+                  alt=""
+                  sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                />
                 <h3 className="mt-3 text-base font-bold text-ink-800 group-hover:underline">
                   {catalog.title}
                 </h3>

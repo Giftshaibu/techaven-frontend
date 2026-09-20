@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CategoryCard, CategoryTile } from "@/components/CategoryTile";
 import { Icon } from "@/components/Icon";
+import { HorizontalRail } from "@/components/HorizontalRail";
 import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
 import { ProductRail } from "@/components/ProductGrid";
@@ -17,6 +18,7 @@ import {
   productsBySlugs,
   shops,
 } from "@/data/catalog";
+import { marketplaceMedia } from "@/data/media";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,6 +48,7 @@ const editorialPromos: Promo[] = [
     to: "/compare",
     theme: "brand-soft",
     stageCategory: "smartphones",
+    media: marketplaceMedia.compare,
   },
   {
     headline: "Your old device still has value.",
@@ -54,6 +57,7 @@ const editorialPromos: Promo[] = [
     to: "/trade-in",
     theme: "neutral",
     stageCategory: "laptops",
+    media: marketplaceMedia.workspace,
   },
 ];
 
@@ -66,14 +70,14 @@ function Home() {
   return (
     <>
       <MegaHeader
-        eyebrow="Techaven marketplace"
+        eyebrow="Techaven Marketplace"
         title="Every electronics shop in one place."
         support="Phones, laptops, audio and home electronics from verified Malawian shops — with comparison, trade-in and buyer protection built in."
         actions={[
           { label: "Shop the deals", to: "/deals" },
           { label: "Browse the shops", to: "/shops" },
         ]}
-        stages={["smartphones", "laptops", "audio"]}
+        media={[marketplaceMedia.hero]}
         tone="brand-soft"
         aside={
           <dl className="mt-7 flex flex-wrap gap-x-8 gap-y-3 text-sm">
@@ -113,13 +117,19 @@ function Home() {
           description="Real shops with their own catalogs, stock and delivery options."
           action={<ViewAllLink to="/shops" label="View all shops" />}
         />
-        <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:px-0 lg:grid-cols-4">
+        <HorizontalRail
+          label="Featured shops"
+          desktopClassName="md:grid md:grid-cols-2 md:gap-5 lg:grid-cols-4"
+        >
           {shops.slice(0, 4).map((s) => (
-            <div key={s.slug} className="w-[72%] shrink-0 snap-start md:w-auto">
+            <div
+              key={s.slug}
+              className="w-[82%] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none"
+            >
               <ShopCard shop={s} />
             </div>
           ))}
-        </div>
+        </HorizontalRail>
       </section>
 
       <section className="shell pb-10 md:pb-14">
@@ -128,7 +138,7 @@ function Home() {
           description="Price drops across every category, refreshed by the shops themselves."
           action={<ViewAllLink to="/deals" label="All deals" />}
         />
-        <ProductRail products={hotDeals} />
+        <ProductRail products={hotDeals} label="Hot deals" />
       </section>
 
       <section className="shell pb-10 md:pb-14">
@@ -155,7 +165,7 @@ function Home() {
         <div className="rounded-3xl bg-surface p-6 md:p-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+              <p className="text-sm font-semibold tracking-normal text-brand-700">
                 Featured catalog
               </p>
               <h2 className="mt-3 font-editorial text-3xl leading-tight text-ink-800 md:text-4xl">
@@ -172,7 +182,15 @@ function Home() {
                 Browse catalog
                 <Icon name="alt-arrow-right-linear" className="h-4 w-4" />
               </Link>
-              <ImageStage category="laptops" ratio="wide" className="mt-6 hidden lg:flex" />
+              <ImageStage
+                category="laptops"
+                src={marketplaceMedia.workspace.src}
+                alt={marketplaceMedia.workspace.alt}
+                position={marketplaceMedia.workspace.position}
+                sizes="34vw"
+                ratio="wide"
+                className="mt-6 hidden lg:flex"
+              />
             </div>
             <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
               {catalogProducts.map((p) => (
@@ -186,9 +204,7 @@ function Home() {
                   <h3 className="mt-2.5 line-clamp-2 text-sm font-semibold text-ink-800 group-hover:underline">
                     {p.name}
                   </h3>
-                  <p className="mt-1 text-base font-extrabold text-ink-800">
-                    {formatMwk(p.price)}
-                  </p>
+                  <p className="mt-1 text-base font-extrabold text-ink-800">{formatMwk(p.price)}</p>
                 </Link>
               ))}
             </div>
@@ -214,8 +230,16 @@ function Home() {
               </Link>
             </div>
             <div className="flex gap-3">
-              <ImageStage category="smartphones" tone="white" className="w-24 rounded-xl" />
-              <ImageStage category="tablets" tone="white" className="w-24 rounded-xl" />
+              <ImageStage
+                category="smartphones"
+                src={marketplaceMedia.compare.src}
+                alt={marketplaceMedia.compare.alt}
+                position={marketplaceMedia.compare.position}
+                tone="white"
+                ratio="wide"
+                sizes="220px"
+                className="w-48 rounded-xl"
+              />
             </div>
           </div>
 
@@ -234,7 +258,15 @@ function Home() {
                 Start trade-in
               </Link>
             </div>
-            <ImageStage category="wearables" tone="white" className="w-28 rounded-xl" />
+            <ImageStage
+              category="smartphones"
+              src={marketplaceMedia.tradeIn.src}
+              alt={marketplaceMedia.tradeIn.alt}
+              position={marketplaceMedia.tradeIn.position}
+              tone="white"
+              sizes="180px"
+              className="w-32 rounded-xl"
+            />
           </div>
         </div>
       </section>
@@ -244,7 +276,7 @@ function Home() {
           title="Recommended for you"
           description="Based on what people are browsing on Techaven right now."
         />
-        <ProductRail products={recentlyViewed} />
+        <ProductRail products={recentlyViewed} label="Recommended products" />
       </section>
 
       <TrustStrip />

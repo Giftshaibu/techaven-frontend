@@ -140,7 +140,7 @@ function AccountDetails() {
           <Field label="Full name" value={fullName} onChange={setFullName} />
           <Field label="Phone number" value={phone} onChange={setPhone} placeholder="+265 ..." />
           <div>
-            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
               Email
             </span>
             <p className="text-sm text-ink-800">{user?.email}</p>
@@ -227,11 +227,7 @@ function AccountDetails() {
             value={form.phone}
             onChange={(v) => setForm({ ...form, phone: v })}
           />
-          <Field
-            label="City"
-            value={form.city}
-            onChange={(v) => setForm({ ...form, city: v })}
-          />
+          <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
           <Field label="Area" value={form.area} onChange={(v) => setForm({ ...form, area: v })} />
           <Field
             label="Street"
@@ -247,11 +243,7 @@ function AccountDetails() {
             type="button"
             onClick={() => addAddress.mutate()}
             disabled={
-              addAddress.isPending ||
-              !form.recipient ||
-              !form.phone ||
-              !form.city ||
-              !form.area
+              addAddress.isPending || !form.recipient || !form.phone || !form.city || !form.area
             }
             className="sm:col-span-2 rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
@@ -276,7 +268,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
         {label}
       </span>
       <input

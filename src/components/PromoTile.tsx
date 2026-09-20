@@ -46,6 +46,7 @@ export type Promo = {
   theme: Theme;
   stageCategory?: string;
   editorial?: boolean;
+  media?: { src: string; alt: string; position?: string };
 };
 
 export function PromoTile({ promo }: { promo: Promo }) {
@@ -55,6 +56,10 @@ export function PromoTile({ promo }: { promo: Promo }) {
     <div className={cn("flex flex-col gap-5 rounded-3xl p-6 md:p-8", t.wrap, t.body)}>
       <ImageStage
         category={promo.stageCategory}
+        src={promo.media?.src}
+        alt={promo.media?.alt}
+        position={promo.media?.position}
+        sizes="(max-width: 1023px) 100vw, 50vw"
         ratio="wide"
         tone={promo.theme === "brand" || promo.theme === "dark" ? "white" : "white"}
         className="w-full"

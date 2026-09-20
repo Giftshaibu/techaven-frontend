@@ -3,6 +3,7 @@ import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
 import { SectionHeader } from "@/components/SectionHeader";
+import { marketplaceMedia } from "@/data/media";
 
 export const Route = createFileRoute("/trade-in")({
   head: () => ({
@@ -104,7 +105,15 @@ function TradeInPage() {
               <Icon name="alt-arrow-right-linear" className="h-4 w-4" />
             </Link>
           </div>
-          <ImageStage category="smartphones" ratio="portrait" tone="stage" />
+          <ImageStage
+            category="smartphones"
+            src={marketplaceMedia.tradeIn.src}
+            alt={marketplaceMedia.tradeIn.alt}
+            position={marketplaceMedia.tradeIn.position}
+            sizes="(max-width: 1023px) 100vw, 42vw"
+            ratio="portrait"
+            tone="stage"
+          />
         </div>
       </section>
     </>

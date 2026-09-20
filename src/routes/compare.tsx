@@ -43,7 +43,9 @@ function ComparePage() {
   }
 
   const specLabels = [...new Set(chosen.flatMap((p) => p.specs.map((s) => s.label)))];
-  const visibleSpecLabels = differencesOnly ? specLabels.filter((label) => getVariation(label)) : specLabels;
+  const visibleSpecLabels = differencesOnly
+    ? specLabels.filter((label) => getVariation(label))
+    : specLabels;
 
   const canCompare = chosen.length >= 2;
   const normalizedQuery = query.trim().toLowerCase();
@@ -71,9 +73,7 @@ function ComparePage() {
         <div className="rounded-[28px] border border-neutral-200 bg-surface p-4 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Shortlist
-              </p>
+              <p className="text-sm font-semibold tracking-normal text-ink-800">Shortlist</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-ink-800 md:text-3xl">
                 Choose devices <span className="text-muted-foreground">({count}/3)</span>
               </h2>
@@ -132,9 +132,14 @@ function ComparePage() {
                       key={product.slug}
                       className="flex items-center gap-3 border-b border-neutral-200 px-3 py-3 last:border-b-0"
                     >
-                      <ImageStage category={product.category} className="h-12 w-12 shrink-0 rounded-lg" />
+                      <ImageStage
+                        category={product.category}
+                        className="h-12 w-12 shrink-0 rounded-lg"
+                      />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-ink-800">{product.name}</p>
+                        <p className="truncate text-sm font-semibold text-ink-800">
+                          {product.name}
+                        </p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
                           {getShop(product.shop)?.name} · {formatMwk(product.price)}
                         </p>
@@ -170,18 +175,28 @@ function ComparePage() {
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-base font-bold text-ink-800">Selected devices</h3>
               {selected.length < 3 ? (
-                <span className="text-xs text-muted-foreground">{3 - selected.length} slot(s) available</span>
+                <span className="text-xs text-muted-foreground">
+                  {3 - selected.length} slot(s) available
+                </span>
               ) : null}
             </div>
 
             {chosen.length ? (
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {chosen.map((product) => (
-                  <div key={product.slug} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-050 p-2.5">
-                    <ImageStage category={product.category} className="h-14 w-14 shrink-0 rounded-lg" />
+                  <div
+                    key={product.slug}
+                    className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-050 p-2.5"
+                  >
+                    <ImageStage
+                      category={product.category}
+                      className="h-14 w-14 shrink-0 rounded-lg"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink-800">{product.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{formatMwk(product.price)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatMwk(product.price)}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -205,7 +220,9 @@ function ComparePage() {
         {!canCompare ? (
           <div className="mt-8 rounded-[28px] border border-info-soft bg-info-soft p-6 text-sm text-ink-800/80 md:p-8">
             <p className="text-base font-semibold text-ink-800">
-              {chosen.length === 1 ? "Add one more product to compare." : "Search for products to start comparing."}
+              {chosen.length === 1
+                ? "Add one more product to compare."
+                : "Search for products to start comparing."}
             </p>
             <p className="mt-2 max-w-xl">
               {chosen.length === 1
@@ -219,14 +236,17 @@ function ComparePage() {
               <table className="w-full min-w-[760px] border-collapse text-left text-sm">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 z-20 w-40 border-b border-neutral-200 bg-neutral-050 px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-20 w-40 border-b border-neutral-200 bg-neutral-050 px-4 py-4 text-[13px] font-semibold tracking-normal text-ink-800">
                       Device
                     </th>
                     {chosen.map((p) => (
                       <th key={p.slug} className="border-b border-neutral-200 px-4 py-4 align-top">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <ImageStage category={p.category} className="w-24 rounded-2xl md:w-28" />
+                            <ImageStage
+                              category={p.category}
+                              className="w-24 rounded-2xl md:w-28"
+                            />
                             <Link
                               to="/product/$slug"
                               params={{ slug: p.slug }}
@@ -234,7 +254,9 @@ function ComparePage() {
                             >
                               {p.name}
                             </Link>
-                            <p className="mt-1 text-xs text-muted-foreground">{getShop(p.shop)?.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {getShop(p.shop)?.name}
+                            </p>
                           </div>
 
                           <button
@@ -252,7 +274,7 @@ function ComparePage() {
 
                 <tbody>
                   <tr className="border-b border-neutral-200">
-                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                       Price
                     </th>
                     {chosen.map((p) => (
@@ -270,7 +292,7 @@ function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-neutral-200">
-                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                       Condition
                     </th>
                     {chosen.map((p) => (
@@ -281,7 +303,7 @@ function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-neutral-200">
-                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                       Shop
                     </th>
                     {chosen.map((p) => (
@@ -292,7 +314,7 @@ function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-neutral-200">
-                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                       Rating
                     </th>
                     {chosen.map((p) => (
@@ -310,7 +332,7 @@ function ComparePage() {
                     const hasVariation = getVariation(label);
                     return (
                       <tr key={label} className="border-b border-neutral-200">
-                        <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                           {label}
                         </th>
                         {chosen.map((p) => {
@@ -333,7 +355,7 @@ function ComparePage() {
                   })}
 
                   <tr>
-                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="sticky left-0 z-10 bg-neutral-050 px-4 py-4 text-left text-[13px] font-semibold tracking-normal text-ink-800">
                       Warranty
                     </th>
                     {chosen.map((p) => (
@@ -351,4 +373,3 @@ function ComparePage() {
     </>
   );
 }
-

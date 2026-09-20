@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
+import { ImageStage } from "@/components/ImageStage";
 import { shopProductCount, type Shop } from "@/data/catalog";
+import { marketplaceMedia } from "@/data/media";
 
 export function ShopCard({ shop }: { shop: Shop }) {
   return (
@@ -9,8 +11,19 @@ export function ShopCard({ shop }: { shop: Shop }) {
       params={{ shopSlug: shop.slug }}
       className="group block rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-brand-300"
     >
-      <div className="flex aspect-[16/10] items-center justify-center rounded-xl bg-brand-100/70">
-        <span className="font-editorial text-3xl text-brand-800">{shop.name.charAt(0)}</span>
+      <div className="relative">
+        <ImageStage
+          category="home-electronics"
+          src={marketplaceMedia.shop.src}
+          alt=""
+          position={marketplaceMedia.shop.position}
+          ratio="wide"
+          sizes="(max-width: 767px) 82vw, (max-width: 1023px) 50vw, 25vw"
+          className="rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+        />
+        <span className="absolute bottom-2 left-2 rounded-md bg-surface/90 px-2 py-1 text-xs font-bold text-brand-800 backdrop-blur-sm">
+          {shop.name}
+        </span>
       </div>
 
       <div className="mt-3 flex items-start gap-2.5">

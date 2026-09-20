@@ -31,9 +31,7 @@ function AccountLayout() {
     <section className="shell py-10 md:py-14">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-brand-500">
-            Your account
-          </p>
+          <p className="text-sm font-semibold tracking-normal text-brand-500">Your account</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink-800 md:text-4xl">
             {user?.email}
           </h1>

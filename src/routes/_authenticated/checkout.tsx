@@ -86,15 +86,16 @@ function CheckoutPage() {
         .filter(
           (
             entry,
-          ): entry is { line: (typeof lines)[number]; product: NonNullable<typeof entry.product> } =>
-            Boolean(entry.product),
+          ): entry is {
+            line: (typeof lines)[number];
+            product: NonNullable<typeof entry.product>;
+          } => Boolean(entry.product),
         ),
     [lines],
   );
 
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.line.quantity, 0);
-  const deliveryFee =
-    fulfilment === "pickup" || subtotal === 0 || subtotal > 900000 ? 0 : 6000;
+  const deliveryFee = fulfilment === "pickup" || subtotal === 0 || subtotal > 900000 ? 0 : 6000;
   const total = subtotal + deliveryFee;
 
   const addresses = useQuery({
@@ -310,7 +311,7 @@ function CheckoutPage() {
 
               {addresses.data?.length ? (
                 <div className="mt-6 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[13px] font-semibold tracking-normal text-ink-800">
                     Saved details
                   </p>
                   {addresses.data.map((a) => (
@@ -385,7 +386,7 @@ function CheckoutPage() {
                     placeholder="Home"
                   />
                   <label className="sm:col-span-2 block">
-                    <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                    <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
                       Delivery notes
                     </span>
                     <textarea
@@ -449,7 +450,10 @@ function CheckoutPage() {
               </div>
 
               <p className="mt-4 flex items-start gap-2 rounded-2xl bg-info-soft p-4 text-xs text-ink-800/80">
-                <Icon name="shield-check-linear" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                <Icon
+                  name="shield-check-linear"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-brand-500"
+                />
                 No money leaves your account yet. Techaven confirms stock with the shop first, then
                 sends you payment instructions for the method you pick.
               </p>
@@ -479,7 +483,7 @@ function CheckoutPage() {
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-stage p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[13px] font-semibold tracking-normal text-ink-800">
                     {fulfilment === "pickup" ? "Collection contact" : "Delivering to"}
                   </p>
                   <p className="mt-2 text-sm font-semibold text-ink-800">{delivery.recipient}</p>
@@ -492,7 +496,7 @@ function CheckoutPage() {
                   ) : null}
                 </div>
                 <div className="rounded-2xl bg-stage p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[13px] font-semibold tracking-normal text-ink-800">
                     Paying with
                   </p>
                   <p className="mt-2 text-sm font-semibold text-ink-800">
@@ -591,7 +595,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
         {label}
       </span>
       <input

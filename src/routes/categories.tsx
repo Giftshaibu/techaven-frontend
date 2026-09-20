@@ -5,6 +5,7 @@ import { MegaHeader } from "@/components/MegaHeader";
 import { SectionHeader, ViewAllLink } from "@/components/SectionHeader";
 import { ShopCard } from "@/components/ShopCard";
 import { catalogs, categories, popularBrands, shops } from "@/data/catalog";
+import { marketplaceMedia } from "@/data/media";
 
 export const Route = createFileRoute("/categories")({
   head: () => ({
@@ -32,7 +33,7 @@ function CategoriesPage() {
         eyebrow="Categories"
         title="Browse electronics"
         support="Everything sold across the Techaven mall, grouped the way people actually shop."
-        stages={["laptops", "smartphones", "audio"]}
+        media={[marketplaceMedia.workspace]}
         tone="neutral"
       />
 
@@ -66,13 +67,33 @@ function CategoriesPage() {
           action={<ViewAllLink to="/catalogs" label="All catalogs" />}
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {catalogs.map((catalog) => (
+          {catalogs.map((catalog, index) => (
             <Link
               key={catalog.slug}
               to="/catalogs"
               className="group rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-brand-300"
             >
-              <ImageStage ratio="wide" tone="brand" />
+              <ImageStage
+                ratio="wide"
+                tone="brand"
+                src={
+                  [
+                    marketplaceMedia.workspace,
+                    marketplaceMedia.smartphones,
+                    marketplaceMedia.audio,
+                    marketplaceMedia.hero,
+                  ][index]?.src
+                }
+                alt={
+                  [
+                    marketplaceMedia.workspace,
+                    marketplaceMedia.smartphones,
+                    marketplaceMedia.audio,
+                    marketplaceMedia.hero,
+                  ][index]?.alt ?? ""
+                }
+                sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
+              />
               <h3 className="mt-3 text-base font-bold text-ink-800 group-hover:underline">
                 {catalog.title}
               </h3>

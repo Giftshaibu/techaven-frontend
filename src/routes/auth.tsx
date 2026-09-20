@@ -122,9 +122,7 @@ function AuthPage() {
     <section className="shell py-12 md:py-16">
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
         <div className="max-w-md">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-brand-500">
-            Techaven account
-          </p>
+          <p className="text-sm font-semibold tracking-normal text-brand-500">Techaven account</p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-ink-800 md:text-4xl">
             {mode === "signin" ? "Welcome back" : "Create your account"}
           </h1>
@@ -254,7 +252,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
         {label}
       </span>
       <input

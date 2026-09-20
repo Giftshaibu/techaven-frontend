@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { categories, popularBrands, shops } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
@@ -23,7 +23,13 @@ function Wordmark() {
   );
 }
 
-function SearchField({ mobile = false }: { mobile?: boolean }) {
+function SearchField({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const navigate = useNavigate();
   const [value, setValue] = useState("");
   const [exampleIndex, setExampleIndex] = useState(0);
@@ -41,6 +47,7 @@ function SearchField({ mobile = false }: { mobile?: boolean }) {
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
+        onNavigate?.();
         navigate({ to: "/search", search: { q: value } });
       }}
       className={cn("relative w-full", !mobile && "max-w-[680px]")}
@@ -75,7 +82,7 @@ function MegaMenu({ slug }: { slug: string }) {
     <div className="absolute left-0 right-0 top-full z-40 hidden border-b border-border bg-surface shadow-[0_12px_24px_-18px_rgba(5,5,38,0.35)] group-hover:block">
       <div className="shell grid gap-8 py-8 lg:grid-cols-[1.2fr_1fr_1fr_1.1fr]">
         <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
             Shop {category.name.toLowerCase()}
           </h3>
           <ul className="space-y-2 text-sm">
@@ -94,9 +101,7 @@ function MegaMenu({ slug }: { slug: string }) {
         </div>
 
         <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-            Brands
-          </h3>
+          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">Brands</h3>
           <ul className="space-y-2 text-sm">
             {category.brands.map((brand) => (
               <li key={brand}>
@@ -114,7 +119,7 @@ function MegaMenu({ slug }: { slug: string }) {
         </div>
 
         <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
             Featured shops
           </h3>
           <ul className="space-y-2 text-sm">
@@ -133,9 +138,7 @@ function MegaMenu({ slug }: { slug: string }) {
         </div>
 
         <div className="rounded-2xl bg-brand-100 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-brand-700">
-            Techaven
-          </p>
+          <p className="text-sm font-semibold tracking-normal text-brand-700">Techaven</p>
           <p className="mt-2 text-lg font-bold leading-snug text-brand-800">
             Compare {category.name.toLowerCase()} side by side
           </p>
@@ -157,6 +160,9 @@ export function Header() {
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -164,6 +170,46 @@ export function Header() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!mobileNav) return;
+    const menuButton = menuButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileNav(false);
+        return;
+      }
+      if (event.key !== "Tab" || !drawerRef.current) return;
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+      menuButton?.focus();
+    };
+  }, [mobileNav]);
+
+  const closeMobileNav = () => setMobileNav(false);
 
   return (
     <header className="sticky top-0 z-50 bg-surface shadow-[0_1px_0_rgba(5,5,38,0.04)]">
@@ -189,7 +235,12 @@ export function Header() {
         </div>
       ) : null}
 
-      <div className={cn("hidden border-b border-border bg-neutral-050 transition-[max-height,opacity] duration-200 lg:block", scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-10 opacity-100")}>
+      <div
+        className={cn(
+          "hidden border-b border-border bg-neutral-050 transition-[max-height,opacity] duration-200 lg:block",
+          scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-10 opacity-100",
+        )}
+      >
         <div className="shell flex items-center justify-end gap-5 py-1.5 text-xs text-muted-foreground">
           {utilityLinks.map((link) => (
             <Link key={link.label} to={link.to} className="hover:text-brand-500 hover:underline">
@@ -200,17 +251,30 @@ export function Header() {
       </div>
 
       <div className="border-b border-border">
-        <div className={cn("shell flex items-center gap-4 transition-[padding] duration-200", scrolled ? "py-2" : "py-3")}>
+        <div
+          className={cn(
+            "shell flex items-center gap-4 transition-[padding] duration-200",
+            scrolled ? "py-2" : "py-3",
+          )}
+        >
           <button
+            ref={menuButtonRef}
             type="button"
-            onClick={() => setMobileNav((v) => !v)}
-            aria-label="Open menu"
-            className="grid h-10 w-10 place-items-center rounded-lg text-ink-800 lg:hidden"
+            onClick={() => setMobileNav(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={mobileNav}
+            aria-controls="mobile-navigation"
+            className="grid h-11 w-11 place-items-center rounded-lg text-ink-800 transition-colors hover:bg-stage focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           >
-            <Icon name={mobileNav ? "close-square-linear" : "hamburger-menu-linear"} className="h-6 w-6" />
+            <Icon name="hamburger-menu-linear" className="h-6 w-6" />
           </button>
 
-          <div className={cn("transition-transform duration-200", scrolled && "scale-[0.9] origin-left")}>
+          <div
+            className={cn(
+              "transition-transform duration-200",
+              scrolled && "scale-[0.9] origin-left",
+            )}
+          >
             <Wordmark />
           </div>
 
@@ -276,14 +340,19 @@ export function Header() {
           </nav>
         </div>
 
-          {!scrolled ? (
-            <div className="shell pb-3 md:hidden">
-              <SearchField mobile />
-            </div>
-          ) : null}
+        {!scrolled ? (
+          <div className="shell pb-3 md:hidden">
+            <SearchField mobile />
+          </div>
+        ) : null}
       </div>
 
-        <div className={cn("relative hidden border-b border-border bg-surface transition-[max-height,opacity] duration-200 lg:block", scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-14 opacity-100")}>
+      <div
+        className={cn(
+          "relative hidden border-b border-border bg-surface transition-[max-height,opacity] duration-200 lg:block",
+          scrolled ? "max-h-0 overflow-hidden opacity-0" : "max-h-14 opacity-100",
+        )}
+      >
         <div className="shell flex items-center gap-1 overflow-visible py-2 text-sm">
           <Link
             to="/deals"
@@ -319,49 +388,151 @@ export function Header() {
       </div>
 
       {mobileNav ? (
-        <div className="border-b border-border bg-surface lg:hidden">
-          <nav className="shell grid gap-1 py-4">
-            <Link to="/deals" className="py-2 font-semibold text-brand-500">
-              Deals
-            </Link>
-            {categories.map((category) => (
-              <Link
-                key={category.slug}
-                to="/category/$slug"
-                params={{ slug: category.slug }}
-                onClick={() => setMobileNav(false)}
-                className="py-2 text-[15px] font-medium text-ink-800"
+        <div className="fixed inset-0 z-[70] lg:hidden" role="presentation">
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={closeMobileNav}
+            className="absolute inset-0 bg-ink-900/55"
+          />
+          <aside
+            ref={drawerRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="absolute inset-y-0 left-0 flex w-[min(92vw,390px)] flex-col bg-surface shadow-[12px_0_32px_-16px_rgba(5,5,38,0.45)]"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <Wordmark />
+              <button
+                ref={closeButtonRef}
+                type="button"
+                onClick={closeMobileNav}
+                aria-label="Close navigation menu"
+                className="grid h-11 w-11 place-items-center rounded-lg text-ink-800 transition-colors hover:bg-stage focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {category.name}
-              </Link>
-            ))}
-            <div className="mt-2 border-t border-border pt-3">
-              {[
-                { label: "All categories", to: "/categories" },
-                { label: "Shops", to: "/shops" },
-                { label: "Catalogs", to: "/catalogs" },
-                { label: "Compare", to: "/compare" },
-                { label: "Trade-in", to: "/trade-in" },
-                { label: "Help", to: "/help" },
-                session
-                  ? { label: "Your account", to: "/account" }
-                  : { label: "Sign in", to: "/auth" },
-              ].map((l) => (
-                <Link
-                  key={l.label}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  to={l.to as any}
-                  onClick={() => setMobileNav(false)}
-                  className="block py-2 text-[15px] text-ink-800"
-                >
-                  {l.label}
-                </Link>
-              ))}
+                <Icon name="close-square-linear" className="h-6 w-6" />
+              </button>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Popular brands: {popularBrands.slice(0, 6).join(" · ")}
-            </p>
-          </nav>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
+              <SearchField mobile onNavigate={closeMobileNav} />
+
+              <section className="mt-5" aria-labelledby="quick-access-heading">
+                <h2
+                  id="quick-access-heading"
+                  className="text-sm font-semibold tracking-normal text-ink-800"
+                >
+                  Quick access
+                </h2>
+                <nav className="mt-2" aria-label="Quick access">
+                  {[
+                    {
+                      label: session ? "Account" : "Sign in",
+                      to: session ? "/account" : "/auth",
+                      icon: "user-circle-linear",
+                    },
+                    {
+                      label: "Saved",
+                      to: session ? "/account/saved" : "/auth",
+                      icon: "heart-linear",
+                    },
+                    {
+                      label: count ? `Basket ${count}` : "Basket",
+                      to: "/cart",
+                      icon: "cart-large-2-linear",
+                    },
+                  ].map((item) => (
+                    <Link
+                      key={item.label}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      to={item.to as any}
+                      onClick={closeMobileNav}
+                      className="flex min-h-12 items-center gap-3 px-1 py-2 text-[15px] font-medium text-ink-800 transition-colors hover:text-brand-500 active:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Icon
+                        name={item.icon}
+                        className="h-[22px] w-[22px] shrink-0 text-brand-500"
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </section>
+
+              <section className="mt-6" aria-labelledby="shop-category-heading">
+                <div className="flex items-center justify-between gap-3">
+                  <h2
+                    id="shop-category-heading"
+                    className="text-sm font-semibold tracking-normal text-ink-800"
+                  >
+                    Shop by category
+                  </h2>
+                  <Link
+                    to="/categories"
+                    onClick={closeMobileNav}
+                    className="text-xs font-semibold text-brand-500 hover:underline"
+                  >
+                    View all
+                  </Link>
+                </div>
+                <nav className="mt-2 divide-y divide-border" aria-label="Product categories">
+                  {categories.map((category) => (
+                    <Link
+                      key={category.slug}
+                      to="/category/$slug"
+                      params={{ slug: category.slug }}
+                      onClick={closeMobileNav}
+                      className="flex min-h-12 items-center justify-between gap-3 py-2.5 text-[15px] font-medium text-ink-800 hover:text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span>{category.name}</span>
+                      <Icon
+                        name="alt-arrow-right-linear"
+                        className="h-4 w-4 text-muted-foreground"
+                      />
+                    </Link>
+                  ))}
+                </nav>
+              </section>
+
+              <section className="mt-6" aria-labelledby="explore-heading">
+                <h2
+                  id="explore-heading"
+                  className="text-sm font-semibold tracking-normal text-ink-800"
+                >
+                  Explore Techaven
+                </h2>
+                <nav className="mt-2 grid grid-cols-2 gap-2" aria-label="Marketplace shortcuts">
+                  {[
+                    { label: "Deals", to: "/deals", icon: "sale-square-linear" },
+                    { label: "Shops", to: "/shops", icon: "shop-linear" },
+                    { label: "Compare", to: "/compare", icon: "scale-linear" },
+                    { label: "Trade-in", to: "/trade-in", icon: "smartphone-update-linear" },
+                    { label: "Help", to: "/help", icon: "question-circle-linear" },
+                    { label: "Track order", to: "/help", icon: "delivery-linear" },
+                    { label: "Catalogs", to: "/catalogs", icon: "notebook-bookmark-linear" },
+                    { label: "Categories", to: "/categories", icon: "widget-4-linear" },
+                  ].map((item) => (
+                    <Link
+                      key={item.label}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      to={item.to as any}
+                      onClick={closeMobileNav}
+                      className="flex min-h-12 items-center gap-2.5 rounded-lg bg-ink-900 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink-800 active:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                    >
+                      <Icon name={item.icon} className="h-5 w-5 shrink-0" />
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </section>
+
+              <p className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
+                Popular brands: {popularBrands.slice(0, 6).join(" · ")}
+              </p>
+            </div>
+          </aside>
         </div>
       ) : null}
     </header>

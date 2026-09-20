@@ -111,9 +111,7 @@ function ProductPage() {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
-            {product.brand}
-          </p>
+          <p className="text-sm font-semibold tracking-normal text-brand-700">{product.brand}</p>
           <h1 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-ink-800 md:text-4xl">
             {product.name}
           </h1>
@@ -177,7 +175,7 @@ function ProductPage() {
 
             {otherShops.length ? (
               <div className="mt-4 border-t border-border pt-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[13px] font-semibold tracking-normal text-ink-800">
                   Also offered by
                 </p>
                 <ul className="mt-2 space-y-2">
@@ -264,7 +262,10 @@ function ProductPage() {
             <ul className="mt-4 space-y-3">
               {product.highlights.map((h) => (
                 <li key={h} className="flex items-start gap-2.5 text-sm text-ink-800/80">
-                  <Icon name="check-circle-linear" className="mt-0.5 h-[18px] w-[18px] shrink-0 text-brand-500" />
+                  <Icon
+                    name="check-circle-linear"
+                    className="mt-0.5 h-[18px] w-[18px] shrink-0 text-brand-500"
+                  />
                   {h}
                 </li>
               ))}

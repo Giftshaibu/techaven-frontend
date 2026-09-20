@@ -10,14 +10,18 @@ export function Footer() {
           <div className="grid gap-10 border-0 lg:grid-cols-[1.35fr_0.8fr_0.8fr_0.85fr_0.85fr] lg:gap-8">
             <div className="lg:col-span-2">
               <div className="flex items-center">
-                <img src="/techaven-logo-transparent.png" alt="Techaven" className="h-[30px] w-auto brightness-0 invert" />
+                <img
+                  src="/techaven-logo-transparent.png"
+                  alt="Techaven"
+                  className="h-[30px] w-auto brightness-0 invert"
+                />
               </div>
               <p className="mt-5 max-w-md text-sm leading-6 text-white/70 md:text-[15px]">
-                Malawi's electronics mall. From phones and laptops to home gear and audio, everything
-                is gathered in one trusted place.
+                Malawi's electronics mall. From phones and laptops to home gear and audio,
+                everything is gathered in one trusted place.
               </p>
               <div className="mt-6 flex gap-2.5">
-                {['facebook', 'instagram', 'whatsapp', 'tiktok'].map((name) => (
+                {["facebook", "instagram", "whatsapp", "tiktok"].map((name) => (
                   <span
                     key={name}
                     className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5"
@@ -30,7 +34,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Shop</h3>
+              <h3 className="text-sm font-semibold tracking-normal text-white">Shop</h3>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {categories.slice(0, 6).map((c) => (
                   <li key={c.slug}>
@@ -44,7 +48,10 @@ export function Footer() {
                   </li>
                 ))}
                 <li>
-                  <Link to="/deals" className="text-white/80 transition-colors hover:text-white hover:underline">
+                  <Link
+                    to="/deals"
+                    className="text-white/80 transition-colors hover:text-white hover:underline"
+                  >
                     Deals
                   </Link>
                 </li>
@@ -52,7 +59,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Stores</h3>
+              <h3 className="text-sm font-semibold tracking-normal text-white">Stores</h3>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {shops.slice(0, 5).map((s) => (
                   <li key={s.slug}>
@@ -66,7 +73,10 @@ export function Footer() {
                   </li>
                 ))}
                 <li>
-                  <Link to="/shops" className="text-white/80 transition-colors hover:text-white hover:underline">
+                  <Link
+                    to="/shops"
+                    className="text-white/80 transition-colors hover:text-white hover:underline"
+                  >
                     All shops
                   </Link>
                 </li>
@@ -74,7 +84,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Help</h3>
+              <h3 className="text-sm font-semibold tracking-normal text-white">Help</h3>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {[
                   { label: "Buyer protection", to: "/help" },
@@ -97,7 +107,7 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/50">Company</h3>
+              <h3 className="text-sm font-semibold tracking-normal text-white">Company</h3>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {[
                   { label: "About Techaven", to: "/" },
@@ -125,7 +135,7 @@ export function Footer() {
                 <p className="text-sm text-white/65">hello@techaven.mw • +265 999 000 000</p>
                 <p className="mt-1 text-sm text-white/65">Lilongwe • Blantyre • Mzuzu</p>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.12em] text-white/50">
+              <div className="flex flex-wrap gap-3 text-xs tracking-normal text-white/50">
                 <span>Newsletter</span>
                 <span>WhatsApp</span>
                 <span>Support</span>
