@@ -26,6 +26,9 @@ import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as ShopsIndexRouteImport } from './routes/shops.index'
 import { Route as ShopsShopSlugRouteImport } from './routes/shops.$shopSlug'
+import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
+import { Route as AuthenticatedAccountOrdersRouteImport } from './routes/_authenticated/account.orders'
+import { Route as AuthenticatedAccountSavedRouteImport } from './routes/_authenticated/account.saved'
 import { Route as AuthenticatedOrdersReferenceRouteImport } from './routes/_authenticated/orders.$reference'
 
 const IndexRoute = IndexRouteImport.update({
@@ -112,6 +115,24 @@ const ShopsShopSlugRoute = ShopsShopSlugRouteImport.update({
   path: '/shops/$shopSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccountIndexRoute =
+  AuthenticatedAccountIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
+const AuthenticatedAccountOrdersRoute =
+  AuthenticatedAccountOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
+const AuthenticatedAccountSavedRoute =
+  AuthenticatedAccountSavedRouteImport.update({
+    id: '/saved',
+    path: '/saved',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
 const AuthenticatedOrdersReferenceRoute =
   AuthenticatedOrdersReferenceRouteImport.update({
     id: '/orders/$reference',
@@ -130,13 +151,16 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
-  '/account': typeof AuthenticatedAccountRoute
+  '/account': typeof AuthenticatedAccountRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops/': typeof ShopsIndexRoute
+  '/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/account/saved': typeof AuthenticatedAccountSavedRoute
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/account/': typeof AuthenticatedAccountIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,13 +173,15 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
-  '/account': typeof AuthenticatedAccountRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops': typeof ShopsIndexRoute
+  '/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/account/saved': typeof AuthenticatedAccountSavedRoute
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/account': typeof AuthenticatedAccountIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,13 +196,16 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
-  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops/': typeof ShopsIndexRoute
+  '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/_authenticated/account/saved': typeof AuthenticatedAccountSavedRoute
   '/_authenticated/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,7 +226,10 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/shops/$shopSlug'
     | '/shops/'
+    | '/account/orders'
+    | '/account/saved'
     | '/orders/$reference'
+    | '/account/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,13 +242,15 @@ export interface FileRouteTypes {
     | '/help'
     | '/search'
     | '/trade-in'
-    | '/account'
     | '/checkout'
     | '/category/$slug'
     | '/product/$slug'
     | '/shops/$shopSlug'
     | '/shops'
+    | '/account/orders'
+    | '/account/saved'
     | '/orders/$reference'
+    | '/account'
   id:
     | '__root__'
     | '/'
@@ -236,7 +270,10 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/shops/$shopSlug'
     | '/shops/'
+    | '/_authenticated/account/orders'
+    | '/_authenticated/account/saved'
     | '/_authenticated/orders/$reference'
+    | '/_authenticated/account/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,6 +415,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopsShopSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/account/': {
+      id: '/_authenticated/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AuthenticatedAccountIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
+    '/_authenticated/account/orders': {
+      id: '/_authenticated/account/orders'
+      path: '/orders'
+      fullPath: '/account/orders'
+      preLoaderRoute: typeof AuthenticatedAccountOrdersRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
+    '/_authenticated/account/saved': {
+      id: '/_authenticated/account/saved'
+      path: '/saved'
+      fullPath: '/account/saved'
+      preLoaderRoute: typeof AuthenticatedAccountSavedRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
     '/_authenticated/orders/$reference': {
       id: '/_authenticated/orders/$reference'
       path: '/orders/$reference'
@@ -388,14 +446,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAccountRouteChildren {
+  AuthenticatedAccountOrdersRoute: typeof AuthenticatedAccountOrdersRoute
+  AuthenticatedAccountSavedRoute: typeof AuthenticatedAccountSavedRoute
+  AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
+}
+
+const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
+  AuthenticatedAccountOrdersRoute: AuthenticatedAccountOrdersRoute,
+  AuthenticatedAccountSavedRoute: AuthenticatedAccountSavedRoute,
+  AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
+}
+
+const AuthenticatedAccountRouteWithChildren =
+  AuthenticatedAccountRoute._addFileChildren(AuthenticatedAccountRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRouteWithChildren
   AuthenticatedCheckoutRoute: typeof AuthenticatedCheckoutRoute
   AuthenticatedOrdersReferenceRoute: typeof AuthenticatedOrdersReferenceRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedAccountRoute: AuthenticatedAccountRouteWithChildren,
   AuthenticatedCheckoutRoute: AuthenticatedCheckoutRoute,
   AuthenticatedOrdersReferenceRoute: AuthenticatedOrdersReferenceRoute,
 }
