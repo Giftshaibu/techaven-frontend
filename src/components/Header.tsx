@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { categories, popularBrands, shops } from "@/data/catalog";
+import { categories as fallbackCategories, popularBrands, shops as fallbackShops } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
+import { enrichCategoryIcons, mapApiCategoryToCatalog, mapApiShopToCatalog } from "@/lib/catalog-api";
+import { useTechavenCategories, useTechavenShops } from "@/lib/techaven-hooks";
 import { cn } from "@/lib/utils";
 
 const utilityLinks = [
@@ -73,7 +75,15 @@ function SearchField({
   );
 }
 
-function MegaMenu({ slug }: { slug: string }) {
+function MegaMenu({
+  slug,
+  categories,
+  shops,
+}: {
+  slug: string;
+  categories: typeof fallbackCategories;
+  shops: typeof fallbackShops;
+}) {
   const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
   const featuredShops = shops.slice(0, 3);
@@ -156,7 +166,18 @@ function MegaMenu({ slug }: { slug: string }) {
 
 export function Header() {
   const { count } = useCart();
-  const { session } = useAuth();
+  const { user } = useAuth();
+  const signedIn = Boolean(user);
+  const apiCategories = useTechavenCategories();
+  const apiShops = useTechavenShops();
+  const categories =
+    apiCategories.data && apiCategories.data.length > 0
+      ? enrichCategoryIcons(apiCategories.data.map(mapApiCategoryToCatalog))
+      : fallbackCategories;
+  const shops =
+    apiShops.data && apiShops.data.length > 0
+      ? apiShops.data.map(mapApiShopToCatalog)
+      : fallbackShops;
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -284,6 +305,12 @@ export function Header() {
 
           <nav className="ml-auto flex items-center gap-1">
             <Link
+              to="/products"
+              className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500 lg:block"
+            >
+              Products
+            </Link>
+            <Link
               to="/shops"
               className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500 lg:block"
             >
@@ -301,7 +328,7 @@ export function Header() {
             >
               Trade-in
             </Link>
-            {session ? (
+            {signedIn ? (
               <Link
                 to="/account"
                 aria-label="Your account"
@@ -319,7 +346,7 @@ export function Header() {
               </Link>
             )}
             <Link
-              to={session ? "/account/saved" : "/auth"}
+              to={signedIn ? "/account/saved" : "/auth"}
               aria-label="Saved products"
               className="hidden h-10 w-10 place-items-center rounded-lg text-ink-800 hover:text-brand-500 sm:grid"
             >
@@ -369,7 +396,7 @@ export function Header() {
               >
                 {category.name}
               </Link>
-              <MegaMenu slug={category.slug} />
+              <MegaMenu slug={category.slug} categories={categories} shops={shops} />
             </div>
           ))}
           <Link
@@ -429,13 +456,13 @@ export function Header() {
                 <nav className="mt-2" aria-label="Quick access">
                   {[
                     {
-                      label: session ? "Account" : "Sign in",
-                      to: session ? "/account" : "/auth",
+                      label: signedIn ? "Account" : "Sign in",
+                      to: signedIn ? "/account" : "/auth",
                       icon: "user-circle-linear",
                     },
                     {
                       label: "Saved",
-                      to: session ? "/account/saved" : "/auth",
+                      to: signedIn ? "/account/saved" : "/auth",
                       icon: "heart-linear",
                     },
                     {
@@ -506,6 +533,7 @@ export function Header() {
                 <nav className="mt-2 grid grid-cols-2 gap-2" aria-label="Marketplace shortcuts">
                   {[
                     { label: "Deals", to: "/deals", icon: "sale-square-linear" },
+                    { label: "All products", to: "/products", icon: "box-minimalistic-linear" },
                     { label: "Shops", to: "/shops", icon: "shop-linear" },
                     { label: "Compare", to: "/compare", icon: "scale-linear" },
                     { label: "Trade-in", to: "/trade-in", icon: "smartphone-update-linear" },

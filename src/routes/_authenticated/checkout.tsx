@@ -5,9 +5,18 @@ import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
-import { formatMwk, getProduct, getShop } from "@/data/catalog";
-import { supabase } from "@/integrations/supabase/client";
+import { formatMwk } from "@/data/catalog";
+import type { CatalogProduct } from "@/lib/catalog-api";
+import {
+  addShippingAddress,
+  createOrder,
+  getCourierServices,
+  getProfile,
+  getShippingAddresses,
+  payOrderAirtel,
+} from "@/integrations/techaven/customer";
 import { useAuth } from "@/lib/auth";
+import { apiAddressToForm, formToApiBody, type AddressForm } from "@/lib/addresses-ui";
 import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +65,7 @@ const paymentMethods = [
   },
 ] as const;
 
-const emptyAddress = {
+const emptyAddress: AddressForm = {
   label: "Home",
   recipient: "",
   phone: "",
@@ -73,7 +82,8 @@ function CheckoutPage() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<Step>(1);
-  const [addressId, setAddressId] = useState<string | "new">("new");
+  const [addressId, setAddressId] = useState<number | "new">("new");
+  const [courierServiceId, setCourierServiceId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyAddress);
   const [saveAddress, setSaveAddress] = useState(true);
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
@@ -82,14 +92,14 @@ function CheckoutPage() {
   const items = useMemo(
     () =>
       lines
-        .map((line) => ({ line, product: getProduct(line.slug) }))
+        .map((line) => ({ line, product: line.product as CatalogProduct | undefined }))
         .filter(
           (
             entry,
           ): entry is {
             line: (typeof lines)[number];
-            product: NonNullable<typeof entry.product>;
-          } => Boolean(entry.product),
+            product: CatalogProduct;
+          } => Boolean(entry.product?.apiId && entry.product.apiId > 0),
         ),
     [lines],
   );
@@ -102,28 +112,26 @@ function CheckoutPage() {
     queryKey: ["addresses", user?.id ?? "anon"],
     enabled: Boolean(user),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const list = await getShippingAddresses();
+      return [...list].sort((a, b) => Number(b.is_default) - Number(a.is_default));
     },
   });
+
+  const couriers = useQuery({
+    queryKey: ["courier-services"],
+    queryFn: getCourierServices,
+  });
+
+  useEffect(() => {
+    if (courierServiceId == null && couriers.data?.length) {
+      setCourierServiceId(couriers.data[0]!.id);
+    }
+  }, [couriers.data, courierServiceId]);
 
   const profile = useQuery({
     queryKey: ["profile", user?.id ?? "anon"],
     enabled: Boolean(user),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getProfile(),
   });
 
   useEffect(() => {
@@ -141,25 +149,15 @@ function CheckoutPage() {
         ? prev
         : {
             ...prev,
-            recipient: profile.data?.full_name ?? "",
-            phone: profile.data?.phone ?? "",
+            recipient: profile.data?.name ?? "",
+            phone: profile.data?.phone_number ?? "",
           },
     );
   }, [profile.data]);
 
   const chosen = addresses.data?.find((a) => a.id === addressId);
   const delivery =
-    addressId !== "new" && chosen
-      ? {
-          recipient: chosen.recipient,
-          phone: chosen.phone,
-          city: chosen.city,
-          area: chosen.area,
-          street: chosen.street ?? "",
-          notes: chosen.notes ?? "",
-          label: chosen.label,
-        }
-      : form;
+    addressId !== "new" && chosen ? apiAddressToForm(chosen) : form;
 
   const deliveryComplete = Boolean(
     delivery.recipient && delivery.phone && delivery.city && delivery.area,
@@ -169,58 +167,42 @@ function CheckoutPage() {
     mutationFn: async () => {
       if (!user) throw new Error("Please sign in again");
       if (!items.length) throw new Error("Your basket is empty");
+      if (!courierServiceId) throw new Error("Delivery service is unavailable. Try again shortly.");
 
-      const reference = `TH-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-
-      if (addressId === "new" && saveAddress) {
-        await supabase.from("addresses").insert({
-          user_id: user.id,
-          label: form.label || "Home",
-          recipient: form.recipient,
-          phone: form.phone,
-          city: form.city,
-          area: form.area,
-          street: form.street || null,
-          notes: form.notes || null,
-          is_default: !(addresses.data?.length ?? 0),
-        });
+      let shippingAddressId: number;
+      if (addressId === "new") {
+        const created = await addShippingAddress(
+          formToApiBody(form, saveAddress && !(addresses.data?.length ?? 0)),
+        );
+        shippingAddressId = created.id;
+      } else {
+        shippingAddressId = addressId;
       }
 
-      const { data: order, error } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          reference,
-          payment_method: payment,
-          fulfilment,
-          recipient: delivery.recipient,
-          phone: delivery.phone,
-          city: delivery.city,
-          area: delivery.area,
-          street: delivery.street || null,
-          notes: delivery.notes || null,
-          subtotal,
-          delivery_fee: deliveryFee,
-          total,
-        })
-        .select("id, reference")
-        .single();
-      if (error) throw error;
+      const orderItems = items.map(({ line, product }) => ({
+        product_id: product.apiId,
+        quantity: line.quantity,
+      }));
 
-      const { error: itemsError } = await supabase.from("order_items").insert(
-        items.map(({ line, product }) => ({
-          order_id: order.id,
-          user_id: user.id,
-          product_slug: product.slug,
-          product_name: product.name,
-          shop_slug: product.shop,
-          unit_price: product.price,
-          quantity: line.quantity,
-        })),
-      );
-      if (itemsError) throw itemsError;
+      const order = await createOrder({
+        shipping_address_id: shippingAddressId,
+        courier_service_id: courierServiceId,
+        items: orderItems,
+        notes: delivery.notes || undefined,
+      });
 
-      return order.reference;
+      const orderKey = order.order_number ?? order.reference ?? String(order.id);
+
+      if (payment === "airtel-money" && delivery.phone) {
+        const msisdn = delivery.phone.replace(/\s/g, "");
+        try {
+          await payOrderAirtel(order.id, { msisdn });
+        } catch {
+          /* payment can be completed later from order details */
+        }
+      }
+
+      return orderKey;
     },
     onSuccess: (reference) => {
       clear();
@@ -327,10 +309,10 @@ function CheckoutPage() {
                       )}
                     >
                       <p className="text-sm font-semibold text-ink-800">
-                        {a.label} · {a.recipient}
+                        {a.label} · {a.name}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {[a.street, a.area, a.city].filter(Boolean).join(", ")} · {a.phone}
+                        {[a.address, a.region, a.city].filter(Boolean).join(", ")} · {a.phone}
                       </p>
                     </button>
                   ))}
@@ -517,7 +499,7 @@ function CheckoutPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink-800">{product.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {getShop(product.shop)?.name} · Qty {line.quantity}
+                        {product.shopName ?? product.shop} · Qty {line.quantity}
                       </p>
                     </div>
                     <p className="text-sm font-bold text-ink-800">

@@ -1,21 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { supabase } from "@/integrations/supabase/client";
+import {
+  addToWishlist,
+  getWishlist,
+  removeFromWishlist,
+} from "@/integrations/techaven/customer";
+import { productSlugFromApiId } from "@/lib/catalog-api";
 import { useAuth } from "@/lib/auth";
 
 export function useSavedSlugs() {
   const { user } = useAuth();
 
   const query = useQuery({
-    queryKey: ["saved-products", user?.id ?? "anon"],
+    queryKey: ["wishlist", user?.id ?? "anon"],
     enabled: Boolean(user),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("saved_products")
-        .select("product_slug")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data.map((row) => row.product_slug);
+      const data = await getWishlist();
+      return (data.items ?? []).map((item) =>
+        item.product?.slug && !String(item.product.slug).match(/^\d+$/)
+          ? String(item.product.slug)
+          : productSlugFromApiId(item.product_id),
+      );
     },
   });
 
@@ -27,24 +32,27 @@ export function useToggleSaved() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ slug, saved }: { slug: string; saved: boolean }) => {
+    mutationFn: async ({
+      slug,
+      saved,
+      productId,
+    }: {
+      slug: string;
+      saved: boolean;
+      productId?: number;
+    }) => {
       if (!user) throw new Error("Sign in to save products");
-      if (saved) {
-        const { error } = await supabase
-          .from("saved_products")
-          .delete()
-          .eq("product_slug", slug)
-          .eq("user_id", user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("saved_products")
-          .insert({ product_slug: slug, user_id: user.id });
-        if (error) throw error;
+      const id =
+        productId ??
+        (slug.startsWith("p-") ? Number(slug.slice(2)) : Number.isFinite(Number(slug)) ? Number(slug) : NaN);
+      if (!Number.isFinite(id)) {
+        throw new Error("This product cannot be saved until it is loaded from the shop catalog.");
       }
+      if (saved) await removeFromWishlist(id);
+      else await addToWishlist({ product_id: id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["saved-products"] });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });
 }

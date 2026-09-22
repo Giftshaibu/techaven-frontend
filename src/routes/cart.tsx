@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
-import { formatMwk, getProduct, getShop } from "@/data/catalog";
+import { formatMwk } from "@/data/catalog";
+import type { CatalogProduct } from "@/lib/catalog-api";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/cart")({
@@ -21,15 +22,19 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
-  const { lines, setQuantity, remove, clear, ready } = useCart();
+  const { lines, setQuantity, remove, clear, ready, syncing } = useCart();
 
   const items = lines
-    .map((line) => ({ line, product: getProduct(line.slug) }))
-    .filter((entry): entry is { line: typeof entry.line; product: NonNullable<typeof entry.product> } =>
-      Boolean(entry.product),
-    );
+    .map((line) => ({
+      line,
+      product: line.product as CatalogProduct | undefined,
+    }))
+    .filter((entry) => entry.product);
 
-  const subtotal = items.reduce((sum, i) => sum + i.product.price * i.line.quantity, 0);
+  const subtotal = items.reduce(
+    (sum, i) => sum + (i.product?.price ?? 0) * i.line.quantity,
+    0,
+  );
   const delivery = subtotal > 900000 || subtotal === 0 ? 0 : 6000;
 
   return (
@@ -37,6 +42,9 @@ function CartPage() {
       <h1 className="text-3xl font-extrabold tracking-tight text-ink-800 md:text-4xl">
         Your basket
       </h1>
+      {syncing ? (
+        <p className="mt-2 text-xs text-muted-foreground">Syncing with your account…</p>
+      ) : null}
 
       {!ready ? (
         <p className="mt-6 text-sm text-muted-foreground">Loading your basket…</p>
@@ -58,7 +66,7 @@ function CartPage() {
             </Link>
             <Link
               to="/shops"
-              className="rounded-lg border border-border bg-surface px-5 py-3 text-sm font-semibold text-ink-800 hover:bg-stage"
+              className="rounded-lg border border-border px-5 py-3 text-sm font-semibold text-ink-800 hover:bg-stage"
             >
               Browse shops
             </Link>
@@ -66,130 +74,76 @@ function CartPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-          <div className="divide-y divide-border rounded-3xl bg-surface">
-            {items.map(({ line, product }) => {
-              const shop = getShop(product.shop);
-              return (
-                <div key={line.slug} className="flex gap-4 p-5">
+          <ul className="divide-y divide-border rounded-3xl bg-surface px-6">
+            {items.map(({ line, product }) => (
+              <li key={line.slug} className="flex gap-4 py-5">
+                <div className="w-24 shrink-0">
+                  <ImageStage
+                    category={product!.category}
+                    src={product!.imageUrl}
+                    alt={product!.name}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
                   <Link
                     to="/product/$slug"
-                    params={{ slug: product.slug }}
-                    className="w-24 shrink-0 sm:w-28"
+                    params={{ slug: line.slug }}
+                    className="font-semibold text-ink-800 hover:underline"
                   >
-                    <ImageStage category={product.category} />
+                    {product!.name}
                   </Link>
-
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-[15px] font-semibold leading-snug text-ink-800">
-                      <Link
-                        to="/product/$slug"
-                        params={{ slug: product.slug }}
-                        className="hover:underline"
-                      >
-                        {product.name}
-                      </Link>
-                    </h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Sold by {shop?.name} · {product.condition}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{product.delivery}</p>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-4">
-                      <div className="flex items-center rounded-lg border border-border">
-                        <button
-                          type="button"
-                          onClick={() => setQuantity(line.slug, line.quantity - 1)}
-                          aria-label={`Reduce quantity of ${product.name}`}
-                          className="grid h-9 w-9 place-items-center text-ink-800 hover:text-brand-500"
-                        >
-                          <Icon name="minus-circle-linear" className="h-[18px] w-[18px]" />
-                        </button>
-                        <span className="w-8 text-center text-sm font-semibold text-ink-800">
-                          {line.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setQuantity(line.slug, line.quantity + 1)}
-                          aria-label={`Increase quantity of ${product.name}`}
-                          className="grid h-9 w-9 place-items-center text-ink-800 hover:text-brand-500"
-                        >
-                          <Icon name="add-circle-linear" className="h-[18px] w-[18px]" />
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => remove(line.slug)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive"
-                      >
-                        <Icon name="trash-bin-trash-linear" className="h-4 w-4" />
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-lg font-extrabold text-ink-800">
-                      {formatMwk(product.price * line.quantity)}
-                    </p>
-                    {line.quantity > 1 ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatMwk(product.price)} each
-                      </p>
-                    ) : null}
+                  <p className="mt-1 text-sm font-bold text-ink-800">{formatMwk(product!.price)}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      Qty
+                      <input
+                        type="number"
+                        min={1}
+                        value={line.quantity}
+                        onChange={(e) =>
+                          void setQuantity(line.slug, Number(e.target.value) || 1)
+                        }
+                        className="h-9 w-16 rounded-lg border border-border px-2"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => void remove(line.slug)}
+                      className="text-sm font-semibold text-brand-500 hover:underline"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-
-            <div className="flex justify-end p-5">
-              <button
-                type="button"
-                onClick={clear}
-                className="text-xs font-semibold text-muted-foreground hover:text-destructive"
-              >
-                Empty basket
-              </button>
-            </div>
-          </div>
+              </li>
+            ))}
+          </ul>
 
           <aside className="h-fit rounded-3xl bg-surface p-6">
             <h2 className="text-lg font-bold text-ink-800">Summary</h2>
-            <dl className="mt-4 space-y-3 text-sm">
+            <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
-                <dd className="font-semibold text-ink-800">{formatMwk(subtotal)}</dd>
+                <dd className="font-semibold">{formatMwk(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Delivery</dt>
-                <dd className="font-semibold text-ink-800">
-                  {delivery === 0 ? "Free" : formatMwk(delivery)}
-                </dd>
-              </div>
-              <div className="flex justify-between border-t border-border pt-3 text-base">
-                <dt className="font-bold text-ink-800">Total</dt>
-                <dd className="text-xl font-extrabold text-ink-800">
-                  {formatMwk(subtotal + delivery)}
-                </dd>
+                <dt className="text-muted-foreground">Est. delivery</dt>
+                <dd className="font-semibold">{delivery === 0 ? "Free" : formatMwk(delivery)}</dd>
               </div>
             </dl>
-
             <Link
               to="/checkout"
-              className="mt-6 block w-full rounded-lg bg-ink-900 px-5 py-3.5 text-center text-[15px] font-semibold text-white hover:bg-ink-800"
+              className="mt-6 block rounded-lg bg-brand-500 py-3.5 text-center text-sm font-semibold text-white hover:bg-brand-700"
             >
-              Continue to checkout
+              Checkout
             </Link>
-            <p className="mt-3 text-xs text-muted-foreground">
-              You'll sign in on the next step so we can save your delivery details and order
-              history.
-            </p>
-
-            <p className="mt-5 flex items-start gap-2 rounded-2xl bg-info-soft p-4 text-xs text-ink-800/80">
-              <Icon name="shield-check-linear" className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
-              Every Techaven order is covered by buyer protection until the device is working in your
-              hands.
-            </p>
+            <button
+              type="button"
+              onClick={() => void clear()}
+              className="mt-3 w-full text-sm font-semibold text-muted-foreground hover:text-ink-800"
+            >
+              Clear basket
+            </button>
           </aside>
         </div>
       )}

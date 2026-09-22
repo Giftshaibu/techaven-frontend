@@ -9,18 +9,18 @@ import { PromoTile, type Promo } from "@/components/PromoTile";
 import { SectionHeader, ViewAllLink } from "@/components/SectionHeader";
 import { ShopCard } from "@/components/ShopCard";
 import { TrustStrip } from "@/components/TrustStrip";
-import {
-  catalogs,
-  categories,
-  dealProducts,
-  formatMwk,
-  products,
-  productsBySlugs,
-  shops,
-} from "@/data/catalog";
+import { formatMwk } from "@/data/catalog";
 import { marketplaceMedia } from "@/data/media";
+import {
+  enrichCategoryIcons,
+  filterHotSales,
+  filterNewArrivals,
+  filterSpecialOffers,
+} from "@/lib/catalog-api";
+import { loadHomeFeed } from "@/lib/resolve-catalog";
 
 export const Route = createFileRoute("/")({
+  loader: () => loadHomeFeed(),
   head: () => ({
     meta: [
       { title: "Techaven — Malawi's electronics mall" },
@@ -62,10 +62,14 @@ const editorialPromos: Promo[] = [
 ];
 
 function Home() {
-  const featuredCatalog = catalogs[0]!;
-  const catalogProducts = productsBySlugs(featuredCatalog.productSlugs).slice(0, 4);
-  const hotDeals = dealProducts.slice(0, 5);
-  const recentlyViewed = products.slice(12, 17);
+  const { categories, products, shops, banners } = Route.useLoaderData();
+  const navCategories = enrichCategoryIcons(categories);
+  const hotDeals = filterHotSales(products).slice(0, 8);
+  const hotFallback = hotDeals.length ? hotDeals : filterSpecialOffers(products).slice(0, 8);
+  const newArrivals = filterNewArrivals(products).slice(0, 8);
+  const recommended = products.slice(0, 8);
+  const minPrice = products.length ? Math.min(...products.map((p) => p.price)) : 0;
+  const heroBanner = banners[0] as { image?: string; title?: string; link?: string } | undefined;
 
   return (
     <>
@@ -74,16 +78,21 @@ function Home() {
         title="Every electronics shop in one place."
         support="Phones, laptops, audio and home electronics from verified Malawian shops — with comparison, trade-in and buyer protection built in."
         actions={[
+          { label: "View all products", to: "/products" },
           { label: "Shop the deals", to: "/deals" },
           { label: "Browse the shops", to: "/shops" },
         ]}
-        media={[marketplaceMedia.hero]}
+        media={
+          heroBanner?.image
+            ? [{ src: heroBanner.image, alt: heroBanner.title ?? "Promotion", position: "center" }]
+            : [marketplaceMedia.hero]
+        }
         tone="brand-soft"
         aside={
           <dl className="mt-7 flex flex-wrap gap-x-8 gap-y-3 text-sm">
             <div>
               <dt className="text-ink-800/60">Shops</dt>
-              <dd className="text-lg font-bold text-ink-800">{shops.length} verified & growing</dd>
+              <dd className="text-lg font-bold text-ink-800">{shops.length} on Techaven</dd>
             </div>
             <div>
               <dt className="text-ink-800/60">Products listed</dt>
@@ -92,7 +101,7 @@ function Home() {
             <div>
               <dt className="text-ink-800/60">From</dt>
               <dd className="text-lg font-bold text-ink-800">
-                {formatMwk(Math.min(...products.map((p) => p.price)))}
+                {minPrice > 0 ? formatMwk(minPrice) : "Browse shops"}
               </dd>
             </div>
           </dl>
@@ -104,11 +113,15 @@ function Home() {
           title="Start where you shop most"
           action={<ViewAllLink to="/categories" label="All categories" />}
         />
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {categories.map((c) => (
-            <CategoryTile key={c.slug} category={c} />
-          ))}
-        </div>
+        {navCategories.length ? (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+            {navCategories.slice(0, 8).map((c) => (
+              <CategoryTile key={c.slug} category={c} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Categories will appear when the shop catalog is ready.</p>
+        )}
       </section>
 
       <section className="shell pb-10 md:pb-14">
@@ -135,11 +148,21 @@ function Home() {
       <section className="shell pb-10 md:pb-14">
         <SectionHeader
           title="Hot deals this week"
-          description="Price drops across every category, refreshed by the shops themselves."
+          description="Highlights from shops across the mall — same feed as the mobile app."
           action={<ViewAllLink to="/deals" label="All deals" />}
         />
-        <ProductRail products={hotDeals} label="Hot deals" />
+        <ProductRail products={hotFallback} label="Hot deals" />
       </section>
+
+      {newArrivals.length ? (
+        <section className="shell pb-10 md:pb-14">
+          <SectionHeader
+            title="New arrivals"
+            action={<ViewAllLink to="/products" label="View all products" />}
+          />
+          <ProductRail products={newArrivals} label="New arrivals" />
+        </section>
+      ) : null}
 
       <section className="shell pb-10 md:pb-14">
         <div className="grid gap-5 lg:grid-cols-2">
@@ -149,134 +172,27 @@ function Home() {
         </div>
       </section>
 
-      <section className="shell pb-10 md:pb-14">
-        <SectionHeader
-          title="Browse by category"
-          description="The full mall taxonomy, with the subcategories shops actually stock."
-        />
-        <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
-          {categories.slice(0, 4).map((c) => (
-            <CategoryCard key={c.slug} category={c} />
-          ))}
-        </div>
-      </section>
-
-      <section className="shell pb-10 md:pb-14">
-        <div className="rounded-3xl bg-surface p-6 md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
-            <div>
-              <p className="text-sm font-semibold tracking-normal text-brand-700">
-                Featured catalog
-              </p>
-              <h2 className="mt-3 font-editorial text-3xl leading-tight text-ink-800 md:text-4xl">
-                {featuredCatalog.title}
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Curated by {featuredCatalog.owner}
-              </p>
-              <p className="mt-4 text-[15px] text-ink-800/75">{featuredCatalog.blurb}</p>
-              <Link
-                to="/catalogs"
-                className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-ink-900 px-5 py-3 text-sm font-semibold text-white hover:bg-ink-800"
-              >
-                Browse catalog
-                <Icon name="alt-arrow-right-linear" className="h-4 w-4" />
-              </Link>
-              <ImageStage
-                category="laptops"
-                src={marketplaceMedia.workspace.src}
-                alt={marketplaceMedia.workspace.alt}
-                position={marketplaceMedia.workspace.position}
-                sizes="34vw"
-                ratio="wide"
-                className="mt-6 hidden lg:flex"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
-              {catalogProducts.map((p) => (
-                <Link
-                  key={p.slug}
-                  to="/product/$slug"
-                  params={{ slug: p.slug }}
-                  className="group block"
-                >
-                  <ImageStage category={p.category} />
-                  <h3 className="mt-2.5 line-clamp-2 text-sm font-semibold text-ink-800 group-hover:underline">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-base font-extrabold text-ink-800">{formatMwk(p.price)}</p>
-                </Link>
-              ))}
-            </div>
+      {navCategories.length > 4 ? (
+        <section className="shell pb-10 md:pb-14">
+          <SectionHeader
+            title="Browse by category"
+            description="Categories from Techaven — sellers list products under these."
+          />
+          <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
+            {navCategories.slice(0, 4).map((c) => (
+              <CategoryCard key={c.slug} category={c} />
+            ))}
           </div>
-        </div>
-      </section>
-
-      <section className="shell pb-10 md:pb-14">
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="flex flex-col justify-between gap-6 rounded-3xl bg-ink-900 p-8 text-white md:flex-row md:items-center">
-            <div>
-              <h2 className="text-2xl font-bold leading-tight md:text-3xl">
-                Compare before you buy
-              </h2>
-              <p className="mt-2 max-w-sm text-sm text-white/75">
-                Pick two to four devices and see the differences side-by-side.
-              </p>
-              <Link
-                to="/compare"
-                className="mt-5 inline-flex rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-ink-900 hover:bg-neutral-200"
-              >
-                Start comparing
-              </Link>
-            </div>
-            <div className="flex gap-3">
-              <ImageStage
-                category="smartphones"
-                src={marketplaceMedia.compare.src}
-                alt={marketplaceMedia.compare.alt}
-                position={marketplaceMedia.compare.position}
-                tone="white"
-                ratio="wide"
-                sizes="220px"
-                className="w-48 rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-between gap-6 rounded-3xl bg-success-soft p-8 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-2xl font-bold leading-tight text-ink-800 md:text-3xl">
-                Give your old device another life
-              </h2>
-              <p className="mt-2 max-w-sm text-sm text-ink-800/70">
-                Check whether your device qualifies and see the available trade-in path.
-              </p>
-              <Link
-                to="/trade-in"
-                className="mt-5 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-              >
-                Start trade-in
-              </Link>
-            </div>
-            <ImageStage
-              category="smartphones"
-              src={marketplaceMedia.tradeIn.src}
-              alt={marketplaceMedia.tradeIn.alt}
-              position={marketplaceMedia.tradeIn.position}
-              tone="white"
-              sizes="180px"
-              className="w-32 rounded-xl"
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="shell pb-12 md:pb-16">
         <SectionHeader
           title="Recommended for you"
-          description="Based on what people are browsing on Techaven right now."
+          description="Fresh listings from the marketplace."
+          action={<ViewAllLink to="/products" label="View all products" />}
         />
-        <ProductRail products={recentlyViewed} label="Recommended products" />
+        <ProductRail products={recommended} label="Recommended products" />
       </section>
 
       <TrustStrip />

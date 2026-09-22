@@ -4,10 +4,23 @@ import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
 import { SectionHeader, ViewAllLink } from "@/components/SectionHeader";
 import { ShopCard } from "@/components/ShopCard";
-import { catalogs, categories, popularBrands, shops } from "@/data/catalog";
+import { catalogs, popularBrands } from "@/data/catalog";
+import { enrichCategoryIcons, mapApiCategoryToCatalog } from "@/lib/catalog-api";
+import { getCategories, getShops } from "@/integrations/techaven/customer";
+import { mapApiShopToCatalog } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
 
 export const Route = createFileRoute("/categories")({
+  loader: async () => {
+    const [categories, shops] = await Promise.all([
+      getCategories().catch(() => []),
+      getShops().catch(() => []),
+    ]);
+    return {
+      categories: enrichCategoryIcons(categories.map(mapApiCategoryToCatalog)),
+      shops: shops.map(mapApiShopToCatalog),
+    };
+  },
   head: () => ({
     meta: [
       { title: "Browse all electronics categories — Techaven" },
@@ -27,6 +40,7 @@ export const Route = createFileRoute("/categories")({
 });
 
 function CategoriesPage() {
+  const { categories, shops } = Route.useLoaderData();
   return (
     <>
       <MegaHeader

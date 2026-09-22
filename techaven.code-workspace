@@ -1,0 +1,13 @@
+{
+  "folders": [
+    {
+      "name": "Web storefront (TanStack)",
+      "path": "."
+    },
+    {
+      "name": "Mobile app (Flutter)",
+      "path": "../techave-mobile-app"
+    }
+  ],
+  "settings": {}
+}

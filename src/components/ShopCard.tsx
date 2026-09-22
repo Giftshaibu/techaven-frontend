@@ -2,9 +2,12 @@ import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { shopProductCount, type Shop } from "@/data/catalog";
+import { shopListingCount, type CatalogShop } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
 
-export function ShopCard({ shop }: { shop: Shop }) {
+export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
+  const catalogShop = shop as CatalogShop;
+  const listed = catalogShop.productCount ?? shopProductCount(shop.slug);
   return (
     <Link
       to="/shops/$shopSlug"
@@ -14,7 +17,7 @@ export function ShopCard({ shop }: { shop: Shop }) {
       <div className="relative">
         <ImageStage
           category="home-electronics"
-          src={marketplaceMedia.shop.src}
+          src={catalogShop.logoUrl ?? marketplaceMedia.shop.src}
           alt=""
           position={marketplaceMedia.shop.position}
           ratio="wide"
@@ -49,13 +52,13 @@ export function ShopCard({ shop }: { shop: Shop }) {
         <span className="inline-flex items-center gap-1">
           <Icon name="star-bold" className="h-3.5 w-3.5 text-rating" />
           <span className="font-semibold text-ink-800">{shop.rating.toFixed(1)}</span>
-          <span>({shop.orders.toLocaleString("en-US")} orders)</span>
+          <span>({shopListingCount(catalogShop).toLocaleString("en-US")} listed)</span>
         </span>
         <span className="inline-flex items-center gap-1">
           <Icon name="map-point-linear" className="h-3.5 w-3.5" />
           {shop.location}
         </span>
-        <span>{shopProductCount(shop.slug)} products</span>
+        <span>{listed} products</span>
       </div>
     </Link>
   );

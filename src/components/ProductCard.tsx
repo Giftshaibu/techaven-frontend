@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { discountPercent, formatMwk, getShop, type Product } from "@/data/catalog";
+import type { CatalogProduct } from "@/lib/catalog-api";
 import { useCompareSelection } from "@/lib/compare";
 import { useSavedSlugs, useToggleSaved } from "@/lib/saved";
 import { cn } from "@/lib/utils";
@@ -10,10 +11,12 @@ export function ProductCard({
   product,
   compact = false,
 }: {
-  product: Product;
+  product: Product | CatalogProduct;
   compact?: boolean;
 }) {
+  const catalogProduct = product as CatalogProduct;
   const shop = getShop(product.shop);
+  const shopLabel = catalogProduct.shopName ?? shop?.name ?? product.shop;
   const discount = discountPercent(product);
   const navigate = useNavigate();
   const { slugs, signedIn } = useSavedSlugs();
@@ -33,6 +36,8 @@ export function ProductCard({
         >
           <ImageStage
             category={product.category}
+            src={catalogProduct.imageUrl}
+            alt={product.name}
             ratio="square"
             className="transition-transform duration-300 group-hover:scale-[1.02]"
           />
@@ -50,7 +55,11 @@ export function ProductCard({
                 navigate({ to: "/auth", search: { redirect: "/account/saved" } });
                 return;
               }
-              toggleSaved.mutate({ slug: product.slug, saved });
+              toggleSaved.mutate({
+                slug: product.slug,
+                saved,
+                productId: catalogProduct.apiId,
+              });
             }}
             className={cn(
               "grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
@@ -98,10 +107,10 @@ export function ProductCard({
         <p className="mt-1 text-xs text-muted-foreground">
           {product.shopsCount > 1 ? (
             <>
-              {shop?.name} · {product.shopsCount} shops
+              {shopLabel} · {product.shopsCount} shops
             </>
           ) : (
-            <>Sold by {shop?.name}</>
+            <>Sold by {shopLabel}</>
           )}
           {shop?.verified ? (
             <span className="ml-1 inline-flex items-center gap-0.5 text-brand-500">

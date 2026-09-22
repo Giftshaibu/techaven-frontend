@@ -4,18 +4,23 @@ import { Icon } from "@/components/Icon";
 import { MegaHeader } from "@/components/MegaHeader";
 import { ProductGrid } from "@/components/ProductGrid";
 import { type Promo } from "@/components/PromoTile";
-import { getCategory, productsByCategory, shops } from "@/data/catalog";
 import { cn } from "@/lib/utils";
+import { fetchCategoryProducts, resolveCategory } from "@/lib/resolve-catalog";
 
 type Search = { brand?: string };
 
 export const Route = createFileRoute("/category/$slug")({
   validateSearch: (search: Record<string, unknown>): Search =>
     typeof search["brand"] === "string" ? { brand: search["brand"] } : {},
-  loader: ({ params }) => {
-    const category = getCategory(params.slug);
-    if (!category) throw notFound();
-    return { category };
+  loader: async ({ params }) => {
+    const resolved = await resolveCategory(params.slug);
+    if (!resolved) throw notFound();
+    let products = [] as Awaited<ReturnType<typeof fetchCategoryProducts>>["products"];
+    if (resolved.apiCategoryId != null) {
+      const data = await fetchCategoryProducts(resolved.apiCategoryId, 1, 60);
+      products = data.products;
+    }
+    return { category: resolved.category, products };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -48,17 +53,21 @@ const inlinePromo: Promo = {
 };
 
 function CategoryPage() {
-  const { category } = Route.useLoaderData();
+  const { category, products: all } = Route.useLoaderData();
   const { brand: brandFromUrl } = Route.useSearch();
-
-  const all = useMemo(() => productsByCategory(category.slug), [category.slug]);
   const [brand, setBrand] = useState<string | null>(brandFromUrl ?? null);
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [condition, setCondition] = useState<"all" | "new" | "refurbished">("all");
   const [sort, setSort] = useState<(typeof sorts)[number]>("Recommended");
   const [visible, setVisible] = useState(8);
 
-  const shopsInCategory = shops.filter((s) => all.some((p) => p.shop === s.slug));
+  const shopsInCategory = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const p of all) {
+      if (!names.has(p.shop)) names.set(p.shop, p.shopName ?? p.shop);
+    }
+    return [...names.entries()].map(([slug, name]) => ({ slug, name }));
+  }, [all]);
 
   const filtered = useMemo(() => {
     let list = all;

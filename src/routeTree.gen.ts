@@ -18,6 +18,7 @@ import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DealsRouteImport } from './routes/deals'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as TradeInRouteImport } from './routes/trade-in'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -73,6 +74,11 @@ const DealsRoute = DealsRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
   '/checkout': typeof AuthenticatedCheckoutRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/products'
     | '/search'
     | '/trade-in'
     | '/account'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/products'
     | '/search'
     | '/trade-in'
     | '/checkout'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/products'
     | '/search'
     | '/trade-in'
     | '/_authenticated/account'
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   DealsRoute: typeof DealsRoute
   HelpRoute: typeof HelpRoute
+  ProductsRoute: typeof ProductsRoute
   SearchRoute: typeof SearchRoute
   TradeInRoute: typeof TradeInRoute
   CategorySlugRoute: typeof CategorySlugRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -486,6 +506,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   DealsRoute: DealsRoute,
   HelpRoute: HelpRoute,
+  ProductsRoute: ProductsRoute,
   SearchRoute: SearchRoute,
   TradeInRoute: TradeInRoute,
   CategorySlugRoute: CategorySlugRoute,

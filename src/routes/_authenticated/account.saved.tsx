@@ -1,8 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { ProductGrid } from "@/components/ProductGrid";
-import { productsBySlugs } from "@/data/catalog";
-import { useSavedSlugs } from "@/lib/saved";
+import { getWishlist } from "@/integrations/techaven/customer";
+import { mapApiProductToCatalog } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/_authenticated/account/saved")({
   head: () => ({
@@ -18,14 +19,21 @@ export const Route = createFileRoute("/_authenticated/account/saved")({
 });
 
 function SavedPage() {
-  const { slugs, isLoading } = useSavedSlugs();
-  const products = productsBySlugs(slugs);
+  const wishlist = useQuery({
+    queryKey: ["wishlist", "full"],
+    queryFn: async () => {
+      const data = await getWishlist();
+      return (data.items ?? [])
+        .map((item) => (item.product ? mapApiProductToCatalog(item.product) : null))
+        .filter((p): p is NonNullable<typeof p> => p != null);
+    },
+  });
 
-  if (isLoading) {
+  if (wishlist.isLoading) {
     return <p className="text-sm text-muted-foreground">Loading your saved products…</p>;
   }
 
-  if (!products.length) {
+  if (!wishlist.data?.length) {
     return (
       <div className="rounded-3xl bg-surface p-10 text-center">
         <h2 className="text-xl font-bold text-ink-800">Nothing saved yet</h2>
@@ -42,5 +50,5 @@ function SavedPage() {
     );
   }
 
-  return <ProductGrid products={products} />;
+  return <ProductGrid products={wishlist.data} columns={3} />;
 }

@@ -5,24 +5,36 @@ import { ImageStage } from "@/components/ImageStage";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TrustStrip } from "@/components/TrustStrip";
+import { discountPercent, formatMwk } from "@/data/catalog";
+import type { CatalogProduct } from "@/lib/catalog-api";
 import {
-  discountPercent,
-  formatMwk,
-  getCategory,
-  getProduct,
-  getShop,
-  products,
-  shops,
-} from "@/data/catalog";
+  fetchCategoryProducts,
+  fetchProductsPage,
+  resolveProduct,
+  resolveShop,
+} from "@/lib/resolve-catalog";
 import { useCart } from "@/lib/cart";
 import { useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProduct(params.slug);
+  loader: async ({ params }) => {
+    const product = await resolveProduct(params.slug);
     if (!product) throw notFound();
-    return { product };
+    const shop = product.shop ? await resolveShop(product.shop) : null;
+    let related: CatalogProduct[] = [];
+    try {
+      if (product.categoryId) {
+        const data = await fetchCategoryProducts(product.categoryId, 1, 12);
+        related = data.products.filter((p) => p.slug !== product.slug).slice(0, 5);
+      } else {
+        const data = await fetchProductsPage(1, 12);
+        related = data.products.filter((p) => p.slug !== product.slug).slice(0, 5);
+      }
+    } catch {
+      related = [];
+    }
+    return { product, shop, related };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -30,9 +42,9 @@ export const Route = createFileRoute("/product/$slug")({
         meta: [{ title: "Product unavailable — Techaven" }, { name: "robots", content: "noindex" }],
       };
     }
-    const { product } = loaderData;
+    const { product, shop } = loaderData;
     const title = `${product.name} — Techaven`;
-    const description = `${product.name} from ${getShop(product.shop)?.name} at ${formatMwk(
+    const description = `${product.name} from ${shop?.name ?? product.shopName ?? "Techaven"} at ${formatMwk(
       product.price,
     )}. ${product.condition}, ${product.warranty}.`;
     return {
@@ -48,23 +60,20 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
-  const shop = getShop(product.shop)!;
-  const category = getCategory(product.category);
+  const { product, shop, related } = Route.useLoaderData();
+  const categorySlug = product.category;
   const { add, count } = useCart();
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
-  const otherShops = shops
-    .filter((s) => s.slug !== shop.slug)
-    .slice(0, Math.max(product.shopsCount - 1, 0))
-    .map((s, i) => ({ shop: s, price: product.price + (i + 1) * 15000 }));
-
-  const related = products
-    .filter((p) => p.category === product.category && p.slug !== product.slug)
-    .slice(0, 5);
-
+  const images =
+    product.images && product.images.length > 0
+      ? product.images
+      : product.imageUrl
+        ? [product.imageUrl]
+        : [];
+  const shopName = shop?.name ?? product.shopName ?? "Shop";
   const discount = discountPercent(product);
 
   return (
@@ -74,14 +83,14 @@ function ProductPage() {
           Techaven
         </Link>
         <Icon name="alt-arrow-right-linear" className="h-3.5 w-3.5" />
-        {category ? (
+        {categorySlug ? (
           <>
             <Link
               to="/category/$slug"
-              params={{ slug: category.slug }}
+              params={{ slug: categorySlug }}
               className="hover:text-brand-500"
             >
-              {category.name}
+              {categorySlug.replace(/^c-\d+$/, "Category").replace(/-/g, " ")}
             </Link>
             <Icon name="alt-arrow-right-linear" className="h-3.5 w-3.5" />
           </>
@@ -91,23 +100,35 @@ function ProductPage() {
 
       <section className="shell grid gap-10 pb-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
-          <ImageStage category={product.category} className="rounded-2xl" />
-          <div className="mt-4 flex gap-3">
-            {[0, 1, 2, 3].map((i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveImage(i)}
-                aria-label={`View image ${i + 1}`}
-                className={cn(
-                  "w-20 rounded-xl border-2 transition-colors",
-                  activeImage === i ? "border-brand-500" : "border-transparent",
-                )}
-              >
-                <ImageStage category={product.category} className="rounded-[10px]" />
-              </button>
-            ))}
-          </div>
+          <ImageStage
+            category={product.category}
+            src={images[activeImage]}
+            alt={product.name}
+            className="rounded-2xl"
+          />
+          {images.length > 1 ? (
+            <div className="mt-4 flex gap-3">
+              {images.map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setActiveImage(i)}
+                  aria-label={`View image ${i + 1}`}
+                  className={cn(
+                    "w-20 rounded-xl border-2 transition-colors",
+                    activeImage === i ? "border-brand-500" : "border-transparent",
+                  )}
+                >
+                  <ImageStage
+                    category={product.category}
+                    src={src}
+                    alt=""
+                    className="rounded-[10px]"
+                  />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div>
@@ -146,7 +167,7 @@ function ProductPage() {
           <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink-900 text-sm font-bold text-white">
-                {shop.name
+                {shopName
                   .split(" ")
                   .map((w) => w[0])
                   .slice(0, 2)
@@ -155,53 +176,35 @@ function ProductPage() {
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-800">
                   Sold by{" "}
-                  <Link
-                    to="/shops/$shopSlug"
-                    params={{ shopSlug: shop.slug }}
-                    className="hover:underline"
-                  >
-                    {shop.name}
-                  </Link>
-                  {shop.verified ? (
+                  {shop ? (
+                    <Link
+                      to="/shops/$shopSlug"
+                      params={{ shopSlug: shop.slug }}
+                      className="hover:underline"
+                    >
+                      {shopName}
+                    </Link>
+                  ) : (
+                    shopName
+                  )}
+                  {shop?.verified ? (
                     <Icon name="verified-check-bold" className="h-4 w-4 text-brand-500" />
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {shop.location} · {shop.rating.toFixed(1)} rating ·{" "}
-                  {shop.orders.toLocaleString("en-US")} orders
-                </p>
+                {shop ? (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {shop.location} · {shop.rating.toFixed(1)} rating
+                  </p>
+                ) : null}
               </div>
             </div>
-
-            {otherShops.length ? (
-              <div className="mt-4 border-t border-border pt-3">
-                <p className="text-[13px] font-semibold tracking-normal text-ink-800">
-                  Also offered by
-                </p>
-                <ul className="mt-2 space-y-2">
-                  {otherShops.map((entry) => (
-                    <li key={entry.shop.slug} className="flex items-center justify-between text-sm">
-                      <Link
-                        to="/shops/$shopSlug"
-                        params={{ shopSlug: entry.shop.slug }}
-                        className="text-ink-800 hover:underline"
-                      >
-                        {entry.shop.name}
-                      </Link>
-                      <span className="font-bold text-ink-800">{formatMwk(entry.price)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => {
-                add(product.slug);
-                setAdded(true);
+                void add(product).then(() => setAdded(true));
               }}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700"
             >
@@ -242,20 +245,18 @@ function ProductPage() {
         <div className="grid gap-8 rounded-3xl bg-surface p-6 md:p-8 lg:grid-cols-2">
           <div>
             <h2 className="text-xl font-bold text-ink-800">Specifications</h2>
-            <dl className="mt-4 divide-y divide-border">
-              {product.specs.map((spec) => (
-                <div key={spec.label} className="flex justify-between gap-6 py-3 text-sm">
-                  <dt className="text-muted-foreground">{spec.label}</dt>
-                  <dd className="text-right font-semibold text-ink-800">{spec.value}</dd>
-                </div>
-              ))}
-              {product.storage ? (
-                <div className="flex justify-between gap-6 py-3 text-sm">
-                  <dt className="text-muted-foreground">Storage</dt>
-                  <dd className="text-right font-semibold text-ink-800">{product.storage}</dd>
-                </div>
-              ) : null}
-            </dl>
+            {product.description ? (
+              <p className="mt-4 text-sm leading-relaxed text-ink-800/80">{product.description}</p>
+            ) : (
+              <dl className="mt-4 divide-y divide-border">
+                {product.specs.map((spec) => (
+                  <div key={spec.label} className="flex justify-between gap-6 py-3 text-sm">
+                    <dt className="text-muted-foreground">{spec.label}</dt>
+                    <dd className="text-right font-semibold text-ink-800">{spec.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
           </div>
           <div>
             <h2 className="text-xl font-bold text-ink-800">Good to know</h2>

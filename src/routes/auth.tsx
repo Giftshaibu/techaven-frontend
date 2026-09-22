@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
-import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
+import { login, registerCustomer, verifyOtp } from "@/integrations/techaven/customer";
+import type { AuthPayload } from "@/integrations/techaven/types";
 import { safeRedirect, useAuth } from "@/lib/auth";
 
 type Search = { redirect?: string };
@@ -35,7 +35,7 @@ function AuthPage() {
   const { redirect: redirectParam } = Route.useSearch();
   const destination = safeRedirect(redirectParam || undefined);
   const navigate = useNavigate();
-  const { session, loading } = useAuth();
+  const { user, loading, setSessionFromAuth } = useAuth();
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -43,38 +43,40 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
-  const [checkEmail, setCheckEmail] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
 
   useEffect(() => {
-    if (!loading && session) {
+    if (!loading && user) {
       navigate({ to: destination, replace: true });
     }
-  }, [session, loading, destination, navigate]);
+  }, [user, loading, destination, navigate]);
+
+  function applyAuth(data: AuthPayload | { success: true }) {
+    if ("access_token" in data && data.user) {
+      setSessionFromAuth(data);
+      toast.success("Welcome to Techaven");
+      navigate({ to: destination, replace: true });
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        await registerCustomer({
+          full_name: fullName,
           email,
+          phone_number: phone,
           password,
-          options: {
-            emailRedirectTo: `${window.location.origin}${destination}`,
-            data: { full_name: fullName, phone },
-          },
         });
-        if (error) throw error;
-        if (!data.session) {
-          setCheckEmail(true);
-          return;
-        }
-        toast.success("Welcome to Techaven");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Signed in");
+        setOtpStep(true);
+        toast.success("We sent a 4-digit code to your email or phone");
+        return;
       }
+      const data = await login({ email, password });
+      applyAuth(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
     } finally {
@@ -82,37 +84,37 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleVerifyOtp(event: React.FormEvent) {
+    event.preventDefault();
     setBusy(true);
     try {
-      window.sessionStorage.setItem("techaven.postAuthPath", destination);
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (result.error) {
-        toast.error("Google sign-in didn't work. Please try again.");
-        return;
-      }
-      if (result.redirected) return;
-    } catch {
-      toast.error("Google sign-in didn't work. Please try again.");
+      const data = await verifyOtp({ email, otp, type: "signup" });
+      applyAuth(data as AuthPayload);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid code");
     } finally {
       setBusy(false);
     }
   }
 
-  if (checkEmail) {
+  if (otpStep) {
     return (
       <section className="shell flex min-h-[60vh] items-center justify-center py-14">
-        <div className="max-w-md rounded-3xl bg-surface p-8 text-center">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-info-soft text-brand-500">
-            <Icon name="letter-linear" className="h-7 w-7" />
-          </span>
-          <h1 className="mt-4 text-2xl font-extrabold text-ink-800">Confirm your email</h1>
+        <div className="w-full max-w-md rounded-3xl bg-surface p-8">
+          <h1 className="text-2xl font-extrabold text-ink-800">Enter verification code</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            We sent a confirmation link to <span className="font-semibold">{email}</span>. Open it
-            to finish creating your Techaven account.
+            We sent a 4-digit code to <span className="font-semibold">{email}</span>.
           </p>
+          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
+            <Field label="Code" value={otp} onChange={setOtp} required placeholder="1234" />
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-lg bg-brand-500 px-5 py-3.5 text-[15px] font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {busy ? "Verifying…" : "Verify and continue"}
+            </button>
+          </form>
         </div>
       </section>
     );
@@ -162,22 +164,6 @@ function AuthPage() {
                 {m === "signin" ? "Sign in" : "Sign up"}
               </button>
             ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={busy}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-semibold text-ink-800 hover:bg-stage disabled:opacity-60"
-          >
-            <Icon name="google-bold" className="h-[18px] w-[18px]" />
-            Continue with Google
-          </button>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            or use your email
-            <span className="h-px flex-1 bg-border" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

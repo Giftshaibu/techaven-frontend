@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { Icon } from "@/components/Icon";
-import { formatMwk, getShop } from "@/data/catalog";
-import { supabase } from "@/integrations/supabase/client";
+import { formatMwk } from "@/data/catalog";
+import { getOrder } from "@/integrations/techaven/customer";
+import { productSlugFromApiId } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/_authenticated/orders/$reference")({
   head: () => ({
@@ -18,27 +19,12 @@ export const Route = createFileRoute("/_authenticated/orders/$reference")({
   component: OrderPage,
 });
 
-const paymentLabels: Record<string, string> = {
-  "airtel-money": "Airtel Money",
-  mpamba: "TNM Mpamba",
-  "bank-transfer": "Bank transfer",
-  "cash-on-delivery": "Cash on delivery",
-};
-
 function OrderPage() {
   const { reference } = Route.useParams();
 
   const order = useQuery({
     queryKey: ["orders", reference],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*)")
-        .eq("reference", reference)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getOrder(reference),
   });
 
   if (order.isLoading) {
@@ -65,7 +51,12 @@ function OrderPage() {
   }
 
   const data = order.data;
-  const items = data.order_items ?? [];
+  const items = data.items ?? [];
+  const ref = String(data.order_number ?? data.reference ?? reference);
+  const phone =
+    (data.phone as string | undefined) ??
+    (data as { shipping_phone?: string }).shipping_phone ??
+    "your phone";
 
   return (
     <section className="shell py-10 md:py-14">
@@ -75,56 +66,61 @@ function OrderPage() {
         </span>
         <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-ink-800">Order placed</h1>
         <p className="mt-2 text-sm text-ink-800/80">
-          Reference <span className="font-bold">{data.reference}</span> · we're confirming stock
-          with the shop and will message you on {data.phone}.
+          Reference <span className="font-bold">{ref}</span> · we're confirming stock with the shop
+          and will message you on {phone}.
         </p>
+        {data.payment_status ? (
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-ink-800/70">
+            Payment: {data.payment_status}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="rounded-3xl bg-surface p-6 md:p-8">
           <h2 className="text-lg font-bold text-ink-800">What you ordered</h2>
           <ul className="mt-4 divide-y divide-border">
-            {items.map((item) => (
-              <li key={item.id} className="flex items-center gap-4 py-4">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-ink-800">
-                    <Link
-                      to="/product/$slug"
-                      params={{ slug: item.product_slug }}
-                      className="hover:underline"
-                    >
-                      {item.product_name}
-                    </Link>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {getShop(item.shop_slug)?.name ?? item.shop_slug} · Qty {item.quantity}
-                  </p>
-                </div>
-                <p className="text-sm font-bold text-ink-800">
-                  {formatMwk(Number(item.unit_price) * item.quantity)}
-                </p>
-              </li>
-            ))}
+            {items.map((item, index) => {
+              const slug = item.product_id
+                ? productSlugFromApiId(Number(item.product_id))
+                : undefined;
+              const name = item.product_name ?? "Product";
+              const qty = item.quantity ?? 1;
+              const unit = Number(item.unit_price ?? 0);
+              return (
+                <li key={`${item.product_id ?? index}`} className="flex items-center gap-4 py-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink-800">
+                      {slug ? (
+                        <Link to="/product/$slug" params={{ slug }} className="hover:underline">
+                          {name}
+                        </Link>
+                      ) : (
+                        name
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Qty {qty}</p>
+                  </div>
+                  <p className="text-sm font-bold text-ink-800">{formatMwk(unit * qty)}</p>
+                </li>
+              );
+            })}
           </ul>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-stage p-4">
-              <p className="text-[13px] font-semibold tracking-normal text-ink-800">
-                {data.fulfilment === "pickup" ? "Collection contact" : "Delivering to"}
-              </p>
-              <p className="mt-2 text-sm font-semibold text-ink-800">{data.recipient}</p>
-              <p className="text-xs text-muted-foreground">
-                {[data.street, data.area, data.city].filter(Boolean).join(", ")}
-              </p>
-              <p className="text-xs text-muted-foreground">{data.phone}</p>
+              <p className="text-[13px] font-semibold tracking-normal text-ink-800">Status</p>
+              <p className="mt-2 text-sm font-semibold capitalize text-ink-800">{data.status}</p>
+              {data.courier_tracking_number ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Tracking: {data.courier_tracking_number}
+                </p>
+              ) : null}
             </div>
             <div className="rounded-2xl bg-stage p-4">
-              <p className="text-[13px] font-semibold tracking-normal text-ink-800">Payment</p>
+              <p className="text-[13px] font-semibold tracking-normal text-ink-800">Escrow</p>
               <p className="mt-2 text-sm font-semibold text-ink-800">
-                {paymentLabels[data.payment_method] ?? data.payment_method}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Instructions arrive once the shop confirms stock.
+                {data.escrow_status ?? "Held until delivery is confirmed"}
               </p>
             </div>
           </div>
@@ -135,18 +131,24 @@ function OrderPage() {
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Subtotal</dt>
-              <dd className="font-semibold text-ink-800">{formatMwk(Number(data.subtotal))}</dd>
+              <dd className="font-semibold text-ink-800">
+                {data.subtotal != null ? formatMwk(Number(data.subtotal)) : "—"}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Delivery</dt>
               <dd className="font-semibold text-ink-800">
-                {Number(data.delivery_fee) === 0 ? "Free" : formatMwk(Number(data.delivery_fee))}
+                {data.shipping_fee != null
+                  ? Number(data.shipping_fee) === 0
+                    ? "Free"
+                    : formatMwk(Number(data.shipping_fee))
+                  : "—"}
               </dd>
             </div>
             <div className="flex justify-between border-t border-border pt-3">
               <dt className="font-bold text-ink-800">Total</dt>
               <dd className="text-xl font-extrabold text-ink-800">
-                {formatMwk(Number(data.total))}
+                {data.total != null ? formatMwk(Number(data.total)) : "—"}
               </dd>
             </div>
           </dl>

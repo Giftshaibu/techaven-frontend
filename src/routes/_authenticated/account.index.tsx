@@ -4,8 +4,16 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  addShippingAddress,
+  deleteShippingAddress,
+  getProfile,
+  getShippingAddresses,
+  setDefaultShippingAddress,
+  updateProfile,
+} from "@/integrations/techaven/customer";
 import { useAuth } from "@/lib/auth";
+import { formToApiBody, type AddressForm } from "@/lib/addresses-ui";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/account/")({
@@ -24,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/account/")({
   component: AccountDetails,
 });
 
-const emptyAddress = {
+const emptyAddress: AddressForm = {
   label: "Home",
   recipient: "",
   phone: "",
@@ -44,45 +52,28 @@ function AccountDetails() {
 
   const profile = useQuery({
     queryKey: ["profile", user?.id ?? "anon"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getProfile(),
     enabled: Boolean(user),
   });
 
   useEffect(() => {
     if (!profile.data) return;
-    setFullName(profile.data.full_name ?? "");
-    setPhone(profile.data.phone ?? "");
+    setFullName(profile.data.name ?? "");
+    setPhone(profile.data.phone_number ?? "");
   }, [profile.data]);
 
   const addresses = useQuery({
     queryKey: ["addresses", user?.id ?? "anon"],
     enabled: Boolean(user),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("addresses")
-        .select("*")
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const list = await getShippingAddresses();
+      return [...list].sort((a, b) => Number(b.is_default) - Number(a.is_default));
     },
   });
 
   const saveProfile = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: fullName || null, phone: phone || null })
-        .eq("id", user!.id);
-      if (error) throw error;
+      await updateProfile({ name: fullName || undefined, phone_number: phone || undefined });
     },
     onSuccess: () => {
       toast.success("Details saved");
@@ -93,18 +84,9 @@ function AccountDetails() {
 
   const addAddress = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("addresses").insert({
-        user_id: user!.id,
-        label: form.label || "Home",
-        recipient: form.recipient,
-        phone: form.phone,
-        city: form.city,
-        area: form.area,
-        street: form.street || null,
-        notes: form.notes || null,
-        is_default: !(addresses.data?.length ?? 0),
-      });
-      if (error) throw error;
+      await addShippingAddress(
+        formToApiBody(form, !(addresses.data?.length ?? 0)),
+      );
     },
     onSuccess: () => {
       toast.success("Delivery details saved");
@@ -116,18 +98,15 @@ function AccountDetails() {
   });
 
   const removeAddress = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("addresses").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (id: number) => {
+      await deleteShippingAddress(id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addresses"] }),
   });
 
   const makeDefault = useMutation({
-    mutationFn: async (id: string) => {
-      await supabase.from("addresses").update({ is_default: false }).eq("user_id", user!.id);
-      const { error } = await supabase.from("addresses").update({ is_default: true }).eq("id", id);
-      if (error) throw error;
+    mutationFn: async (id: number) => {
+      await setDefaultShippingAddress(id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["addresses"] }),
   });
@@ -176,7 +155,7 @@ function AccountDetails() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-ink-800">
-                      {a.label} · {a.recipient}
+                      {a.label} · {a.name}
                       {a.is_default ? (
                         <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-bold text-brand-800">
                           Default
@@ -184,7 +163,7 @@ function AccountDetails() {
                       ) : null}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {[a.street, a.area, a.city].filter(Boolean).join(", ")} · {a.phone}
+                      {[a.address, a.region, a.city].filter(Boolean).join(", ")} · {a.phone}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">

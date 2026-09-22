@@ -2,7 +2,6 @@ import { Outlet, createFileRoute, Link, useNavigate } from "@tanstack/react-rout
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Icon } from "@/components/Icon";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/account")({
@@ -16,14 +15,14 @@ const tabs = [
 ] as const;
 
 function AccountLayout() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await signOut();
     navigate({ to: "/auth", replace: true });
   }
 
