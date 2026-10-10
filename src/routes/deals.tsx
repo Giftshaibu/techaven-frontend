@@ -1,16 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProductGrid } from "@/components/ProductGrid";
-import { MegaHeader } from "@/components/MegaHeader";
-import { filterHotSales, filterSpecialOffers, mapApiProductToCatalog } from "@/lib/catalog-api";
-import { getProducts } from "@/integrations/techaven/customer";
+import { filterHotSales, filterSpecialOffers, mapMarketplaceDeviceToCatalog } from "@/lib/catalog-api";
+import { getMarketplaceDevices } from "@/integrations/techaven/customer";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/deals")({
   loader: async () => {
-    const data = await getProducts({ page: 1, limit: 60, sort: "newest" });
-    const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+    const [data, hero, inline] = await Promise.all([
+      getMarketplaceDevices({ page: 1, limit: 60 }),
+      getPromotions("deals_hero"),
+      getPromotions("deals_inline_1"),
+    ]);
+    const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
     const deals = filterHotSales(products);
     const fallback = deals.length ? deals : filterSpecialOffers(products);
-    return { products: fallback.length ? fallback : products };
+    return { products: fallback.length ? fallback : products, promotions: [...hero, ...inline] };
   },
   head: () => ({
     meta: [
@@ -27,21 +32,15 @@ export const Route = createFileRoute("/deals")({
 });
 
 function DealsPage() {
-  const { products } = Route.useLoaderData();
+  const { products, promotions } = Route.useLoaderData();
 
   return (
     <>
-      <MegaHeader
-        eyebrow="Deals"
-        title="Hot sales & special offers"
-        support="Same segments as the Techaven mobile app — filtered from live shop listings."
-        actions={[]}
-        media={[]}
-        tone="neutral"
-      />
+      <PromotionSlot placement="deals_hero" promotions={promotions} heroHeading="h1" />
       <section className="shell pb-14">
         <ProductGrid products={products} />
       </section>
+      <PromotionSlot placement="deals_inline_1" promotions={promotions} />
     </>
   );
 }

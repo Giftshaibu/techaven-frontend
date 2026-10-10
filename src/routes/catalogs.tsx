@@ -3,6 +3,9 @@ import { MegaHeader } from "@/components/MegaHeader";
 import { ProductRail } from "@/components/ProductGrid";
 import { SectionHeader } from "@/components/SectionHeader";
 import { catalogs, productsBySlugs } from "@/data/catalog";
+import { useQuery } from "@tanstack/react-query";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/catalogs")({
   head: () => ({
@@ -24,15 +27,32 @@ export const Route = createFileRoute("/catalogs")({
 });
 
 function CatalogsPage() {
+  const heroPromotions =
+    useQuery({
+      queryKey: ["promotions", "catalogs_hero"],
+      queryFn: () => getPromotions("catalogs_hero"),
+    }).data ?? [];
+  const inlinePromotions =
+    useQuery({
+      queryKey: ["promotions", "catalog_inline_1"],
+      queryFn: () => getPromotions("catalog_inline_1"),
+    }).data ?? [];
   return (
     <>
-      <MegaHeader
-        eyebrow="Catalogs"
-        title="Collections worth browsing"
-        support="Each catalog is owned by a shop or by Techaven, and kept current as stock changes."
-        stages={["laptops", "gaming", "audio"]}
-        tone="neutral"
-        editorial
+      <PromotionSlot
+        placement="catalogs_hero"
+        promotions={heroPromotions}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow="Catalogs"
+            title="Collections worth browsing"
+            support="Each catalog is owned by a shop or by Techaven, and kept current as stock changes."
+            stages={["laptops", "gaming", "audio"]}
+            tone="neutral"
+            editorial
+          />
+        }
       />
 
       <div className="shell py-10 md:py-14">
@@ -47,6 +67,7 @@ function CatalogsPage() {
           </section>
         ))}
       </div>
+      <PromotionSlot placement="catalog_inline_1" promotions={inlinePromotions} />
     </>
   );
 }

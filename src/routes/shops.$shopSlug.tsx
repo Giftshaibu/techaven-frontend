@@ -6,18 +6,20 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { fetchShopProducts, resolveShop } from "@/lib/resolve-catalog";
 import { parseApiShopId } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/shops/$shopSlug")({
   loader: async ({ params }) => {
     const shop = await resolveShop(params.shopSlug);
     if (!shop) throw notFound();
     const shopId = parseApiShopId(shop.slug);
-    let products: Awaited<ReturnType<typeof fetchShopProducts>>["products"] = [];
-    if (shopId != null) {
-      const data = await fetchShopProducts(shopId, 1, 60);
-      products = data.products;
-    }
-    return { shop, products };
+    const [productData, heroPromotions, inlinePromotions] = await Promise.all([
+      shopId != null ? fetchShopProducts(shopId, 1, 60) : Promise.resolve({ products: [] }),
+      getPromotions("shop_hero"),
+      getPromotions("shop_inline_1"),
+    ]);
+    return { shop, products: productData.products, heroPromotions, inlinePromotions };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -40,7 +42,7 @@ export const Route = createFileRoute("/shops/$shopSlug")({
 });
 
 function ShopPage() {
-  const { shop, products } = Route.useLoaderData();
+  const { shop, products, heroPromotions, inlinePromotions } = Route.useLoaderData();
 
   return (
     <>
@@ -56,30 +58,38 @@ function ShopPage() {
         <span className="font-semibold text-ink-800">{shop.name}</span>
       </div>
 
-      <MegaHeader
-        eyebrow={
-          <span className="inline-flex items-center gap-1.5">
-            {shop.verified ? (
-              <>
-                Verified shop
-                <Icon name="verified-check-bold" className="h-4 w-4 text-brand-500" />
-              </>
-            ) : (
-              "Shop on Techaven"
-            )}
-          </span>
+      <PromotionSlot
+        placement="shop_hero"
+        promotions={heroPromotions}
+        context={{ shopExternalId: String(shop.apiId) }}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow={
+              <span className="inline-flex items-center gap-1.5">
+                {shop.verified ? (
+                  <>
+                    Verified shop
+                    <Icon name="verified-check-bold" className="h-4 w-4 text-brand-500" />
+                  </>
+                ) : (
+                  "Shop on Techaven"
+                )}
+              </span>
+            }
+            title={shop.name}
+            support={shop.blurb || shop.specialty}
+            actions={[]}
+            media={[
+              {
+                src: (shop as { logoUrl?: string }).logoUrl ?? marketplaceMedia.shop.src,
+                alt: shop.name,
+                position: marketplaceMedia.shop.position,
+              },
+            ]}
+            tone="neutral"
+          />
         }
-        title={shop.name}
-        support={shop.blurb || shop.specialty}
-        actions={[]}
-        media={[
-          {
-            src: (shop as { logoUrl?: string }).logoUrl ?? marketplaceMedia.shop.src,
-            alt: shop.name,
-            position: marketplaceMedia.shop.position,
-          },
-        ]}
-        tone="neutral"
       />
 
       <section className="shell pb-14">
@@ -88,6 +98,11 @@ function ShopPage() {
         </p>
         <ProductGrid products={products} />
       </section>
+      <PromotionSlot
+        placement="shop_inline_1"
+        promotions={inlinePromotions}
+        context={{ shopExternalId: String(shop.apiId) }}
+      />
     </>
   );
 }

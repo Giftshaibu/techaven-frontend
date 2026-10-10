@@ -120,6 +120,7 @@ export function MegaHeader({
                     alt={item.alt}
                     position={"position" in item ? item.position : undefined}
                     priority={i === 0}
+                    fit="cover"
                     sizes={
                       media.length === 1
                         ? "(max-width: 1023px) 100vw, 50vw"

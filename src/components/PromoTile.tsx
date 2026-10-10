@@ -57,6 +57,7 @@ export function PromoTile({ promo }: { promo: Promo }) {
       <ImageStage
         category={promo.stageCategory}
         src={promo.media?.src}
+        fit="cover"
         alt={promo.media?.alt}
         position={promo.media?.position}
         sizes="(max-width: 1023px) 100vw, 50vw"

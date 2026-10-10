@@ -6,6 +6,8 @@ import type { ProductsQuery } from "@/integrations/techaven/customer";
 import type { CatalogProduct } from "@/lib/catalog-api";
 import { fetchProductListing } from "@/lib/resolve-catalog";
 import { cn } from "@/lib/utils";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 const sortOptions: { label: string; value: ProductsQuery["sort"] }[] = [
   { label: "Newest", value: "newest" },
@@ -15,13 +17,21 @@ const sortOptions: { label: string; value: ProductsQuery["sort"] }[] = [
 ];
 
 export const Route = createFileRoute("/products")({
-  loader: () => fetchProductListing(1, 48, "newest"),
+  loader: async () => {
+    const [listing, heroPromotions, inlinePromotions] = await Promise.all([
+      fetchProductListing(1, 48, "newest"),
+      getPromotions("products_hero"),
+      getPromotions("catalog_inline_1"),
+    ]);
+    return { ...listing, heroPromotions, inlinePromotions };
+  },
   head: () => ({
     meta: [
       { title: "All products — Techaven" },
       {
         name: "description",
-        content: "Browse every product listed across Techaven shops — phones, laptops, audio and more.",
+        content:
+          "Browse every product listed across Techaven shops — phones, laptops, audio and more.",
       },
       { property: "og:title", content: "All products — Techaven" },
       {
@@ -40,25 +50,41 @@ function ProductsPage() {
   const [sort, setSort] = useState<ProductsQuery["sort"]>(initial.sort ?? "newest");
   const [hasMore, setHasMore] = useState(initial.hasMore);
   const [busy, setBusy] = useState(false);
+  const fallbackHero = (
+    <MegaHeader
+      eyebrow="Marketplace"
+      title="All products"
+      support="Every live listing from Techaven shops — same catalog as the mobile app."
+      actions={[
+        { label: "Shop deals", to: "/deals" },
+        { label: "Browse shops", to: "/shops" },
+      ]}
+      media={[]}
+      tone="neutral"
+    />
+  );
 
   const sortLabel = useMemo(
     () => sortOptions.find((o) => o.value === sort)?.label ?? "Newest",
     [sort],
   );
 
-  const applySort = useCallback(async (next: ProductsQuery["sort"]) => {
-    if (next === sort) return;
-    setBusy(true);
-    try {
-      const data = await fetchProductListing(1, 48, next);
-      setProducts(data.products);
-      setPage(data.page);
-      setHasMore(data.hasMore);
-      setSort(next);
-    } finally {
-      setBusy(false);
-    }
-  }, [sort]);
+  const applySort = useCallback(
+    async (next: ProductsQuery["sort"]) => {
+      if (next === sort) return;
+      setBusy(true);
+      try {
+        const data = await fetchProductListing(1, 48, next);
+        setProducts(data.products);
+        setPage(data.page);
+        setHasMore(data.hasMore);
+        setSort(next);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [sort],
+  );
 
   const loadMore = useCallback(async () => {
     if (!hasMore || busy) return;
@@ -76,16 +102,11 @@ function ProductsPage() {
 
   return (
     <>
-      <MegaHeader
-        eyebrow="Marketplace"
-        title="All products"
-        support="Every live listing from Techaven shops — same catalog as the mobile app."
-        actions={[
-          { label: "Shop deals", to: "/deals" },
-          { label: "Browse shops", to: "/shops" },
-        ]}
-        media={[]}
-        tone="neutral"
+      <PromotionSlot
+        placement="products_hero"
+        promotions={initial.heroPromotions}
+        fallback={fallbackHero}
+        heroHeading="h1"
       />
 
       <section className="shell pb-14">
@@ -150,6 +171,7 @@ function ProductsPage() {
           </>
         )}
       </section>
+      <PromotionSlot placement="catalog_inline_1" promotions={initial.inlinePromotions} />
     </>
   );
 }

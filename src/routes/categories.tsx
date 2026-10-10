@@ -9,16 +9,20 @@ import { enrichCategoryIcons, mapApiCategoryToCatalog } from "@/lib/catalog-api"
 import { getCategories, getShops } from "@/integrations/techaven/customer";
 import { mapApiShopToCatalog } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/categories")({
   loader: async () => {
-    const [categories, shops] = await Promise.all([
+    const [categories, shops, promotions] = await Promise.all([
       getCategories().catch(() => []),
       getShops().catch(() => []),
+      getPromotions("categories_hero"),
     ]);
     return {
       categories: enrichCategoryIcons(categories.map(mapApiCategoryToCatalog)),
       shops: shops.map(mapApiShopToCatalog),
+      promotions,
     };
   },
   head: () => ({
@@ -40,15 +44,23 @@ export const Route = createFileRoute("/categories")({
 });
 
 function CategoriesPage() {
-  const { categories, shops } = Route.useLoaderData();
+  const { categories, shops, promotions } = Route.useLoaderData();
+  const fallbackHero = (
+    <MegaHeader
+      eyebrow="Categories"
+      title="Browse electronics"
+      support="Everything sold across the Techaven mall, grouped the way people actually shop."
+      media={[marketplaceMedia.workspace]}
+      tone="neutral"
+    />
+  );
   return (
     <>
-      <MegaHeader
-        eyebrow="Categories"
-        title="Browse electronics"
-        support="Everything sold across the Techaven mall, grouped the way people actually shop."
-        media={[marketplaceMedia.workspace]}
-        tone="neutral"
+      <PromotionSlot
+        placement="categories_hero"
+        promotions={promotions}
+        fallback={fallbackHero}
+        heroHeading="h1"
       />
 
       <section className="shell py-10 md:py-14">
@@ -89,6 +101,7 @@ function CategoriesPage() {
             >
               <ImageStage
                 ratio="wide"
+                fit="cover"
                 tone="brand"
                 src={
                   [

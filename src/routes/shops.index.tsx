@@ -7,11 +7,17 @@ import { TrustStrip } from "@/components/TrustStrip";
 import { getShops } from "@/integrations/techaven/customer";
 import { mapApiShopToCatalog, shopListingCount } from "@/lib/catalog-api";
 import { cn } from "@/lib/utils";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/shops/")({
   loader: async () => {
-    const shops = await getShops();
-    return { shops: shops.map(mapApiShopToCatalog) };
+    const [shops, heroPromotions, inlinePromotions] = await Promise.all([
+      getShops(),
+      getPromotions("shops_hero"),
+      getPromotions("shops_inline_1"),
+    ]);
+    return { shops: shops.map(mapApiShopToCatalog), heroPromotions, inlinePromotions };
   },
   head: () => ({
     meta: [
@@ -34,7 +40,7 @@ export const Route = createFileRoute("/shops/")({
 const sorts = ["Most products", "Top rated", "A–Z"] as const;
 
 function ShopsPage() {
-  const { shops } = Route.useLoaderData();
+  const { shops, heroPromotions, inlinePromotions } = Route.useLoaderData();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<(typeof sorts)[number]>("Most products");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -56,13 +62,20 @@ function ShopsPage() {
 
   return (
     <>
-      <MegaHeader
-        eyebrow="The mall"
-        title="Every shop in one place"
-        support="Browse seller storefronts, follow shops and buy with escrow protection — like the mobile app."
-        actions={[]}
-        media={[]}
-        tone="brand-soft"
+      <PromotionSlot
+        placement="shops_hero"
+        promotions={heroPromotions}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow="The mall"
+            title="Every shop in one place"
+            support="Browse seller storefronts, follow shops and buy with escrow protection — like the mobile app."
+            actions={[]}
+            media={[]}
+            tone="brand-soft"
+          />
+        }
       />
 
       <section className="shell pb-12 md:pb-16">
@@ -110,9 +123,13 @@ function ShopsPage() {
         </div>
 
         {!list.length ? (
-          <p className="mt-10 text-center text-sm text-muted-foreground">No shops match your search.</p>
+          <p className="mt-10 text-center text-sm text-muted-foreground">
+            No shops match your search.
+          </p>
         ) : null}
       </section>
+
+      <PromotionSlot placement="shops_inline_1" promotions={inlinePromotions} />
 
       <TrustStrip />
     </>

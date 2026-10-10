@@ -18,6 +18,7 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
         <ImageStage
           category="home-electronics"
           src={catalogShop.logoUrl ?? marketplaceMedia.shop.src}
+          fit={catalogShop.logoUrl ? "contain" : "cover"}
           alt=""
           position={marketplaceMedia.shop.position}
           ratio="wide"

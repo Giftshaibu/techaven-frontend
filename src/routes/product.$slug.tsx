@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -16,6 +16,9 @@ import {
 import { useCart } from "@/lib/cart";
 import { useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
+import type { MarketplaceOffer } from "@/integrations/techaven/types";
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
@@ -34,7 +37,8 @@ export const Route = createFileRoute("/product/$slug")({
     } catch {
       related = [];
     }
-    return { product, shop, related };
+    const promotions = await getPromotions("product_inline_1");
+    return { product, shop, related, promotions };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -60,12 +64,21 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, shop, related } = Route.useLoaderData();
+  const { product, shop, related, promotions } = Route.useLoaderData();
   const categorySlug = product.category;
   const { add, count } = useCart();
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedListingId, setSelectedListingId] = useState(product.listingId);
+  const selectedOffer = product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
+  const selectedProduct = useMemo(() => selectedOffer ? {
+    ...product,
+    listingId: selectedOffer.id,
+    price: selectedOffer.price,
+    shop: selectedOffer.shop ? `shop-${selectedOffer.shop.id}` : product.shop,
+    ...(selectedOffer.shop?.name ? { shopName: selectedOffer.shop.name } : {}),
+  } : product, [product, selectedOffer]);
 
   const images =
     product.images && product.images.length > 0
@@ -73,7 +86,7 @@ function ProductPage() {
       : product.imageUrl
         ? [product.imageUrl]
         : [];
-  const shopName = shop?.name ?? product.shopName ?? "Shop";
+  const shopName = selectedOffer?.shop?.name ?? shop?.name ?? product.shopName ?? "Shop";
   const discount = discountPercent(product);
 
   return (
@@ -150,7 +163,7 @@ function ProductPage() {
 
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
             <span className="text-4xl font-extrabold tracking-tight text-ink-800">
-              {formatMwk(product.price)}
+              {formatMwk(selectedProduct.price)}
             </span>
             {product.oldPrice ? (
               <>
@@ -163,6 +176,23 @@ function ProductPage() {
               </>
             ) : null}
           </div>
+
+          {product.offers && product.offers.length > 1 ? (
+            <label className="mt-5 block">
+              <span className="mb-1.5 block text-sm font-semibold text-ink-800">Choose an offer</span>
+              <select
+                value={selectedOffer?.id}
+                onChange={(event) => setSelectedListingId(Number(event.target.value))}
+                className="h-12 w-full rounded-lg border border-border bg-surface px-3 text-sm text-ink-800"
+              >
+                {product.offers.map((offer: MarketplaceOffer) => (
+                  <option key={offer.id} value={offer.id}>
+                    {offer.shop?.name ?? "Techaven shop"} · {offer.condition.replace("_", " ")} · {formatMwk(offer.price)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
@@ -204,12 +234,13 @@ function ProductPage() {
             <button
               type="button"
               onClick={() => {
-                void add(product).then(() => setAdded(true));
+                void add(selectedProduct).then(() => setAdded(true));
               }}
+              disabled={!selectedProduct.listingId}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700"
             >
               <Icon name="cart-large-2-linear" className="h-5 w-5" />
-              Add to basket
+              {selectedProduct.listingId ? "Add to basket" : "No offer available"}
             </button>
             <Link
               to="/cart"
@@ -292,6 +323,16 @@ function ProductPage() {
         <SectionHeader title="You might also like" />
         <ProductGrid products={related} columns={4} />
       </section>
+
+      <PromotionSlot
+        placement="product_inline_1"
+        promotions={promotions}
+        context={{
+          categorySlug: product.category,
+          brandSlug: product.brand.toLowerCase(),
+          ...(shop ? { shopExternalId: String(shop.apiId) } : {}),
+        }}
+      />
 
       <TrustStrip />
     </>

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
@@ -6,6 +7,8 @@ import { MegaHeader } from "@/components/MegaHeader";
 import { formatMwk, getShop, products } from "@/data/catalog";
 import { useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/compare")({
   head: () => ({
@@ -27,6 +30,11 @@ export const Route = createFileRoute("/compare")({
 });
 
 function ComparePage() {
+  const heroPromotions =
+    useQuery({
+      queryKey: ["promotions", "compare_hero"],
+      queryFn: () => getPromotions("compare_hero"),
+    }).data ?? [];
   const { selected, toggle, remove, clear, count } = useCompareSelection();
   const [query, setQuery] = useState("");
   const [differencesOnly, setDifferencesOnly] = useState(false);
@@ -61,12 +69,19 @@ function ComparePage() {
 
   return (
     <>
-      <MegaHeader
-        eyebrow="Compare"
-        title="Compare before you buy"
-        support="Pick two to three devices and see the differences side-by-side — price, condition, shop and specifications."
-        stages={["smartphones", "laptops"]}
-        tone="dark"
+      <PromotionSlot
+        placement="compare_hero"
+        promotions={heroPromotions}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow="Compare"
+            title="Compare before you buy"
+            support="Pick two to three devices and see the differences side-by-side — price, condition, shop and specifications."
+            stages={["smartphones", "laptops"]}
+            tone="dark"
+          />
+        }
       />
 
       <section className="shell pb-16 pt-10 md:pt-14">

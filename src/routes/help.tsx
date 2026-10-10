@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
 import { MegaHeader } from "@/components/MegaHeader";
 import { SectionHeader } from "@/components/SectionHeader";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -56,14 +59,26 @@ const topics = [
 ];
 
 function HelpPage() {
+  const heroPromotions =
+    useQuery({
+      queryKey: ["promotions", "help_hero"],
+      queryFn: () => getPromotions("help_hero"),
+    }).data ?? [];
   return (
     <>
-      <MegaHeader
-        eyebrow="Help"
-        title="How Techaven works"
-        support="Techaven is a mall: many shops, one checkout, one set of protections. Here's what that means for your order."
-        tone="neutral"
-        stages={["accessories", "smartphones"]}
+      <PromotionSlot
+        placement="help_hero"
+        promotions={heroPromotions}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow="Help"
+            title="How Techaven works"
+            support="Techaven is a mall: many shops, one checkout, one set of protections. Here's what that means for your order."
+            tone="neutral"
+            stages={["accessories", "smartphones"]}
+          />
+        }
       />
 
       <section className="shell py-10 md:py-14">

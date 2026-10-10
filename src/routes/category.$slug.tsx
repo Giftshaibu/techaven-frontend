@@ -3,9 +3,10 @@ import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { MegaHeader } from "@/components/MegaHeader";
 import { ProductGrid } from "@/components/ProductGrid";
-import { type Promo } from "@/components/PromoTile";
 import { cn } from "@/lib/utils";
 import { fetchCategoryProducts, resolveCategory } from "@/lib/resolve-catalog";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 type Search = { brand?: string };
 
@@ -20,12 +21,20 @@ export const Route = createFileRoute("/category/$slug")({
       const data = await fetchCategoryProducts(resolved.apiCategoryId, 1, 60);
       products = data.products;
     }
-    return { category: resolved.category, products };
+    const [hero, inline1, inline2] = await Promise.all([
+      getPromotions("category_hero"),
+      getPromotions("category_inline_1"),
+      getPromotions("category_inline_2"),
+    ]);
+    return { category: resolved.category, products, promotions: [...hero, ...inline1, ...inline2] };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
-        meta: [{ title: "Category unavailable — Techaven" }, { name: "robots", content: "noindex" }],
+        meta: [
+          { title: "Category unavailable — Techaven" },
+          { name: "robots", content: "noindex" },
+        ],
       };
     }
     const { category } = loaderData;
@@ -44,16 +53,8 @@ export const Route = createFileRoute("/category/$slug")({
 
 const sorts = ["Recommended", "Price: low to high", "Price: high to low", "Top rated"] as const;
 
-const inlinePromo: Promo = {
-  headline: "Trade in, pay less",
-  support: "Your old device can cover part of this purchase.",
-  cta: "Check your device",
-  to: "/trade-in",
-  theme: "brand-soft",
-};
-
 function CategoryPage() {
-  const { category, products: all } = Route.useLoaderData();
+  const { category, products: all, promotions } = Route.useLoaderData();
   const { brand: brandFromUrl } = Route.useSearch();
   const [brand, setBrand] = useState<string | null>(brandFromUrl ?? null);
   const [shopFilter, setShopFilter] = useState<string | null>(null);
@@ -74,8 +75,7 @@ function CategoryPage() {
     if (brand) list = list.filter((p) => p.brand === brand);
     if (shopFilter) list = list.filter((p) => p.shop === shopFilter);
     if (condition === "new") list = list.filter((p) => p.condition === "New");
-    if (condition === "refurbished")
-      list = list.filter((p) => p.condition.includes("refurbished"));
+    if (condition === "refurbished") list = list.filter((p) => p.condition.includes("refurbished"));
 
     const sorted = [...list];
     if (sort === "Price: low to high") sorted.sort((a, b) => a.price - b.price);
@@ -100,18 +100,25 @@ function CategoryPage() {
         <span className="font-semibold text-ink-800">{category.name}</span>
       </div>
 
-      <MegaHeader
-        eyebrow="Category"
-        title={category.name}
-        support={category.blurb}
-        actions={[
-          { label: `Shop ${category.name.toLowerCase()}`, to: "/deals" },
-          { label: "Compare devices", to: "/compare" },
-        ]}
-        stages={[category.slug, category.slug, category.slug]}
-        tone="brand-soft"
-      />
-
+      {promotions.some((p) => p.placement === "category_hero") ? (
+        <PromotionSlot
+          placement="category_hero"
+          promotions={promotions}
+          context={{ categorySlug: category.slug, brandSlug: brand ?? undefined }}
+        />
+      ) : (
+        <MegaHeader
+          eyebrow="Category"
+          title={category.name}
+          support={category.blurb}
+          actions={[
+            { label: `Shop ${category.name.toLowerCase()}`, to: "/deals" },
+            { label: "Compare devices", to: "/compare" },
+          ]}
+          stages={[category.slug, category.slug, category.slug]}
+          tone="brand-soft"
+        />
+      )}
       <section className="shell py-8">
         <div className="flex flex-wrap gap-2">
           {category.subcategories.map((sub) => (
@@ -130,7 +137,9 @@ function CategoryPage() {
             onClick={() => setBrand(null)}
             className={cn(
               "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              brand === null ? "bg-ink-900 text-white" : "bg-stage text-ink-800 hover:bg-neutral-200",
+              brand === null
+                ? "bg-ink-900 text-white"
+                : "bg-stage text-ink-800 hover:bg-neutral-200",
             )}
           >
             All brands
@@ -142,7 +151,9 @@ function CategoryPage() {
               onClick={() => setBrand(b)}
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                brand === b ? "bg-ink-900 text-white" : "bg-stage text-ink-800 hover:bg-neutral-200",
+                brand === b
+                  ? "bg-ink-900 text-white"
+                  : "bg-stage text-ink-800 hover:bg-neutral-200",
               )}
             >
               {b}
@@ -204,11 +215,19 @@ function CategoryPage() {
 
         <div className="pt-8">
           {shown.length ? (
-            <ProductGrid
-              products={shown}
-              promo={shown.length >= 8 ? inlinePromo : undefined}
-              promoAfter={8}
-            />
+            <>
+              <ProductGrid products={shown.slice(0, 8)} />
+              <PromotionSlot
+                placement="category_inline_1"
+                promotions={promotions}
+                context={{ categorySlug: category.slug, brandSlug: brand ?? undefined }}
+              />
+              {shown.length > 8 ? (
+                <div className="mt-10">
+                  <ProductGrid products={shown.slice(8)} />
+                </div>
+              ) : null}
+            </>
           ) : (
             <p className="py-16 text-center text-sm text-muted-foreground">
               No products match those filters yet.
@@ -227,6 +246,12 @@ function CategoryPage() {
             </button>
           </div>
         ) : null}
+
+        <PromotionSlot
+          placement="category_inline_2"
+          promotions={promotions}
+          context={{ categorySlug: category.slug, brandSlug: brand ?? undefined }}
+        />
 
         <div className="mt-12 flex flex-col items-start justify-between gap-4 rounded-3xl bg-info-soft p-8 md:flex-row md:items-center">
           <div>

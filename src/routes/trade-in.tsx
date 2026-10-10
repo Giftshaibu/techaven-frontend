@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
 import { SectionHeader } from "@/components/SectionHeader";
 import { marketplaceMedia } from "@/data/media";
+import { getPromotions } from "@/lib/cms/promotions";
+import { PromotionSlot } from "@/components/promotions/PromotionSlot";
 
 export const Route = createFileRoute("/trade-in")({
   head: () => ({
@@ -47,15 +50,27 @@ const steps = [
 ];
 
 function TradeInPage() {
+  const heroPromotions =
+    useQuery({
+      queryKey: ["promotions", "trade_in_hero"],
+      queryFn: () => getPromotions("trade_in_hero"),
+    }).data ?? [];
   return (
     <>
-      <MegaHeader
-        eyebrow="Trade-in"
-        title="Give your old device another life"
-        support="Check whether your device qualifies and see the available trade-in path. Eligibility and value are set by the participating shop."
-        actions={[{ label: "Browse devices to upgrade to", to: "/deals" }]}
-        stages={["smartphones", "laptops"]}
-        tone="brand-soft"
+      <PromotionSlot
+        placement="trade_in_hero"
+        promotions={heroPromotions}
+        heroHeading="h1"
+        fallback={
+          <MegaHeader
+            eyebrow="Trade-in"
+            title="Give your old device another life"
+            support="Check whether your device qualifies and see the available trade-in path. Eligibility and value are set by the participating shop."
+            actions={[{ label: "Browse devices to upgrade to", to: "/deals" }]}
+            stages={["smartphones", "laptops"]}
+            tone="brand-soft"
+          />
+        }
       />
 
       <section className="shell py-10 md:py-14">
@@ -108,6 +123,7 @@ function TradeInPage() {
           <ImageStage
             category="smartphones"
             src={marketplaceMedia.tradeIn.src}
+            fit="cover"
             alt={marketplaceMedia.tradeIn.alt}
             position={marketplaceMedia.tradeIn.position}
             sizes="(max-width: 1023px) 100vw, 42vw"

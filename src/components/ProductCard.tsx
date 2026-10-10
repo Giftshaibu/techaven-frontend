@@ -39,12 +39,12 @@ export function ProductCard({
             src={catalogProduct.imageUrl}
             alt={product.name}
             ratio="square"
-            className="transition-transform duration-300 group-hover:scale-[1.02]"
+            imageClassName="transition-transform duration-300 motion-reduce:transition-none group-hover:scale-[1.025]"
           />
         </Link>
 
         <div className="absolute right-2 top-2 flex gap-1.5">
-          <button
+          {!catalogProduct.marketplaceDevice ? <button
             type="button"
             aria-label={
               saved ? `Remove ${product.name} from saved` : `Save ${product.name} to your list`
@@ -67,11 +67,13 @@ export function ProductCard({
             )}
           >
             <Icon name={saved ? "heart-bold" : "heart-linear"} className="h-[18px] w-[18px]" />
-          </button>
+          </button> : null}
 
           <button
             type="button"
-            aria-label={compared ? `Remove ${product.name} from compare` : `Add ${product.name} to compare`}
+            aria-label={
+              compared ? `Remove ${product.name} from compare` : `Add ${product.name} to compare`
+            }
             aria-pressed={compared}
             onClick={(event) => {
               event.preventDefault();

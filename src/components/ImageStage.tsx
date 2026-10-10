@@ -28,6 +28,8 @@ export function ImageStage({
   position = "center",
   sizes,
   priority = false,
+  fit = "contain",
+  imageClassName,
 }: {
   category?: string | undefined;
   ratio?: "square" | "portrait" | "wide" | undefined;
@@ -39,15 +41,20 @@ export function ImageStage({
   position?: string | undefined;
   sizes?: string | undefined;
   priority?: boolean | undefined;
+  fit?: "contain" | "cover" | undefined;
+  imageClassName?: string | undefined;
 }) {
   const name = (category && categoryIcon[category]) || "bag-4-linear";
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const failed = Boolean(src) && failedSrc === src;
+  const loaded = Boolean(src) && loadedSrc === src;
   const showImage = Boolean(src) && !failed;
 
   return (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden rounded-xl",
+        "relative flex items-center justify-center overflow-hidden rounded-xl",
         ratio === "square" && "aspect-square",
         ratio === "portrait" && "aspect-[4/5]",
         ratio === "wide" && "aspect-[16/9]",
@@ -57,6 +64,9 @@ export function ImageStage({
         className,
       )}
     >
+      {!showImage || !loaded ? (
+        <Icon name={name} className={cn("h-1/3 w-1/3 text-neutral-400", iconClassName)} />
+      ) : null}
       {showImage ? (
         <img
           src={src}
@@ -65,13 +75,20 @@ export function ImageStage({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
-          onError={() => setFailed(true)}
-          className="h-full w-full object-cover"
+          onLoad={() => setLoadedSrc(src ?? null)}
+          onError={() => {
+            setLoadedSrc(null);
+            setFailedSrc(src ?? null);
+          }}
+          className={cn(
+            "absolute inset-0 h-full w-full max-h-full max-w-full transition-opacity duration-200 motion-reduce:transition-none",
+            loaded ? "opacity-100" : "opacity-0",
+            fit === "contain" ? "object-contain p-[8%]" : "object-cover",
+            imageClassName,
+          )}
           style={{ objectPosition: position }}
         />
-      ) : (
-        <Icon name={name} className={cn("h-1/3 w-1/3 text-neutral-400", iconClassName)} />
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,12 +1,23 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
-import { categories as fallbackCategories, popularBrands, shops as fallbackShops } from "@/data/catalog";
+import {
+  categories as fallbackCategories,
+  popularBrands,
+  shops as fallbackShops,
+} from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
-import { enrichCategoryIcons, mapApiCategoryToCatalog, mapApiShopToCatalog } from "@/lib/catalog-api";
+import {
+  enrichCategoryIcons,
+  mapApiCategoryToCatalog,
+  mapApiShopToCatalog,
+} from "@/lib/catalog-api";
 import { useTechavenCategories, useTechavenShops } from "@/lib/techaven-hooks";
 import { cn } from "@/lib/utils";
+import { ctaHref, getPromotions, matchesTarget, type Promotion } from "@/lib/cms/promotions";
+import { PromotionMedia } from "@/components/promotions/PromotionPrimitives";
 
 const utilityLinks = [
   { label: "How Techaven works", to: "/help" },
@@ -79,18 +90,45 @@ function MegaMenu({
   slug,
   categories,
   shops,
+  promotion,
+  open,
+  menuId,
+  onEnter,
+  onLeave,
+  onNavigate,
 }: {
   slug: string;
   categories: typeof fallbackCategories;
   shops: typeof fallbackShops;
+  promotion?: Promotion;
+  open: boolean;
+  menuId: string;
+  onEnter: () => void;
+  onLeave: () => void;
+  onNavigate: () => void;
 }) {
   const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
   const featuredShops = shops.slice(0, 3);
 
   return (
-    <div className="absolute left-0 right-0 top-full z-40 hidden border-b border-border bg-surface shadow-[0_12px_24px_-18px_rgba(5,5,38,0.35)] group-hover:block">
-      <div className="shell grid gap-8 py-8 lg:grid-cols-[1.2fr_1fr_1fr_1.1fr]">
+    <div
+      id={menuId}
+      role="region"
+      aria-label={`${category.name} menu`}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+      className={cn(
+        "absolute left-0 right-0 top-full z-40 border-b border-border bg-surface shadow-[0_12px_24px_-18px_rgba(5,5,38,0.35)]",
+        open ? "block" : "hidden",
+      )}
+    >
+      <div
+        className={cn(
+          "shell grid gap-8 py-8",
+          promotion ? "lg:grid-cols-[1.1fr_0.9fr_0.9fr_1.2fr]" : "lg:grid-cols-3",
+        )}
+      >
         <div>
           <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
             Shop {category.name.toLowerCase()}
@@ -102,6 +140,7 @@ function MegaMenu({
                   to="/category/$slug"
                   params={{ slug: category.slug }}
                   className="text-ink-800 hover:text-brand-500 hover:underline"
+                  onClick={onNavigate}
                 >
                   {sub}
                 </Link>
@@ -120,6 +159,7 @@ function MegaMenu({
                   params={{ slug: category.slug }}
                   search={{ brand }}
                   className="text-ink-800 hover:text-brand-500 hover:underline"
+                  onClick={onNavigate}
                 >
                   {brand}
                 </Link>
@@ -139,6 +179,7 @@ function MegaMenu({
                   to="/shops/$shopSlug"
                   params={{ shopSlug: shop.slug }}
                   className="text-ink-800 hover:text-brand-500 hover:underline"
+                  onClick={onNavigate}
                 >
                   {shop.name}
                 </Link>
@@ -147,18 +188,30 @@ function MegaMenu({
           </ul>
         </div>
 
-        <div className="rounded-2xl bg-brand-100 p-5">
-          <p className="text-sm font-semibold tracking-normal text-brand-700">Techaven</p>
-          <p className="mt-2 text-lg font-bold leading-snug text-brand-800">
-            Compare {category.name.toLowerCase()} side by side
-          </p>
-          <Link
-            to="/compare"
-            className="mt-4 inline-flex rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-          >
-            Start comparing
-          </Link>
-        </div>
+        {promotion ? (
+          <div className="overflow-hidden rounded-2xl bg-brand-100">
+            <PromotionMedia
+              promotion={promotion}
+              ratio="compact"
+              className="max-h-36 rounded-none"
+            />
+            <div className="p-5">
+              <p className="text-lg font-bold leading-snug text-brand-800">{promotion.headline}</p>
+              {promotion.subheadline ? (
+                <p className="mt-2 text-sm text-brand-800/75">{promotion.subheadline}</p>
+              ) : null}
+              {promotion.cta && ctaHref(promotion.cta) ? (
+                <a
+                  href={ctaHref(promotion.cta)!}
+                  onClick={onNavigate}
+                  className="mt-4 inline-flex rounded-lg bg-brand-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                >
+                  {promotion.cta.label}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -170,6 +223,15 @@ export function Header() {
   const signedIn = Boolean(user);
   const apiCategories = useTechavenCategories();
   const apiShops = useTechavenShops();
+  const announcementPromotion = useQuery({
+    queryKey: ["promotions", "site_announcement"],
+    queryFn: () => getPromotions("site_announcement"),
+  }).data?.[0];
+  const menuPromotions =
+    useQuery({
+      queryKey: ["promotions", "header_mega_menu"],
+      queryFn: () => getPromotions("header_mega_menu"),
+    }).data ?? [];
   const categories =
     apiCategories.data && apiCategories.data.length > 0
       ? enrichCategoryIcons(apiCategories.data.map(mapApiCategoryToCatalog))
@@ -181,9 +243,32 @@ export function Header() {
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const closeMenuTimer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  const cancelMenuClose = useCallback(() => {
+    if (closeMenuTimer.current) window.clearTimeout(closeMenuTimer.current);
+    closeMenuTimer.current = null;
+  }, []);
+  const showMenu = useCallback(
+    (slug: string) => {
+      cancelMenuClose();
+      setOpenMenu(slug);
+    },
+    [cancelMenuClose],
+  );
+  const scheduleMenuClose = useCallback(() => {
+    cancelMenuClose();
+    closeMenuTimer.current = window.setTimeout(() => setOpenMenu(null), 180);
+  }, [cancelMenuClose]);
+  const closeMenu = useCallback(() => {
+    cancelMenuClose();
+    setOpenMenu(null);
+  }, [cancelMenuClose]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -191,6 +276,35 @@ export function Header() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (scrolled) closeMenu();
+  }, [closeMenu, scrolled]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (openMenu && !headerRef.current?.contains(event.target as Node)) closeMenu();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelMenuClose();
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cancelMenuClose, closeMenu, openMenu]);
+
+  useEffect(() => {
+    if (
+      announcementPromotion &&
+      sessionStorage.getItem(`dismissed-promotion:${announcementPromotion.id}`) === "1"
+    ) {
+      setAnnouncement(false);
+    }
+  }, [announcementPromotion]);
 
   useEffect(() => {
     if (!mobileNav) return;
@@ -233,20 +347,32 @@ export function Header() {
   const closeMobileNav = () => setMobileNav(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-surface shadow-[0_1px_0_rgba(5,5,38,0.04)]">
-      {announcement && !scrolled ? (
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-50 bg-surface shadow-[0_1px_0_rgba(5,5,38,0.04)]"
+    >
+      {announcement && !scrolled && announcementPromotion ? (
         <div className="bg-ink-900 text-white">
           <div className="shell flex items-center justify-center gap-3 py-2 text-[13px]">
-            <Icon name="box-minimalistic-linear" className="h-4 w-4 shrink-0" />
             <p className="text-center">
-              Free delivery on orders over MWK 900,000 —{" "}
-              <Link to="/deals" className="font-semibold underline">
-                see this week's deals
-              </Link>
+              {announcementPromotion.headline}
+              {announcementPromotion.cta && ctaHref(announcementPromotion.cta) ? (
+                <>
+                  {" "}
+                  —{" "}
+                  <a href={ctaHref(announcementPromotion.cta)!} className="font-semibold underline">
+                    {announcementPromotion.cta.label}
+                  </a>
+                </>
+              ) : null}
             </p>
             <button
               type="button"
-              onClick={() => setAnnouncement(false)}
+              onClick={() => {
+                setAnnouncement(false);
+                if (announcementPromotion)
+                  sessionStorage.setItem(`dismissed-promotion:${announcementPromotion.id}`, "1");
+              }}
               aria-label="Dismiss announcement"
               className="ml-2 shrink-0 opacity-70 hover:opacity-100"
             >
@@ -388,15 +514,40 @@ export function Header() {
             Deals
           </Link>
           {categories.slice(0, 7).map((category) => (
-            <div key={category.slug} className="group">
+            <div
+              key={category.slug}
+              onPointerEnter={() => showMenu(category.slug)}
+              onPointerLeave={scheduleMenuClose}
+              onFocus={() => showMenu(category.slug)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  scheduleMenuClose();
+                }
+              }}
+            >
               <Link
                 to="/category/$slug"
                 params={{ slug: category.slug }}
                 className="inline-flex rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
+                aria-expanded={openMenu === category.slug}
+                aria-controls={`mega-menu-${category.slug}`}
+                onClick={closeMenu}
               >
                 {category.name}
               </Link>
-              <MegaMenu slug={category.slug} categories={categories} shops={shops} />
+              <MegaMenu
+                slug={category.slug}
+                categories={categories}
+                shops={shops}
+                promotion={menuPromotions.find((p) =>
+                  matchesTarget(p, { categorySlug: category.slug }),
+                )}
+                open={openMenu === category.slug}
+                menuId={`mega-menu-${category.slug}`}
+                onEnter={() => showMenu(category.slug)}
+                onLeave={scheduleMenuClose}
+                onNavigate={closeMenu}
+              />
             </div>
           ))}
           <Link
