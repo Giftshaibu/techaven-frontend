@@ -4,11 +4,10 @@ import {
   getBanners,
   getCategories,
   getPlatformSettings,
-  getProducts,
+  getMarketplaceDevices,
   getShops,
-  getProduct,
+  getMarketplaceDevice,
   getShop,
-  getShopProducts,
 } from "@/integrations/techaven/customer";
 
 export const techavenKeys = {
@@ -23,10 +22,10 @@ export const techavenKeys = {
   platformSettings: () => ["techaven", "platform-settings"] as const,
 };
 
-export function useTechavenProducts(params?: Parameters<typeof getProducts>[0]) {
+export function useTechavenProducts(params?: Parameters<typeof getMarketplaceDevices>[0]) {
   return useQuery({
     queryKey: techavenKeys.products(params),
-    queryFn: () => getProducts(params),
+    queryFn: () => getMarketplaceDevices(params),
   });
 }
 
@@ -34,7 +33,7 @@ export function useTechavenProduct(id: number | string | null) {
   return useQuery({
     queryKey: techavenKeys.product(id ?? ""),
     enabled: id != null && id !== "",
-    queryFn: () => getProduct(id!),
+    queryFn: () => getMarketplaceDevice(id!),
   });
 }
 
@@ -64,7 +63,7 @@ export function useTechavenShopProducts(shopId: number | string | null, page = 1
   return useQuery({
     queryKey: techavenKeys.shopProducts(shopId ?? "", page),
     enabled: shopId != null && shopId !== "",
-    queryFn: () => getShopProducts(shopId!, page),
+    queryFn: () => getMarketplaceDevices({ shop_id: Number(shopId), page }),
   });
 }
 
