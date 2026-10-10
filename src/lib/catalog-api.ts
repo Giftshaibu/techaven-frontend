@@ -1,4 +1,4 @@
-import type { ApiCategory, ApiProduct, ApiShop } from "@/integrations/techaven/types";
+import type { ApiCategory, ApiProduct, ApiShop, MarketplaceDevice, MarketplaceOffer } from "@/integrations/techaven/types";
 import type { Category, Condition, Product, Shop } from "@/data/catalog";
 
 /** Product loaded from Techaven API (storefront shape + API fields) */
@@ -13,6 +13,9 @@ export type CatalogProduct = Product & {
   isNewArrival?: boolean;
   isHotSale?: boolean;
   isSpecialOffer?: boolean;
+  listingId?: number;
+  offers?: MarketplaceOffer[];
+  marketplaceDevice?: MarketplaceDevice;
 };
 
 export type CatalogShop = Shop & {
@@ -142,6 +145,50 @@ export function mapApiProductToCatalog(
     isNewArrival: Boolean(api.is_new_arrival),
     isHotSale: Boolean(api.is_hot_sale),
     isSpecialOffer: Boolean(api.is_special_offer),
+  };
+}
+
+const conditionLabel: Record<MarketplaceOffer["condition"], Condition> = {
+  new: "New", used: "Good refurbished", refurbished: "Excellent refurbished", open_box: "Open box",
+};
+
+export function mapMarketplaceDeviceToCatalog(device: MarketplaceDevice): CatalogProduct {
+  const offers = [...(device.offers ?? [])].sort((a, b) => a.price - b.price || a.id - b.id);
+  const offer = offers[0];
+  const images = [
+    ...(offer?.images ?? []).map((image) => image.url),
+    ...(device.media ?? []).map((media) => media.url),
+    ...(device.primary_image_url ? [device.primary_image_url] : []),
+  ].filter((url, index, all) => Boolean(url) && all.indexOf(url) === index);
+  const specs = [
+    device.soc ? { label: "Processor", value: device.soc } : null,
+    device.battery_mah ? { label: "Battery", value: `${device.battery_mah} mAh` } : null,
+    device.os_family ? { label: "Operating system", value: device.os_family } : null,
+  ].filter((value): value is { label: string; value: string } => value != null);
+  return {
+    apiId: device.id,
+    ...(offer ? { listingId: offer.id } : {}),
+    slug: device.slug,
+    name: device.name,
+    brand: device.brand?.name ?? "Techaven",
+    category: device.category ? `c-${device.category.id}` : "electronics",
+    ...(device.category ? { categoryId: device.category.id } : {}),
+    shop: offer?.shop ? shopSlugFromApiId(offer.shop.id) : "unknown",
+    ...(offer?.shop?.name ? { shopName: offer.shop.name } : {}),
+    price: offer?.price ?? 0,
+    condition: offer ? conditionLabel[offer.condition] : "New",
+    rating: 0,
+    reviews: 0,
+    shopsCount: new Set(offers.map((item) => item.shop?.id).filter(Boolean)).size,
+    warranty: offer?.warranty_months ? `${offer.warranty_months}-month warranty` : "Shop warranty",
+    delivery: "Delivery at checkout",
+    inStock: offers.some((item) => item.quantity > 0),
+    specs,
+    highlights: [],
+    ...(images[0] ? { imageUrl: images[0] } : {}),
+    images,
+    offers,
+    marketplaceDevice: device,
   };
 }
 

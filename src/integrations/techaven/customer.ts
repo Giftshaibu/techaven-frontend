@@ -5,7 +5,8 @@ import type {
   ApiProduct,
   ApiShop,
   AuthPayload,
-  CartItem,
+  MarketplaceCartItem,
+  MarketplaceDevice,
   NotificationItem,
   PlatformSettings,
   PointBalance,
@@ -144,7 +145,7 @@ export type ProductsQuery = {
 export function getProducts(params: ProductsQuery = {}) {
   const q = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== "") q.set(k, String(v));
+    if (v !== undefined) q.set(k, String(v));
   });
   const qs = q.toString();
   return techavenRequest<{ products: ApiProduct[]; pagination: unknown }>(
@@ -202,6 +203,38 @@ export function getCategories() {
   return techavenRequest<ApiCategory[]>("/api/categories", { auth: false });
 }
 
+export type MarketplaceQuery = {
+  page?: number;
+  limit?: number;
+  category_id?: number;
+  brand?: string;
+  search?: string;
+  condition?: string;
+  min_price?: number;
+  max_price?: number;
+  shop_id?: number;
+  ids?: number[];
+};
+
+export function getMarketplaceDevices(params: MarketplaceQuery = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([field, value]) => {
+    if (value === undefined || value === "") return;
+    query.set(field, Array.isArray(value) ? value.join(",") : String(value));
+  });
+  return techavenRequest<{ devices: MarketplaceDevice[]; missing_ids?: number[]; pagination: unknown }>(
+    `/api/v2/marketplace/devices${query.size ? `?${query}` : ""}`,
+    { auth: false },
+  );
+}
+
+export function getMarketplaceDevice(idOrSlug: number | string) {
+  return techavenRequest<MarketplaceDevice>(
+    `/api/v2/marketplace/devices/${encodeURIComponent(String(idOrSlug))}`,
+    { auth: false },
+  );
+}
+
 export function getCategoryProducts(categoryId: number | string, page = 1, limit = 30) {
   return techavenRequest<{ products: ApiProduct[]; pagination: unknown }>(
     `/api/categories/${categoryId}/products?page=${page}&limit=${limit}`,
@@ -211,20 +244,20 @@ export function getCategoryProducts(categoryId: number | string, page = 1, limit
 
 // —— Cart ——
 export function getCart() {
-  return techavenRequest<{ items?: CartItem[]; summary?: Record<string, unknown> }>(
-    "/api/cart",
+  return techavenRequest<{ items?: MarketplaceCartItem[]; summary?: Record<string, unknown> }>(
+    "/api/v2/cart",
     {
       auth: true,
     },
   );
 }
 
-export function addCartItem(body: { product_id: number; quantity: number }) {
-  return techavenRequest<unknown>("/api/cart/items", { method: "POST", body, auth: true });
+export function addCartItem(body: { seller_listing_id: number; quantity: number }) {
+  return techavenRequest<unknown>("/api/v2/cart/items", { method: "POST", body, auth: true });
 }
 
 export function updateCartItem(itemId: string, body: { quantity: number }) {
-  return techavenRequest<unknown>(`/api/cart/items/${itemId}`, {
+  return techavenRequest<unknown>(`/api/v2/cart/items/${itemId}`, {
     method: "PUT",
     body,
     auth: true,
@@ -232,11 +265,11 @@ export function updateCartItem(itemId: string, body: { quantity: number }) {
 }
 
 export function removeCartItem(itemId: string) {
-  return techavenRequest<unknown>(`/api/cart/items/${itemId}`, { method: "DELETE", auth: true });
+  return techavenRequest<unknown>(`/api/v2/cart/items/${itemId}`, { method: "DELETE", auth: true });
 }
 
 export function clearCart() {
-  return techavenRequest<unknown>("/api/cart", { method: "DELETE", auth: true });
+  return techavenRequest<unknown>("/api/v2/cart", { method: "DELETE", auth: true });
 }
 
 // —— Courier ——
@@ -249,11 +282,11 @@ export function getCourierServices() {
 // —— Orders ——
 export function createOrder(body: {
   shipping_address_id: number;
-  courier_service_id: number;
-  items: { product_id: number; quantity: number }[];
+  courier_service_id?: number;
+  items: { seller_listing_id: number; quantity: number }[];
   notes?: string;
 }) {
-  return techavenRequest<ApiOrder>("/api/orders", { method: "POST", body, auth: true });
+  return techavenRequest<{ orders: ApiOrder[] }>("/api/v2/orders", { method: "POST", body, auth: true });
 }
 
 export function getOrders(params: { page?: number; limit?: number; status?: string } = {}) {

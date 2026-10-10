@@ -1,11 +1,8 @@
 import {
   getCategories,
-  getCategoryProducts,
-  getProduct,
-  getProducts,
+  getMarketplaceDevice,
+  getMarketplaceDevices,
   getShop,
-  getShopProducts,
-  searchProducts,
   type ProductsQuery,
 } from "@/integrations/techaven/customer";
 import { getCategory, getShop as getMockShop } from "@/data/catalog";
@@ -13,26 +10,21 @@ import type { Category } from "@/data/catalog";
 import {
   categorySlugFromApi,
   mapApiCategoryToCatalog,
-  mapApiProductToCatalog,
+  mapMarketplaceDeviceToCatalog,
   mapApiShopToCatalog,
   parseApiCategoryId,
-  parseApiProductId,
   parseApiShopId,
   type CatalogProduct,
   type CatalogShop,
 } from "@/lib/catalog-api";
 
 export async function resolveProduct(slug: string): Promise<CatalogProduct | null> {
-  const id = parseApiProductId(slug);
-  if (id != null) {
-    try {
-      const api = await getProduct(id);
-      return mapApiProductToCatalog(api);
-    } catch {
-      return null;
-    }
+  try {
+    const api = await getMarketplaceDevice(slug);
+    return mapMarketplaceDeviceToCatalog(api);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export async function resolveShop(slug: string): Promise<CatalogShop | null> {
@@ -88,26 +80,26 @@ function slugify(name: string): string {
 }
 
 export async function fetchProductsPage(page = 1, limit = 30) {
-  const data = await getProducts({ page, limit, sort: "newest" });
-  const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const data = await getMarketplaceDevices({ page, limit });
+  const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }
 
 export async function fetchCategoryProducts(categoryId: number, page = 1, limit = 30) {
-  const data = await getCategoryProducts(categoryId, page, limit);
-  const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const data = await getMarketplaceDevices({ category_id: categoryId, page, limit });
+  const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }
 
 export async function fetchShopProducts(shopId: number, page = 1, limit = 30) {
-  const data = await getShopProducts(shopId, page, limit);
-  const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const data = await getMarketplaceDevices({ shop_id: shopId, page, limit });
+  const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }
 
 export async function searchCatalogProducts(q: string, page = 1, limit = 30) {
-  const data = await searchProducts(q, { page, limit });
-  const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const data = await getMarketplaceDevices({ search: q, page, limit });
+  const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }
 
@@ -130,8 +122,10 @@ export async function fetchProductListing(
   limit = PRODUCT_LIST_PAGE_SIZE,
   sort: ProductsQuery["sort"] = "newest",
 ) {
-  const data = await getProducts({ page, limit, sort });
-  const products = (data.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const data = await getMarketplaceDevices({ page, limit });
+  const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
+  if (sort === "price_asc") products.sort((a, b) => a.price - b.price);
+  if (sort === "price_desc") products.sort((a, b) => b.price - a.price);
   const hasMore =
     paginationHasNext(page, data.pagination) ||
     (products.length >= limit && !paginationHasNext(page, data.pagination) && data.pagination == null);
@@ -141,12 +135,12 @@ export async function fetchProductListing(
 export async function loadHomeFeed() {
   const [categories, productsData, shops] = await Promise.all([
     getCategories().catch(() => [] as Awaited<ReturnType<typeof getCategories>>),
-    getProducts({ page: 1, limit: 30 }).catch(() => ({ products: [], pagination: {} })),
+    getMarketplaceDevices({ page: 1, limit: 30 }).catch(() => ({ devices: [], pagination: {} })),
     import("@/integrations/techaven/customer").then((m) => m.getShops()).catch(() => []),
   ]);
 
   const mappedCategories = categories.map(mapApiCategoryToCatalog);
-  const allProducts = (productsData.products ?? []).map((p) => mapApiProductToCatalog(p));
+  const allProducts = (productsData.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   const mappedShops = shops.map(mapApiShopToCatalog);
 
   let banners: { id?: number; title?: string; image?: string; link?: string }[] = [];

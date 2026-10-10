@@ -61,6 +61,49 @@ export type ApiProduct = {
   [key: string]: unknown;
 };
 
+export type MarketplaceOffer = {
+  id: number;
+  variant_id: number;
+  variant_color_id: number | null;
+  shop: { id: number; name: string } | null;
+  condition: "new" | "used" | "refurbished" | "open_box";
+  currency: string;
+  price: number;
+  quantity: number;
+  warranty_months: number | null;
+  images: { id: number; url: string; alt_text?: string | null; is_primary: boolean }[];
+};
+
+export type MarketplaceVariant = {
+  id: number;
+  model_number: string | null;
+  ram_gb: number | null;
+  storage_gb: number | null;
+  network_generation: string | null;
+  region: string | null;
+  sim_type: string | null;
+  attributes: Record<string, unknown>;
+  colors: { id: number; manufacturer_name: string; slug: string; hex: string | null }[];
+};
+
+export type MarketplaceDevice = {
+  id: number;
+  slug: string;
+  name: string;
+  brand: { id: number; name: string; slug: string } | null;
+  category: { id: number; name: string } | null;
+  release_date: string | null;
+  soc: string | null;
+  battery_mah: number | null;
+  os_family: string | null;
+  specs: Record<string, unknown>;
+  primary_image_url: string | null;
+  media: { id: number; url: string; media_type: string; is_primary: boolean }[];
+  variant_axes: string[];
+  variants: MarketplaceVariant[];
+  offers: MarketplaceOffer[];
+};
+
 export type ApiCategory = {
   id: number;
   name: string;
@@ -112,6 +155,25 @@ export type CartItem = {
   unit_price?: number;
   stock?: number;
   is_available?: boolean;
+};
+
+export type MarketplaceCartItem = {
+  id: string;
+  seller_listing_id: number;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  is_available: boolean;
+  listing: {
+    id: number;
+    price: number | string;
+    quantity: number;
+    condition: MarketplaceOffer["condition"];
+    currency: string;
+    shop: { id: number; name: string };
+    images: MarketplaceOffer["images"];
+    variant: MarketplaceVariant & { device: Pick<MarketplaceDevice, "id" | "slug" | "name" | "primary_image_url"> };
+  };
 };
 
 export type ApiOrder = {
