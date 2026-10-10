@@ -16,13 +16,14 @@ import {
   removeCartItem,
   updateCartItem,
 } from "@/integrations/techaven/customer";
-import type { CartItem } from "@/integrations/techaven/types";
+import type { MarketplaceCartItem } from "@/integrations/techaven/types";
 import { useAuth } from "@/lib/auth";
-import { mapApiProductToCatalog, productSlugFromApiId, type CatalogProduct } from "@/lib/catalog-api";
+import type { CatalogProduct } from "@/lib/catalog-api";
 
 export type CartLine = {
   slug: string;
   productId: number;
+  listingId: number;
   quantity: number;
   cartItemId?: string;
   product?: CatalogProduct;
@@ -42,35 +43,32 @@ type CartContextValue = {
 
 const STORAGE_KEY = "techaven.cart.v2";
 
-function catalogProductFromCartItem(item: CartItem): CatalogProduct | undefined {
-  if (item.product) return mapApiProductToCatalog(item.product);
-
-  const productId = Number(item.product_id);
-  if (!Number.isFinite(productId) || productId <= 0) return undefined;
-
-  const name = item.product_name?.trim() || "Product";
-  const price = Number(item.unit_price) || 0;
-  const imageUrl = item.product_image?.trim() || undefined;
-
-  return mapApiProductToCatalog({
-    id: productId,
-    name,
-    price,
-    image_url: imageUrl,
-    stock: item.stock ?? 1,
-  });
+function catalogProductFromCartItem(item: MarketplaceCartItem): CatalogProduct | undefined {
+  const device = item.listing?.variant?.device;
+  if (!device?.id) return undefined;
+  const imageUrl = item.listing.images?.[0]?.url ?? device.primary_image_url ?? undefined;
+  return {
+    apiId: device.id, listingId: item.seller_listing_id, slug: device.slug, name: device.name,
+    brand: "Techaven", category: "electronics", shop: `shop-${item.listing.shop.id}`,
+    shopName: item.listing.shop.name, price: Number(item.unit_price), condition: "New",
+    rating: 0, reviews: 0, shopsCount: 1, warranty: "Shop warranty",
+    delivery: "Delivery at checkout", inStock: item.is_available, specs: [], highlights: [],
+    ...(imageUrl ? { imageUrl, images: [imageUrl] } : {}),
+  };
 }
 
-function lineFromApiItem(item: CartItem): CartLine | null {
-  const productId = Number(item.product_id);
-  if (!Number.isFinite(productId) || productId <= 0) return null;
+function lineFromApiItem(item: MarketplaceCartItem): CartLine | null {
+  const productId = Number(item.listing?.variant?.device?.id);
+  const listingId = Number(item.seller_listing_id);
+  if (!Number.isFinite(productId) || productId <= 0 || !Number.isFinite(listingId) || listingId <= 0) return null;
   const product = catalogProductFromCartItem(item);
   return {
-    slug: product?.slug ?? productSlugFromApiId(productId),
+    slug: product?.slug ?? `device-${productId}`,
     productId,
+    listingId,
     quantity: item.quantity,
-    cartItemId: item.id != null ? String(item.id) : undefined,
-    product,
+    ...(item.id != null ? { cartItemId: String(item.id) } : {}),
+    ...(product ? { product } : {}),
   };
 }
 
@@ -80,11 +78,13 @@ function parseLocalLines(raw: unknown): CartLine[] {
     .map((row) => {
       if (!row || typeof row !== "object") return null;
       const r = row as Record<string, unknown>;
-      const productId = Number(r.productId);
-      const quantity = Number(r.quantity);
-      const slug = typeof r.slug === "string" ? r.slug : productSlugFromApiId(productId);
-      if (!Number.isFinite(productId) || productId <= 0 || !Number.isFinite(quantity)) return null;
-      return { slug, productId, quantity, product: r.product as CatalogProduct | undefined };
+      const productId = Number(r["productId"]);
+      const listingId = Number(r["listingId"]);
+      const quantity = Number(r["quantity"]);
+      const slug = typeof r["slug"] === "string" ? r["slug"] : `device-${productId}`;
+      if (!Number.isFinite(productId) || productId <= 0 || !Number.isFinite(listingId) || listingId <= 0 || !Number.isFinite(quantity)) return null;
+      const product = r["product"] as CatalogProduct | undefined;
+      return { slug, productId, listingId, quantity, ...(product ? { product } : {}) };
     })
     .filter((l): l is CartLine => l != null);
 }
@@ -110,7 +110,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setSyncing(true);
     try {
       const data = await getCart();
-      const items = (data.items ?? []) as CartItem[];
+      const items = data.items ?? [];
       const mapped = items.map(lineFromApiItem).filter((l): l is CartLine => l != null);
       setLines((prev) =>
         mapped.map((line) => {
@@ -128,7 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const syncLocalToServer = useCallback(async (local: CartLine[]) => {
     for (const line of local) {
-      await addCartItem({ product_id: line.productId, quantity: line.quantity });
+      await addCartItem({ seller_listing_id: line.listingId, quantity: line.quantity });
     }
     window.localStorage.removeItem(STORAGE_KEY);
     await refresh();
@@ -176,21 +176,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback(
     async (product: CatalogProduct, quantity = 1) => {
-      if (product.apiId <= 0) {
+      if (product.apiId <= 0 || !product.listingId) {
         toast.error("This product is not available for checkout yet.");
         return;
       }
       const slug = product.slug;
       const productId = product.apiId;
+      const listingId = product.listingId;
 
       const optimistic = (prev: CartLine[]) => {
-        const existing = prev.find((l) => l.productId === productId);
+        const existing = prev.find((l) => l.listingId === listingId);
         if (existing) {
           return prev.map((l) =>
-            l.productId === productId ? { ...l, quantity: l.quantity + quantity, product } : l,
+            l.listingId === listingId ? { ...l, quantity: l.quantity + quantity, product } : l,
           );
         }
-        return [...prev, { slug, productId, quantity, product }];
+        return [...prev, { slug, productId, listingId, quantity, product }];
       };
 
       setLines(optimistic);
@@ -199,7 +200,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       setSyncing(true);
       try {
-        await addCartItem({ product_id: productId, quantity });
+        await addCartItem({ seller_listing_id: listingId, quantity });
         await refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not add to basket");

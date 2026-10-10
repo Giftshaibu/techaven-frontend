@@ -180,16 +180,18 @@ function CheckoutPage() {
       }
 
       const orderItems = items.map(({ line, product }) => ({
-        product_id: product.apiId,
+        seller_listing_id: line.listingId,
         quantity: line.quantity,
       }));
 
-      const order = await createOrder({
+      const result = await createOrder({
         shipping_address_id: shippingAddressId,
         courier_service_id: courierServiceId,
         items: orderItems,
-        notes: delivery.notes || undefined,
+        ...(delivery.notes ? { notes: delivery.notes } : {}),
       });
+      const order = result.orders[0];
+      if (!order) throw new Error("Checkout did not create an order");
 
       const orderKey = order.order_number ?? order.reference ?? String(order.id);
 
