@@ -25,6 +25,8 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as PromotionsSlugRouteImport } from './routes/promotions.$slug'
+import { Route as PromotionsPreviewRouteImport } from './routes/promotions.preview'
 import { Route as ShopsIndexRouteImport } from './routes/shops.index'
 import { Route as ShopsShopSlugRouteImport } from './routes/shops.$shopSlug'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
@@ -111,6 +113,16 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PromotionsSlugRoute = PromotionsSlugRouteImport.update({
+  id: '/promotions/$slug',
+  path: '/promotions/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromotionsPreviewRoute = PromotionsPreviewRouteImport.update({
+  id: '/promotions/preview',
+  path: '/promotions/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShopsIndexRoute = ShopsIndexRouteImport.update({
   id: '/shops/',
   path: '/shops/',
@@ -162,6 +174,8 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/promotions/$slug': typeof PromotionsSlugRoute
+  '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops/': typeof ShopsIndexRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
@@ -184,6 +198,8 @@ export interface FileRoutesByTo {
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/promotions/$slug': typeof PromotionsSlugRoute
+  '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops': typeof ShopsIndexRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
@@ -209,6 +225,8 @@ export interface FileRoutesById {
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/promotions/$slug': typeof PromotionsSlugRoute
+  '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
   '/shops/': typeof ShopsIndexRoute
   '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
@@ -234,6 +252,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/category/$slug'
     | '/product/$slug'
+    | '/promotions/$slug'
+    | '/promotions/preview'
     | '/shops/$shopSlug'
     | '/shops/'
     | '/account/orders'
@@ -256,6 +276,8 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/category/$slug'
     | '/product/$slug'
+    | '/promotions/$slug'
+    | '/promotions/preview'
     | '/shops/$shopSlug'
     | '/shops'
     | '/account/orders'
@@ -280,6 +302,8 @@ export interface FileRouteTypes {
     | '/_authenticated/checkout'
     | '/category/$slug'
     | '/product/$slug'
+    | '/promotions/$slug'
+    | '/promotions/preview'
     | '/shops/$shopSlug'
     | '/shops/'
     | '/_authenticated/account/orders'
@@ -303,6 +327,8 @@ export interface RootRouteChildren {
   TradeInRoute: typeof TradeInRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  PromotionsSlugRoute: typeof PromotionsSlugRoute
+  PromotionsPreviewRoute: typeof PromotionsPreviewRoute
   ShopsShopSlugRoute: typeof ShopsShopSlugRoute
   ShopsIndexRoute: typeof ShopsIndexRoute
 }
@@ -421,6 +447,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/promotions/$slug': {
+      id: '/promotions/$slug'
+      path: '/promotions/$slug'
+      fullPath: '/promotions/$slug'
+      preLoaderRoute: typeof PromotionsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/promotions/preview': {
+      id: '/promotions/preview'
+      path: '/promotions/preview'
+      fullPath: '/promotions/preview'
+      preLoaderRoute: typeof PromotionsPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shops/': {
       id: '/shops/'
       path: '/shops'
@@ -511,6 +551,8 @@ const rootRouteChildren: RootRouteChildren = {
   TradeInRoute: TradeInRoute,
   CategorySlugRoute: CategorySlugRoute,
   ProductSlugRoute: ProductSlugRoute,
+  PromotionsSlugRoute: PromotionsSlugRoute,
+  PromotionsPreviewRoute: PromotionsPreviewRoute,
   ShopsShopSlugRoute: ShopsShopSlugRoute,
   ShopsIndexRoute: ShopsIndexRoute,
 }
