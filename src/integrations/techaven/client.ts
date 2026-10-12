@@ -1,6 +1,6 @@
 import { getTechavenApiBaseUrl } from "./env";
 import type { ApiEnvelope } from "./types";
-import { getAccessToken } from "./token";
+import { clearAuthTokens, ensureSession, getAccessToken, refreshSession } from "./token";
 
 export class TechavenApiError extends Error {
   status: number;
@@ -21,6 +21,8 @@ export type RequestOptions = {
   headers?: Record<string, string>;
   /** When set, body is sent as FormData and Content-Type is omitted */
   formData?: FormData;
+  /** An expired request is retried at most once. */
+  sessionRetried?: boolean;
 };
 
 export async function techavenRequest<T>(
@@ -36,6 +38,7 @@ export async function techavenRequest<T>(
   }
 
   if (auth === true || auth === "optional") {
+    if (typeof window !== 'undefined') await ensureSession();
     const token = getAccessToken();
     if (token) reqHeaders.set("Authorization", `Bearer ${token}`);
     else if (auth === true) {
@@ -46,7 +49,8 @@ export async function techavenRequest<T>(
   const response = await fetch(url, {
     method,
     headers: reqHeaders,
-    body: formData ?? (body !== undefined ? JSON.stringify(body) : undefined),
+    body: formData ?? (body !== undefined ? JSON.stringify(body) : null),
+    credentials: 'same-origin',
   });
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -55,6 +59,12 @@ export async function techavenRequest<T>(
     : await response.text();
 
   if (!response.ok) {
+    const code = parsed && typeof parsed === 'object' && 'code' in parsed ? String(parsed.code) : undefined;
+    const canRefresh = response.status === 401 && code === 'ACCESS_EXPIRED' &&
+      (auth === true || auth === 'optional') && !path.startsWith('/api/v2/auth/') && !options.sessionRetried;
+    if (canRefresh && await refreshSession()) return techavenRequest<T>(path, { ...options, sessionRetried: true });
+    if ((response.status === 401 && code === 'SESSION_INVALID') ||
+      (response.status === 403 && code === 'ACCOUNT_UNAVAILABLE' && auth)) clearAuthTokens();
     const envelope = parsed as ApiEnvelope<unknown> | undefined;
     const message =
       envelope && typeof envelope === "object" && "message" in envelope && envelope.message

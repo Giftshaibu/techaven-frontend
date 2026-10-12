@@ -18,6 +18,7 @@ import {
 } from "@/integrations/techaven/customer";
 import type { MarketplaceCartItem } from "@/integrations/techaven/types";
 import { useAuth } from "@/lib/auth";
+import { getSession } from '@/integrations/techaven/token';
 import type { CatalogProduct } from "@/lib/catalog-api";
 
 export type CartLine = {
@@ -92,7 +93,8 @@ function parseLocalLines(raw: unknown): CartLine[] {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [lineOwner, setLineOwner] = useState<number | null>(null);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -110,6 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setSyncing(true);
     try {
       const data = await getCart();
+      if (getSession()?.user.id !== user.id) return;
       const items = data.items ?? [];
       const mapped = items.map(lineFromApiItem).filter((l): l is CartLine => l != null);
       setLines((prev) =>
@@ -127,12 +130,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const syncLocalToServer = useCallback(async (local: CartLine[]) => {
+    const owner = user?.id;
     for (const line of local) {
+      if (getSession()?.user.id !== owner) return;
       await addCartItem({ seller_listing_id: line.listingId, quantity: line.quantity });
     }
+    if (getSession()?.user.id !== owner) return;
     window.localStorage.removeItem(STORAGE_KEY);
     await refresh();
-  }, [refresh]);
+  }, [refresh, user?.id]);
 
   useEffect(() => {
     try {
@@ -145,11 +151,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || authLoading) return;
     if (!user) {
-      persistLocal(lines);
+      if (lineOwner !== null) {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        try { setLines(raw ? parseLocalLines(JSON.parse(raw)) : []); } catch { setLines([]); }
+        setLineOwner(null);
+      }
       return;
     }
+    setLineOwner(user.id);
     void (async () => {
       const localRaw = window.localStorage.getItem(STORAGE_KEY);
       const local = localRaw ? parseLocalLines(JSON.parse(localRaw)) : [];
@@ -167,12 +178,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await refresh();
       }
     })();
-  }, [user, ready]); // eslint-disable-line react-hooks/exhaustive-deps -- run on login only when ready
+  }, [user?.id, ready, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps -- synchronize when identity changes
 
   useEffect(() => {
-    if (!ready || user) return;
+    if (!ready || authLoading || user || lineOwner !== null) return;
     persistLocal(lines);
-  }, [lines, ready, user, persistLocal]);
+  }, [lines, ready, authLoading, user, lineOwner, persistLocal]);
 
   const add = useCallback(
     async (product: CatalogProduct, quantity = 1) => {

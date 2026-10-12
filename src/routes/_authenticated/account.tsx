@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from 'sonner';
 
 import { Icon } from "@/components/Icon";
 import { useAuth } from "@/lib/auth";
@@ -20,10 +21,12 @@ function AccountLayout() {
   const queryClient = useQueryClient();
 
   async function handleSignOut() {
+    try {
+    await signOut();
     await queryClient.cancelQueries();
     queryClient.clear();
-    await signOut();
     navigate({ to: "/auth", replace: true });
+    } catch { toast.error('Could not sign out. Check your connection and try again.'); }
   }
 
   return (

@@ -27,15 +27,21 @@ export function registerCustomer(body: {
   phone_number: string;
   password: string;
 }) {
-  return techavenRequest<unknown>("/api/auth/register", { method: "POST", body, auth: false });
+  return techavenRequest<unknown>("/api/v2/auth/register", { method: "POST", body, auth: false });
 }
 
 export function login(body: { email: string; password: string }) {
-  return techavenRequest<AuthPayload>("/api/auth/login", { method: "POST", body, auth: false });
+  return techavenRequest<AuthPayload>("/api/v2/auth/login", { method: "POST", body, auth: false });
 }
 
-export function googleSignIn(body: { id_token: string }) {
-  return techavenRequest<AuthPayload>("/api/auth/google", { method: "POST", body, auth: false });
+export function googleSignIn(body: { id_token: string; challenge_id: string; nonce: string }) {
+  return techavenRequest<AuthPayload | { link_required: true; linking_challenge: string }>("/api/v2/auth/google", { method: "POST", body, auth: false });
+}
+export function googleChallenge() {
+  return techavenRequest<{ challenge_id: string; nonce: string; client_id: string }>("/api/v2/auth/google/challenge", { method: 'POST', body: {} });
+}
+export function linkGoogle(body: { linking_challenge: string; password: string }) {
+  return techavenRequest<AuthPayload>('/api/v2/auth/google/link', { method: 'POST', body });
 }
 
 export function sendLoginOtp(body: { email: string }) {
@@ -47,7 +53,7 @@ export function verifyOtp(body: {
   otp: string;
   type: "signup" | "login" | "password_reset";
 }) {
-  return techavenRequest<AuthPayload | { success: true }>("/api/auth/verify-otp", {
+  return techavenRequest<AuthPayload | { success: true }>("/api/v2/auth/verify-otp", {
     method: "POST",
     body,
     auth: false,
@@ -55,11 +61,11 @@ export function verifyOtp(body: {
 }
 
 export function resendOtp(body: { email: string; type: "signup" | "login" | "password_reset" }) {
-  return techavenRequest<unknown>("/api/auth/resend-otp", { method: "POST", body, auth: false });
+  return techavenRequest<unknown>("/api/v2/auth/resend-otp", { method: "POST", body, auth: false });
 }
 
 export function forgotPassword(body: { email: string }) {
-  return techavenRequest<unknown>("/api/auth/forgot-password", { method: "POST", body, auth: false });
+  return techavenRequest<unknown>("/api/v2/auth/forgot-password", { method: "POST", body, auth: false });
 }
 
 export function resetPassword(body: {
@@ -67,24 +73,16 @@ export function resetPassword(body: {
   otp: string;
   new_password: string;
 }) {
-  return techavenRequest<unknown>("/api/auth/reset-password", { method: "POST", body, auth: false });
-}
-
-export function refreshToken(body: { refresh_token: string }) {
-  return techavenRequest<AuthPayload>("/api/auth/refresh-token", {
-    method: "POST",
-    body,
-    auth: false,
-  });
+  return techavenRequest<unknown>("/api/v2/auth/reset-password", { method: "POST", body, auth: false });
 }
 
 export function logout() {
-  return techavenRequest<unknown>("/api/auth/logout", { method: "POST", auth: true });
+  return techavenRequest<unknown>("/api/v2/auth/logout", { method: "POST", body: {}, auth: false });
 }
 
 // —— User ——
 export function getProfile() {
-  return techavenRequest<TechavenUser>("/api/user/profile", { auth: true });
+  return techavenRequest<TechavenUser>("/api/v2/auth/me", { auth: true });
 }
 
 export function updateProfile(body: {

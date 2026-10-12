@@ -1,4 +1,6 @@
 export function getTechavenApiBaseUrl(): string {
-  const url = import.meta.env.VITE_TECHAVEN_API_URL as string | undefined;
-  return (url?.replace(/\/$/, "") || "http://72.62.213.127:8000").trim();
+  if (!import.meta.env.SSR) return '';
+  const serverUrl = import.meta.env['VITE_TECHAVEN_SERVER_API_URL'] as string | undefined;
+  const url = import.meta.env['VITE_TECHAVEN_API_URL'] as string | undefined;
+  return ((serverUrl || url)?.replace(/\/$/, "") || "http://localhost:8000").trim();
 }

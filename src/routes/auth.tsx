@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
-import { login, registerCustomer, verifyOtp } from "@/integrations/techaven/customer";
+import { forgotPassword, linkGoogle, login, registerCustomer, resendOtp, resetPassword, verifyOtp } from "@/integrations/techaven/customer";
+import { TechavenApiError } from '@/integrations/techaven/client';
+import { GoogleSignIn } from '@/components/GoogleSignIn';
 import type { AuthPayload } from "@/integrations/techaven/types";
 import { safeRedirect, useAuth } from "@/lib/auth";
 
@@ -45,6 +47,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState("");
+  const [linkingChallenge, setLinkingChallenge] = useState<string | null>(null);
+  const [recovery, setRecovery] = useState<'request' | 'reset' | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -72,12 +76,17 @@ function AuthPage() {
           password,
         });
         setOtpStep(true);
-        toast.success("We sent a 4-digit code to your email or phone");
+        toast.success("Check your email for a six-digit verification code");
         return;
       }
       const data = await login({ email, password });
       applyAuth(data);
     } catch (error) {
+      const code = error instanceof TechavenApiError ? (error.body as { code?: string })?.code : undefined;
+      if (code === 'EMAIL_UNVERIFIED') {
+        try { await resendOtp({ email, type: 'signup' }); setOtpStep(true); }
+        catch (sendError) { toast.error(sendError instanceof Error ? sendError.message : 'Unable to send a code'); }
+      }
       toast.error(error instanceof Error ? error.message : "Something went wrong");
     } finally {
       setBusy(false);
@@ -103,10 +112,10 @@ function AuthPage() {
         <div className="w-full max-w-md rounded-3xl bg-surface p-8">
           <h1 className="text-2xl font-extrabold text-ink-800">Enter verification code</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            We sent a 4-digit code to <span className="font-semibold">{email}</span>.
+            Enter the six-digit code sent to <span className="font-semibold">{email}</span>. It expires in ten minutes.
           </p>
           <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
-            <Field label="Code" value={otp} onChange={setOtp} required placeholder="1234" />
+            <Field label="Code" value={otp} onChange={setOtp} required placeholder="123456" autoComplete="one-time-code" />
             <button
               type="submit"
               disabled={busy}
@@ -115,10 +124,40 @@ function AuthPage() {
               {busy ? "Verifying…" : "Verify and continue"}
             </button>
           </form>
+          <button type="button" disabled={busy} className="mt-4 text-sm underline" onClick={async () => {
+            setBusy(true);
+            try { await resendOtp({ email, type: 'signup' }); toast.success('Check your email for a new code'); }
+            catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to resend'); }
+            finally { setBusy(false); }
+          }}>Resend code</button>
+          <button type="button" className="ml-4 text-sm underline" onClick={() => { setOtpStep(false); setOtp(''); }}>Back to sign in</button>
         </div>
       </section>
     );
   }
+
+  if (linkingChallenge || recovery) return <section className="shell flex min-h-[60vh] items-center justify-center py-14">
+    <div className="w-full max-w-md rounded-3xl bg-surface p-8">
+      <h1 className="text-2xl font-extrabold text-ink-800">{linkingChallenge ? 'Confirm your existing account' : 'Reset your password'}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{linkingChallenge ? 'Enter your existing Techaven password to connect Google and keep your orders and saved products.' : recovery === 'reset' ? 'Enter the six-digit email code and your new password. The code expires in ten minutes.' : 'Enter your email to request a password reset code.'}</p>
+      <form className="mt-6 space-y-4" onSubmit={async event => {
+        event.preventDefault(); setBusy(true);
+        try {
+          if (linkingChallenge) applyAuth(await linkGoogle({ linking_challenge: linkingChallenge, password }));
+          else if (recovery === 'request') { await forgotPassword({ email }); setRecovery('reset'); toast.success('If your account is eligible, a code has been emailed'); }
+          else { await resetPassword({ email, otp, new_password: password }); setRecovery(null); setPassword(''); setOtp(''); toast.success('Password updated. Sign in again.'); }
+        } catch (error) { toast.error(error instanceof Error ? error.message : 'Please try again'); }
+        finally { setBusy(false); }
+      }}>
+        {!linkingChallenge ? <Field label="Email" type="email" value={email} onChange={setEmail} required autoComplete="email" /> : null}
+        {recovery === 'reset' ? <Field label="Code" value={otp} onChange={setOtp} required autoComplete="one-time-code" placeholder="123456" /> : null}
+        {linkingChallenge || recovery === 'reset' ? <Field label={linkingChallenge ? 'Existing password' : 'New password (at least 12 characters)'} type="password" value={password} onChange={setPassword} required autoComplete={linkingChallenge ? 'current-password' : 'new-password'} /> : null}
+        <button disabled={busy} className="w-full rounded-lg bg-brand-500 px-5 py-3.5 font-semibold text-white disabled:opacity-60">{busy ? 'Please wait…' : linkingChallenge ? 'Connect Google and sign in' : recovery === 'request' ? 'Send reset code' : 'Update password'}</button>
+      </form>
+      <button className="mt-4 text-sm underline" onClick={() => { setLinkingChallenge(null); setRecovery(null); setPassword(''); setOtp(''); }}>Back to sign in</button>
+      {linkingChallenge ? <button className="ml-4 text-sm underline" onClick={() => { setLinkingChallenge(null); setRecovery('request'); setPassword(''); }}>Forgot password?</button> : null}
+    </div>
+  </section>;
 
   return (
     <section className="shell py-12 md:py-16">
@@ -197,7 +236,7 @@ function AuthPage() {
               required
             />
             <Field
-              label="Password"
+              label={mode === 'signup' ? 'Password (at least 12 characters)' : 'Password'}
               value={password}
               onChange={setPassword}
               type="password"
@@ -213,6 +252,8 @@ function AuthPage() {
               {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
+          {mode === 'signin' ? <button type="button" className="mt-4 text-sm underline" onClick={() => { setRecovery('request'); setPassword(''); }}>Forgot password?</button> : null}
+          <GoogleSignIn onAuth={applyAuth} onLink={challenge => { setLinkingChallenge(challenge); setPassword(''); }} />
         </div>
       </div>
     </section>

@@ -47,6 +47,27 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const requestUrl = new URL(request.url);
+      if (requestUrl.pathname.startsWith('/api/')) {
+        const target = (import.meta.env['VITE_TECHAVEN_SERVER_API_URL'] as string | undefined) || 'http://localhost:8000';
+        const headers = new Headers(request.headers);
+        headers.delete('host');
+        headers.delete('connection');
+        const upstream = await fetch(`${target.replace(/\/$/, '')}${requestUrl.pathname}${requestUrl.search}`, {
+          method: request.method, headers, redirect: 'manual',
+          ...(request.method !== 'GET' && request.method !== 'HEAD' ? { body: await request.arrayBuffer() } : {}),
+        });
+        const responseHeaders = new Headers(upstream.headers);
+        // Fetch may decompress upstream bodies; forward the resulting bytes consistently.
+        for (const name of ['content-length', 'content-encoding', 'connection', 'transfer-encoding']) responseHeaders.delete(name);
+        const cookies = upstream.headers.getSetCookie?.() ?? [];
+        if (cookies.length) {
+          responseHeaders.delete('set-cookie');
+          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+        }
+        responseHeaders.set('Cache-Control', 'no-store');
+        return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

@@ -9,11 +9,12 @@ import {
   type ReactNode,
 } from "react";
 
-import { getProfile, logout as apiLogout } from "@/integrations/techaven/customer";
+import { logout as apiLogout } from "@/integrations/techaven/customer";
 import {
   clearAuthTokens,
   getAccessToken,
   persistAuthTokens,
+  ensureSession, getSession, refreshSession, resetSessionRestoration, subscribeSession,
 } from "@/integrations/techaven/token";
 import type { AuthPayload, TechavenUser } from "@/integrations/techaven/types";
 
@@ -40,23 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   const refreshUser = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) {
-      setUser(null);
-      setAccessTokenState(null);
-      return;
-    }
-    setAccessTokenState(token);
-    try {
-      const profile = await getProfile();
-      setUser(profile);
-    } catch {
-      clearAuthTokens();
-      setUser(null);
-      setAccessTokenState(null);
-    }
+    const session = await refreshSession();
+    setUser(session?.user ?? null);
+    setAccessTokenState(session?.access_token ?? null);
   }, []);
 
   const setSessionFromAuth = useCallback(
@@ -70,11 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    try {
-      if (getAccessToken()) await apiLogout();
-    } catch {
-      /* ignore network errors on logout */
-    }
+    await apiLogout();
     clearAuthTokens();
     setUser(null);
     setAccessTokenState(null);
@@ -82,11 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   useEffect(() => {
-    void (async () => {
-      await refreshUser();
-      setLoading(false);
-    })();
-  }, [refreshUser]);
+    const unsubscribe = subscribeSession(() => {
+      const session = getSession();
+      setUser(session?.user ?? null);
+      setAccessTokenState(getAccessToken());
+      setSessionError(null);
+    });
+    void ensureSession().then(session => {
+      setUser(session?.user ?? null);
+      setAccessTokenState(session?.access_token ?? null);
+    }).catch(() => setSessionError('Unable to restore your session. Check your connection and retry.'))
+      .finally(() => setLoading(false));
+    return unsubscribe;
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -100,7 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, accessToken, loading, setSessionFromAuth, signOut, refreshUser],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>
+    {sessionError ? <div role="alert" className="shell py-3 text-sm">
+      {sessionError} <button className="ml-2 underline" onClick={async () => {
+        resetSessionRestoration();
+        try { await ensureSession(); setSessionError(null); router.invalidate(); }
+        catch { setSessionError('Unable to restore your session. Check your connection and retry.'); }
+      }}>Retry</button>
+    </div> : null}
+    {children}
+  </AuthContext.Provider>;
 }
 
 export function useAuth() {
@@ -110,7 +113,7 @@ export function useAuth() {
 /** Only allow same-origin relative paths as a post-sign-in destination. */
 export function safeRedirect(value: string | undefined): string {
   if (!value) return "/account";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/account";
+  if (!value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return "/account";
   return value;
 }
 
