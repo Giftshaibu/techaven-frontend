@@ -85,8 +85,8 @@ export async function fetchProductsPage(page = 1, limit = 30) {
   return { products, pagination: data.pagination };
 }
 
-export async function fetchCategoryProducts(categoryId: number, page = 1, limit = 30) {
-  const data = await getMarketplaceDevices({ category_id: categoryId, page, limit });
+export async function fetchCategoryProducts(categoryId: number, page = 1, limit = 30, brand?: string) {
+  const data = await getMarketplaceDevices({ category_id: categoryId, page, limit, brand });
   const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }

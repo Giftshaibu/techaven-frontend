@@ -18,6 +18,7 @@ import { useTechavenCategories, useTechavenShops } from "@/lib/techaven-hooks";
 import { cn } from "@/lib/utils";
 import { ctaHref, getPromotions, matchesTarget, type Promotion } from "@/lib/cms/promotions";
 import { PromotionMedia } from "@/components/promotions/PromotionPrimitives";
+import { BrandTiles } from "@/components/BrandTiles";
 
 const utilityLinks = [
   { label: "How Techaven works", to: "/help" },
@@ -110,6 +111,25 @@ function MegaMenu({
   const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
   const featuredShops = shops.slice(0, 3);
+
+  if (category.brandTiles?.length) return (
+    <div id={menuId} role="region" aria-label={`${category.name} menu`} onPointerEnter={onEnter} onPointerLeave={onLeave}
+      className={cn("absolute left-0 right-0 top-full z-40 max-h-[70vh] overflow-y-auto border-b border-border bg-surface", open ? "block" : "hidden")}>
+      <div className="shell grid gap-8 py-7 lg:grid-cols-[190px_minmax(0,1fr)]">
+        <aside className="border-r border-border pr-6">
+          <h3 className="text-sm font-semibold text-ink-800">Explore {category.name.toLowerCase()}</h3>
+          <Link to="/category/$slug" params={{ slug: category.slug }} onClick={onNavigate} className="mt-5 block text-sm underline underline-offset-4">See all {category.name.toLowerCase()}</Link>
+          <Link to="/shops" onClick={onNavigate} className="mt-4 block text-sm hover:underline">Browse shops</Link>
+          <p className="mt-6 text-xs leading-relaxed text-muted-foreground">Compare available models and prices from local shops.</p>
+        </aside>
+        <div className="min-w-0"><div className="mb-5 flex items-center justify-between"><h3 className="text-sm font-semibold">Shop by brand</h3>
+          <Link to="/category/$slug" params={{ slug: category.slug }} onClick={onNavigate} className="text-xs underline">See all</Link></div>
+          <BrandTiles category={category} onNavigate={onNavigate} />
+        </div>
+      </div>
+    </div>
+  );
+
 
   return (
     <div

@@ -5,6 +5,7 @@ export type Category = {
   blurb: string;
   subcategories: string[];
   brands: string[];
+  brandTiles?: { slug: string; name: string; image: string | null; product_count: number }[];
 };
 
 export type Shop = {

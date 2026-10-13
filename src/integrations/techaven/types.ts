@@ -106,6 +106,7 @@ export type MarketplaceDevice = {
 };
 
 export type ApiCategory = {
+  brands?: { slug: string; name: string; image: string | null; product_count: number }[];
   id: number;
   name: string;
   description?: string | null;

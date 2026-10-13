@@ -96,6 +96,12 @@ function nestedShopName(api: ApiProduct): string | undefined {
 
 const defaultCategoryIcon = "box-minimalistic-linear";
 
+function brandDisplayName(name: string): string {
+  if (name.toLowerCase() === "hp") return "HP";
+  if (name.toLowerCase() === "itel") return "itel";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
 export function mapApiCategoryToCatalog(c: ApiCategory): Category {
   const slug = categorySlugFromApi(c);
   return {
@@ -104,7 +110,8 @@ export function mapApiCategoryToCatalog(c: ApiCategory): Category {
     icon: defaultCategoryIcon,
     blurb: c.description ?? `Shop ${c.name} on Techaven.`,
     subcategories: [],
-    brands: [],
+    brands: (c.brands ?? []).map((brand) => brandDisplayName(brand.name)),
+    brandTiles: (c.brands ?? []).map((brand) => ({ ...brand, name: brandDisplayName(brand.name) })),
   };
 }
 

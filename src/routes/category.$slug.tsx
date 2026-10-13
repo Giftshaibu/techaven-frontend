@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BrandTiles } from "@/components/BrandTiles";
 import { Icon } from "@/components/Icon";
 import { MegaHeader } from "@/components/MegaHeader";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -13,13 +14,20 @@ type Search = { brand?: string };
 export const Route = createFileRoute("/category/$slug")({
   validateSearch: (search: Record<string, unknown>): Search =>
     typeof search["brand"] === "string" ? { brand: search["brand"] } : {},
-  loader: async ({ params }) => {
+  loaderDeps: ({ search }) => ({ brand: search.brand }),
+  loader: async ({ params, deps }) => {
     const resolved = await resolveCategory(params.slug);
     if (!resolved) throw notFound();
     let products = [] as Awaited<ReturnType<typeof fetchCategoryProducts>>["products"];
     if (resolved.apiCategoryId != null) {
-      const data = await fetchCategoryProducts(resolved.apiCategoryId, 1, 60);
+      const canonicalBrand = resolved.category.brandTiles?.find((b) => b.slug === deps.brand?.toLowerCase() || b.name.toLowerCase() === deps.brand?.toLowerCase())?.slug ?? deps.brand?.toLowerCase();
+      const data = await fetchCategoryProducts(resolved.apiCategoryId, 1, 100, canonicalBrand);
       products = data.products;
+      const pages = Number((data.pagination as { total_pages?: number })?.total_pages ?? 1);
+      for (let page = 2; page <= pages; page++) {
+        const next = await fetchCategoryProducts(resolved.apiCategoryId, page, 100, canonicalBrand);
+        products.push(...next.products);
+      }
     }
     const [hero, inline1, inline2] = await Promise.all([
       getPromotions("category_hero"),
@@ -56,11 +64,14 @@ const sorts = ["Recommended", "Price: low to high", "Price: high to low", "Top r
 function CategoryPage() {
   const { category, products: all, promotions } = Route.useLoaderData();
   const { brand: brandFromUrl } = Route.useSearch();
-  const [brand, setBrand] = useState<string | null>(brandFromUrl ?? null);
+  const navigate = Route.useNavigate();
+  const brand = brandFromUrl ?? null;
+  const setBrand = (value: string | null) => navigate({ search: value ? { brand: value } : {} });
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [condition, setCondition] = useState<"all" | "new" | "refurbished">("all");
   const [sort, setSort] = useState<(typeof sorts)[number]>("Recommended");
   const [visible, setVisible] = useState(8);
+  useEffect(() => { setVisible(8); setShopFilter(null); }, [category.slug, brand]);
 
   const shopsInCategory = useMemo(() => {
     const names = new Map<string, string>();
@@ -72,7 +83,6 @@ function CategoryPage() {
 
   const filtered = useMemo(() => {
     let list = all;
-    if (brand) list = list.filter((p) => p.brand === brand);
     if (shopFilter) list = list.filter((p) => p.shop === shopFilter);
     if (condition === "new") list = list.filter((p) => p.condition === "New");
     if (condition === "refurbished") list = list.filter((p) => p.condition.includes("refurbished"));
@@ -106,6 +116,11 @@ function CategoryPage() {
           promotions={promotions}
           context={{ categorySlug: category.slug, brandSlug: brand ?? undefined }}
         />
+      ) : category.brandTiles?.length ? (
+        <section className="shell border-b border-border py-7">
+          <div className="mb-5 flex items-baseline justify-between gap-4"><h1 className="text-3xl font-bold text-ink-800">{category.name}</h1><span className="text-sm text-muted-foreground">Shop by brand</span></div>
+          <BrandTiles category={category} />
+        </section>
       ) : (
         <MegaHeader
           eyebrow="Category"
@@ -144,19 +159,20 @@ function CategoryPage() {
           >
             All brands
           </button>
-          {category.brands.map((b) => (
+          {(category.brandTiles ?? []).map((b) => (
             <button
-              key={b}
+              key={b.slug}
               type="button"
-              onClick={() => setBrand(b)}
+              onClick={() => setBrand(b.slug)}
+              aria-pressed={brand?.toLowerCase() === b.slug || brand?.toLowerCase() === b.name.toLowerCase()}
               className={cn(
                 "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                brand === b
+                brand?.toLowerCase() === b.slug || brand?.toLowerCase() === b.name.toLowerCase()
                   ? "bg-ink-900 text-white"
                   : "bg-stage text-ink-800 hover:bg-neutral-200",
               )}
             >
-              {b}
+              {b.name}
             </button>
           ))}
         </div>
