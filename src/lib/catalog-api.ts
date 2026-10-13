@@ -1,3 +1,4 @@
+import { marketplaceImages } from "@/lib/marketplace-images";
 import type { ApiCategory, ApiProduct, ApiShop, MarketplaceDevice, MarketplaceOffer } from "@/integrations/techaven/types";
 import type { Category, Condition, Product, Shop } from "@/data/catalog";
 
@@ -155,11 +156,7 @@ const conditionLabel: Record<MarketplaceOffer["condition"], Condition> = {
 export function mapMarketplaceDeviceToCatalog(device: MarketplaceDevice): CatalogProduct {
   const offers = [...(device.offers ?? [])].sort((a, b) => a.price - b.price || a.id - b.id);
   const offer = offers[0];
-  const images = [
-    ...(offer?.images ?? []).map((image) => image.url),
-    ...(device.media ?? []).map((media) => media.url),
-    ...(device.primary_image_url ? [device.primary_image_url] : []),
-  ].filter((url, index, all) => Boolean(url) && all.indexOf(url) === index);
+  const images = marketplaceImages(device, offer);
   const specs = [
     device.soc ? { label: "Processor", value: device.soc } : null,
     device.battery_mah ? { label: "Battery", value: `${device.battery_mah} mAh` } : null,

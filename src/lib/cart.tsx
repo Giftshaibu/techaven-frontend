@@ -20,6 +20,7 @@ import type { MarketplaceCartItem } from "@/integrations/techaven/types";
 import { useAuth } from "@/lib/auth";
 import { getSession } from '@/integrations/techaven/token';
 import type { CatalogProduct } from "@/lib/catalog-api";
+import { marketplaceImages } from "@/lib/marketplace-images";
 
 export type CartLine = {
   slug: string;
@@ -47,14 +48,15 @@ const STORAGE_KEY = "techaven.cart.v2";
 function catalogProductFromCartItem(item: MarketplaceCartItem): CatalogProduct | undefined {
   const device = item.listing?.variant?.device;
   if (!device?.id) return undefined;
-  const imageUrl = item.listing.images?.[0]?.url ?? device.primary_image_url ?? undefined;
+  const images = marketplaceImages(device, item.listing);
+  const imageUrl = images[0];
   return {
     apiId: device.id, listingId: item.seller_listing_id, slug: device.slug, name: device.name,
     brand: "Techaven", category: "electronics", shop: `shop-${item.listing.shop.id}`,
     shopName: item.listing.shop.name, price: Number(item.unit_price), condition: "New",
     rating: 0, reviews: 0, shopsCount: 1, warranty: "Shop warranty",
     delivery: "Delivery at checkout", inStock: item.is_available, specs: [], highlights: [],
-    ...(imageUrl ? { imageUrl, images: [imageUrl] } : {}),
+    ...(imageUrl ? { imageUrl, images } : {}),
   };
 }
 
