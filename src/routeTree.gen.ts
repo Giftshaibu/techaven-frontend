@@ -18,6 +18,7 @@ import { Route as CategoriesRouteImport } from './routes/categories'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DealsRouteImport } from './routes/deals'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as PaygoRouteImport } from './routes/paygo'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as TradeInRouteImport } from './routes/trade-in'
@@ -76,6 +77,11 @@ const DealsRoute = DealsRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaygoRoute = PaygoRouteImport.update({
+  id: '/paygo',
+  path: '/paygo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/paygo': typeof PaygoRoute
   '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/paygo': typeof PaygoRoute
   '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
@@ -218,6 +226,7 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
+  '/paygo': typeof PaygoRoute
   '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/paygo'
     | '/products'
     | '/search'
     | '/trade-in'
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/paygo'
     | '/products'
     | '/search'
     | '/trade-in'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/deals'
     | '/help'
+    | '/paygo'
     | '/products'
     | '/search'
     | '/trade-in'
@@ -322,6 +334,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   DealsRoute: typeof DealsRoute
   HelpRoute: typeof HelpRoute
+  PaygoRoute: typeof PaygoRoute
   ProductsRoute: typeof ProductsRoute
   SearchRoute: typeof SearchRoute
   TradeInRoute: typeof TradeInRoute
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paygo': {
+      id: '/paygo'
+      path: '/paygo'
+      fullPath: '/paygo'
+      preLoaderRoute: typeof PaygoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -546,6 +566,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   DealsRoute: DealsRoute,
   HelpRoute: HelpRoute,
+  PaygoRoute: PaygoRoute,
   ProductsRoute: ProductsRoute,
   SearchRoute: SearchRoute,
   TradeInRoute: TradeInRoute,

@@ -527,13 +527,15 @@ export function Header() {
         )}
       >
         <div className="shell flex items-center gap-1 overflow-visible py-2 text-sm">
+          <Link to="/paygo" className="rounded-full px-3 py-1.5 font-semibold text-ink-800 hover:bg-stage">PAYGO</Link>
+          <Link to="/trade-in" className="rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage">Trade-in</Link>
           <Link
             to="/deals"
             className="rounded-full px-3 py-1.5 font-semibold text-brand-500 hover:bg-brand-100"
           >
             Deals
           </Link>
-          {categories.slice(0, 7).map((category) => (
+          {categories.filter((category) => category.name !== "Loans" && category.name !== "Pay as you go (PAYGO)").slice(0, 7).map((category) => (
             <div
               key={category.slug}
               onPointerEnter={() => showMenu(category.slug)}
@@ -575,12 +577,6 @@ export function Header() {
             className="rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
           >
             More
-          </Link>
-          <Link
-            to="/trade-in"
-            className="ml-auto rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
-          >
-            Trade-in
           </Link>
         </div>
       </div>

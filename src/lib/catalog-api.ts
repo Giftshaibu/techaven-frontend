@@ -4,6 +4,7 @@ import type { Category, Condition, Product, Shop } from "@/data/catalog";
 
 /** Product loaded from Techaven API (storefront shape + API fields) */
 export type CatalogProduct = Product & {
+  taxExclusive?: boolean;
   apiId: number;
   imageUrl?: string;
   images?: string[];
@@ -20,6 +21,9 @@ export type CatalogProduct = Product & {
 };
 
 export type CatalogShop = Shop & {
+  profile?: ApiShop["profile"];
+  address?: string | null;
+  phone?: string | null;
   apiId: number;
   logoUrl?: string | null;
   productCount?: number;
@@ -180,6 +184,7 @@ export function mapMarketplaceDeviceToCatalog(device: MarketplaceDevice): Catalo
     shop: offer?.shop ? shopSlugFromApiId(offer.shop.id) : "unknown",
     ...(offer?.shop?.name ? { shopName: offer.shop.name } : {}),
     price: offer?.price ?? 0,
+    taxExclusive: Boolean(offer?.details?.tax_exclusive),
     condition: offer ? conditionLabel[offer.condition] : "New",
     rating: 0,
     reviews: 0,
@@ -208,6 +213,9 @@ export function mapApiShopToCatalog(api: ApiShop): CatalogShop {
     orders: Number(api.total_products) || 0,
     blurb: api.description ?? "",
     logoUrl: api.logo ?? null,
+    profile: api.profile,
+    address: api.address,
+    phone: api.phone,
     productCount: api.total_products,
     followersCount: api.followers_count,
   };

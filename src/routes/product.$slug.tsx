@@ -74,6 +74,7 @@ function ProductPage() {
   const selectedOffer = product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
   const selectedProduct = useMemo(() => selectedOffer ? {
     ...product,
+    taxExclusive: Boolean(selectedOffer.details?.tax_exclusive),
     listingId: selectedOffer.id,
     price: selectedOffer.price,
     shop: selectedOffer.shop ? `shop-${selectedOffer.shop.id}` : product.shop,
@@ -164,6 +165,7 @@ function ProductPage() {
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
             <span className="text-4xl font-extrabold tracking-tight text-ink-800">
               {formatMwk(selectedProduct.price)}
+              {selectedProduct.taxExclusive ? <span className="ml-3 text-base font-medium">excl. VAT</span> : null}
             </span>
             {product.oldPrice ? (
               <>
@@ -236,11 +238,11 @@ function ProductPage() {
               onClick={() => {
                 void add(selectedProduct).then(() => setAdded(true));
               }}
-              disabled={!selectedProduct.listingId}
+              disabled={!selectedProduct.listingId || selectedProduct.taxExclusive}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700"
             >
               <Icon name="cart-large-2-linear" className="h-5 w-5" />
-              {selectedProduct.listingId ? "Add to basket" : "No offer available"}
+              {selectedProduct.taxExclusive ? "Confirm VAT-inclusive price with shop" : selectedProduct.listingId ? "Add to basket" : "No offer available"}
             </button>
             <Link
               to="/cart"

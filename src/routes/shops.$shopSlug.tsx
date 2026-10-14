@@ -8,6 +8,7 @@ import { parseApiShopId } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
 import { getPromotions } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
+import { ShopHero } from "@/components/ShopHero";
 
 export const Route = createFileRoute("/shops/$shopSlug")({
   loader: async ({ params }) => {
@@ -64,7 +65,7 @@ function ShopPage() {
         context={{ shopExternalId: String(shop.apiId) }}
         heroHeading="h1"
         fallback={
-          <MegaHeader
+          shop.profile ? <ShopHero shop={shop} /> : <MegaHeader
             eyebrow={
               <span className="inline-flex items-center gap-1.5">
                 {shop.verified ? (

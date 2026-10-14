@@ -130,6 +130,7 @@ export function ProductCard({
         <div className="mt-2 flex flex-wrap items-baseline gap-2">
           <span className="text-xl font-extrabold tracking-tight text-ink-800">
             {formatMwk(product.price)}
+            {(product as CatalogProduct).taxExclusive ? <span className="ml-2 text-xs font-medium">excl. VAT</span> : null}
           </span>
           {product.oldPrice ? (
             <span className="text-xs text-muted-foreground line-through">
