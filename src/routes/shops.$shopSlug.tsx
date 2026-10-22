@@ -65,31 +65,7 @@ function ShopPage() {
         context={{ shopExternalId: String(shop.apiId) }}
         heroHeading="h1"
         fallback={
-          shop.profile ? <ShopHero shop={shop} /> : <MegaHeader
-            eyebrow={
-              <span className="inline-flex items-center gap-1.5">
-                {shop.verified ? (
-                  <>
-                    Verified shop
-                    <Icon name="verified-check-bold" className="h-4 w-4 text-brand-500" />
-                  </>
-                ) : (
-                  "Shop on Techaven"
-                )}
-              </span>
-            }
-            title={shop.name}
-            support={shop.blurb || shop.specialty}
-            actions={[]}
-            media={[
-              {
-                src: (shop as { logoUrl?: string }).logoUrl ?? marketplaceMedia.shop.src,
-                alt: shop.name,
-                position: marketplaceMedia.shop.position,
-              },
-            ]}
-            tone="neutral"
-          />
+          <ShopHero shop={shop} />
         }
       />
 

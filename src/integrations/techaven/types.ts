@@ -63,7 +63,7 @@ export type ApiProduct = {
 };
 
 export type MarketplaceOffer = {
-  details?: { tax_exclusive?: boolean; source_note?: string | null; extended_ram_gb?: number | null; advertised_ram_gb?: number | null };
+  details?: import("@/lib/offer-facts").OfferDetails;
   id: number;
   variant_id: number;
   variant_color_id: number | null;
@@ -119,7 +119,7 @@ export type ApiCategory = {
 export type ApiShop = {
   address?: string | null;
   phone?: string | null;
-  profile?: { gallery?: { url: string; alt: string }[]; delivery?: string; warranty?: string; website?: string; secondary_phone?: string; tax_note?: string; paygo?: boolean; tagline?: string; enquiries?: { name: string; storage_gb: number; battery_health_percent: number; condition: string; price_label: string }[] } | null;
+  profile?: { payment?: string; gallery?: { url: string; alt: string }[]; delivery?: string; warranty?: string; website?: string; secondary_phone?: string; tax_note?: string; paygo?: boolean; tagline?: string; enquiries?: { name: string; storage_gb: number; battery_health_percent: number; condition: string; price_label: string }[] } | null;
   id: number;
   name: string;
   logo?: string | null;

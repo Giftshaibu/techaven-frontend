@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { shopProductCount, type Shop } from "@/data/catalog";
-import { shopListingCount, type CatalogShop } from "@/lib/catalog-api";
+import { type CatalogShop } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
 
 export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
@@ -45,16 +45,11 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
               <Icon name="verified-check-bold" className="h-4 w-4 shrink-0 text-brand-500" />
             ) : null}
           </h3>
-          <p className="truncate text-xs text-muted-foreground">{shop.specialty}</p>
+          <p className="truncate text-xs text-muted-foreground">{catalogShop.address || shop.location}</p>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <Icon name="star-bold" className="h-3.5 w-3.5 text-rating" />
-          <span className="font-semibold text-ink-800">{shop.rating.toFixed(1)}</span>
-          <span>({shopListingCount(catalogShop).toLocaleString("en-US")} listed)</span>
-        </span>
         <span className="inline-flex items-center gap-1">
           <Icon name="map-point-linear" className="h-3.5 w-3.5" />
           {shop.location}

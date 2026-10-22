@@ -3,9 +3,8 @@ export function ShopHero({ shop }: { shop: CatalogShop }) {
   const profile = shop.profile;
   return <section className="bg-stage"><div className="shell grid gap-8 py-10 md:grid-cols-[minmax(0,1fr)_240px] md:py-14">
     <div><p className="mb-3 text-sm text-brand-700">{shop.location}</p><h1 className="text-4xl font-bold tracking-tight text-ink-800">{shop.name}</h1>
-      <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-800">{shop.blurb}</p>
       <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
-        {[["Visit",shop.address],["Delivery",profile?.delivery],["Warranty",profile?.warranty],["Prices",profile?.tax_note]].filter(([,value])=>value).map(([label,value])=><div key={label}><dt className="font-semibold text-ink-800">{label}</dt><dd className="mt-1 leading-relaxed text-muted-foreground">{value}</dd></div>)}
+        {[["Visit",shop.address],["Delivery",profile?.delivery],["Warranty",profile?.warranty],["Payment",profile?.payment],["Prices",profile?.tax_note]].filter(([,value])=>value).map(([label,value])=><div key={label}><dt className="font-semibold text-ink-800">{label}</dt><dd className="mt-1 leading-relaxed text-muted-foreground">{value}</dd></div>)}
       </dl><div className="mt-6 flex flex-wrap gap-3">
         {[shop.phone,profile?.secondary_phone].filter(Boolean).map(phone=><a key={phone} href={`tel:${phone}`} className="rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white">Call {phone}</a>)}
         {profile?.website&&<a href={profile.website} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold">Visit website</a>}

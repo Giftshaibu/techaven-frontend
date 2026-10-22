@@ -15,8 +15,8 @@ describe("stock-first marketplace photography", () => {
     expect(marketplaceImages(device, { images: [{ url: "/shop-a.jpg" }] })).toEqual(["/stock.jpg", "/shop-a.jpg"]);
     expect(marketplaceImages(device, { images: [{ url: "/shop-b.jpg" }] })).toEqual(["/stock.jpg", "/shop-b.jpg"]);
   });
-  it("uses seller evidence when no stock image exists and leaves absent photos empty", () => {
-    expect(marketplaceImages({}, { images: [{ url: "/actual-device.jpg" }] })).toEqual(["/actual-device.jpg"]);
+  it("leaves the unavailable-photo state when only seller evidence exists", () => {
+    expect(marketplaceImages({}, { images: [{ url: "/actual-device.jpg" }] })).toEqual([]);
     expect(marketplaceImages(undefined)).toEqual([]);
   });
 });
