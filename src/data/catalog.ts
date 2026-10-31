@@ -19,7 +19,7 @@ export type Shop = {
   blurb: string;
 };
 
-export type Condition = "New" | "Excellent refurbished" | "Good refurbished" | "Open box";
+export type Condition = "New" | "Pre-owned" | "Refurbished" | "Excellent refurbished" | "Good refurbished" | "Open box";
 
 export type Product = {
   slug: string;

@@ -512,12 +512,27 @@ export function registerPushDevice(body: { device_token: string; platform: strin
 }
 
 // —— Shops ——
-export function getShops() {
-  return techavenRequest<ApiShop[]>("/api/shops", { auth: false });
+async function withMarketplaceProductCount(shop: ApiShop): Promise<ApiShop> {
+  try {
+    const marketplace = await getMarketplaceDevices({ shop_id: shop.id, limit: 1 });
+    const pagination = marketplace.pagination as { total_items?: unknown } | null;
+    const count = pagination?.total_items;
+    return typeof count === "number" && Number.isFinite(count) && count >= 0
+      ? { ...shop, total_products: count }
+      : shop;
+  } catch {
+    return shop;
+  }
 }
 
-export function getShop(id: number | string) {
-  return techavenRequest<ApiShop>(`/api/shops/${id}`, { auth: "optional" });
+export async function getShops() {
+  const shops = await techavenRequest<ApiShop[]>("/api/shops", { auth: false });
+  return Promise.all(shops.map(withMarketplaceProductCount));
+}
+
+export async function getShop(id: number | string) {
+  const shop = await techavenRequest<ApiShop>(`/api/shops/${id}`, { auth: "optional" });
+  return withMarketplaceProductCount(shop);
 }
 
 export function getShopProducts(shopId: number | string, page = 1, limit = 30) {

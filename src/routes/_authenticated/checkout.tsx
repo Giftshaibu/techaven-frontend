@@ -54,7 +54,7 @@ const paymentMethods = [
   {
     id: "bank-transfer",
     name: "Bank transfer",
-    icon: "bank-linear",
+    icon: "banknote-linear",
     blurb: "Transfer to the Techaven holding account; we release funds on delivery.",
   },
   {

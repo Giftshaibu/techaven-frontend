@@ -16,6 +16,13 @@ export default defineConfig({
     server: {
       port: 3001,
       strictPort: true,
+      allowedHosts: ["fleta-noncontinuable-freya.ngrok-free.dev"],
+      proxy: {
+        "/api": {
+          target: process.env.TECHAVEN_PROXY_TARGET || "http://localhost:8000",
+          changeOrigin: true,
+        },
+      },
     },
     preview: {
       port: 3001,

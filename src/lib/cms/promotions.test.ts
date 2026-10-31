@@ -1,5 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { ctaHref, matchesTarget, promotionSchema, type Promotion } from "./promotions";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ctaHref, getPromotions, matchesTarget, promotionSchema, type Promotion } from "./promotions";
+
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+
+describe("CMS connection", () => {
+  it.each([true, false])("uses the correct CMS address when SSR is %s", async (ssr) => {
+    vi.stubEnv("SSR", ssr);
+    vi.stubEnv("VITE_PROMOTIONS_API_URL", "http://localhost:1337");
+    vi.stubEnv("VITE_PROMOTIONS_SERVER_API_URL", "http://host.docker.internal:1337/");
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: [promotionSchema.parse(base)] }) });
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getPromotions("home_hero")).toHaveLength(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${ssr ? "http://host.docker.internal:1337" : "http://localhost:1337"}/api/promotions/active?placement=home_hero`);
+  });
+});
 
 const base = {
   id: "promotion-1",

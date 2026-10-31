@@ -82,7 +82,7 @@ function ShopsPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <label className="relative block max-w-md flex-1">
             <Icon
-              name="magnifer-linear"
+              name="magnifier-linear"
               className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
             />
             <input

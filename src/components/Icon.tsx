@@ -1,4 +1,5 @@
-import { Icon as IconifyIcon } from "@iconify/react";
+import { Icon as IconifyIcon } from "@iconify/react/offline";
+import { solarIcons } from "@/lib/solar-icons";
 
 /**
  * Techaven uses the Solar icon set.
@@ -15,7 +16,7 @@ export function Icon({
 }) {
   return (
     <IconifyIcon
-      icon={`solar:${name}`}
+      icon={solarIcons[name] ?? solarIcons["question-circle-linear"]!}
       className={className}
       {...(size ? { width: size, height: size } : {})}
       aria-hidden

@@ -1,15 +1,23 @@
-import { marketplaceImages } from "@/lib/marketplace-images";
-import type { ApiCategory, ApiProduct, ApiShop, MarketplaceDevice, MarketplaceOffer } from "@/integrations/techaven/types";
+import { configurationFacts } from "@/lib/offer-facts";
+import type {
+  ApiCategory,
+  ApiProduct,
+  ApiShop,
+  MarketplaceDevice,
+  MarketplaceOffer,
+} from "@/integrations/techaven/types";
 import type { Category, Condition, Product, Shop } from "@/data/catalog";
+import { deviceDescription, deviceSpecGroups, type SpecGroup } from "@/lib/device-specs";
+import { marketplaceImages } from "@/lib/marketplace-images";
 
 /** Product loaded from Techaven API (storefront shape + API fields) */
 export type CatalogProduct = Product & {
   taxExclusive?: boolean;
   apiId: number;
-  imageUrl?: string;
+  imageUrl?: string | undefined;
   images?: string[];
   description?: string;
-  shopName?: string;
+  shopName?: string | undefined;
   categoryId?: number;
   isFeatured?: boolean;
   isNewArrival?: boolean;
@@ -18,6 +26,7 @@ export type CatalogProduct = Product & {
   listingId?: number;
   offers?: MarketplaceOffer[];
   marketplaceDevice?: MarketplaceDevice;
+  specGroups?: SpecGroup[] | undefined;
 };
 
 export type CatalogShop = Shop & {
@@ -111,7 +120,7 @@ export function mapApiCategoryToCatalog(c: ApiCategory): Category {
   return {
     slug,
     name: c.name,
-    icon: defaultCategoryIcon,
+    icon: categoryIconForCategory(slug, c.name),
     blurb: c.description ?? `Shop ${c.name} on Techaven.`,
     subcategories: [],
     brands: (c.brands ?? []).map((brand) => brandDisplayName(brand.name)),
@@ -160,31 +169,63 @@ export function mapApiProductToCatalog(
   };
 }
 
-const conditionLabel: Record<MarketplaceOffer["condition"], Condition> = {
-  new: "New", used: "Good refurbished", refurbished: "Excellent refurbished", open_box: "Open box",
+export const conditionLabel: Record<MarketplaceOffer["condition"], Condition> = {
+  new: "New",
+  used: "Pre-owned",
+  refurbished: "Refurbished",
+  open_box: "Open box",
 };
+
+export function selectMarketplaceOffer(
+  product: CatalogProduct,
+  offer: MarketplaceOffer,
+): CatalogProduct {
+  const device = product.marketplaceDevice;
+  const variant = device?.variants.find((item) => item.id === offer.variant_id);
+  const images = marketplaceImages(device, offer);
+  const specGroups = device ? deviceSpecGroups(device, variant) : product.specGroups;
+  const configuration = configurationFacts(variant?.attributes);
+  if (configuration.length) specGroups?.push({ title: "Seller configuration", rows: configuration });
+  return {
+    ...product,
+    listingId: offer.id,
+    taxExclusive: Boolean(offer.details?.tax_exclusive),
+    price: offer.price,
+    shop: offer.shop ? shopSlugFromApiId(offer.shop.id) : "unknown",
+    shopName: offer.shop?.name,
+    condition: conditionLabel[offer.condition],
+    warranty:
+      offer.warranty_months != null
+        ? `${offer.warranty_months}-month warranty`
+        : "Warranty not specified",
+    inStock: offer.quantity > 0,
+    images,
+    imageUrl: images[0],
+    specGroups,
+    specs: specGroups?.flatMap((group) => group.rows) ?? product.specs,
+  };
+}
 
 export function mapMarketplaceDeviceToCatalog(device: MarketplaceDevice): CatalogProduct {
   const offers = [...(device.offers ?? [])].sort((a, b) => a.price - b.price || a.id - b.id);
   const offer = offers[0];
   const images = marketplaceImages(device, offer);
-  const specs = [
-    device.soc ? { label: "Processor", value: device.soc } : null,
-    device.battery_mah ? { label: "Battery", value: `${device.battery_mah} mAh` } : null,
-    device.os_family ? { label: "Operating system", value: device.os_family } : null,
-  ].filter((value): value is { label: string; value: string } => value != null);
-  return {
+  const specGroups = deviceSpecGroups(
+    device,
+    device.variants.find((variant) => variant.id === offer?.variant_id),
+  );
+  const product: CatalogProduct = {
     apiId: device.id,
     ...(offer ? { listingId: offer.id } : {}),
     slug: device.slug,
     name: device.name,
+    ...(deviceDescription(device) ? { description: deviceDescription(device)! } : {}),
     brand: device.brand?.name ?? "Techaven",
     category: device.category ? `c-${device.category.id}` : "electronics",
     ...(device.category ? { categoryId: device.category.id } : {}),
     shop: offer?.shop ? shopSlugFromApiId(offer.shop.id) : "unknown",
     ...(offer?.shop?.name ? { shopName: offer.shop.name } : {}),
     price: offer?.price ?? 0,
-    taxExclusive: Boolean(offer?.details?.tax_exclusive),
     condition: offer ? conditionLabel[offer.condition] : "New",
     rating: 0,
     reviews: 0,
@@ -192,13 +233,15 @@ export function mapMarketplaceDeviceToCatalog(device: MarketplaceDevice): Catalo
     warranty: offer?.warranty_months ? `${offer.warranty_months}-month warranty` : "Shop warranty",
     delivery: "Delivery at checkout",
     inStock: offers.some((item) => item.quantity > 0),
-    specs,
+    specs: specGroups.flatMap((group) => group.rows),
+    specGroups,
     highlights: [],
     ...(images[0] ? { imageUrl: images[0] } : {}),
     images,
     offers,
     marketplaceDevice: device,
   };
+  return offer ? selectMarketplaceOffer(product, offer) : product;
 }
 
 export function mapApiShopToCatalog(api: ApiShop): CatalogShop {
@@ -264,6 +307,11 @@ export function categoryIconForSlug(slug: string): string {
 export function enrichCategoryIcons(categories: Category[]): Category[] {
   return categories.map((c) => ({
     ...c,
-    icon: c.icon === defaultCategoryIcon ? categoryIconForSlug(c.slug) : c.icon,
+    icon: c.icon === defaultCategoryIcon ? categoryIconForCategory(c.slug, c.name) : c.icon,
   }));
+}
+
+function categoryIconForCategory(slug: string, name: string): string {
+  const slugIcon = categoryIconForSlug(slug);
+  return slugIcon === defaultCategoryIcon ? categoryIconForSlug(slugifyName(name)) : slugIcon;
 }

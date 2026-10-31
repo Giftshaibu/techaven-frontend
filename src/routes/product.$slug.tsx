@@ -1,12 +1,19 @@
+import { offerFacts } from "@/lib/offer-facts";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
+import { ShopLogo } from "@/components/ShopLogo";
 import { ProductGrid } from "@/components/ProductGrid";
 import { SectionHeader } from "@/components/SectionHeader";
 import { TrustStrip } from "@/components/TrustStrip";
 import { discountPercent, formatMwk } from "@/data/catalog";
-import type { CatalogProduct } from "@/lib/catalog-api";
+import {
+  conditionLabel,
+  selectMarketplaceOffer,
+  type CatalogProduct,
+  type CatalogShop,
+} from "@/lib/catalog-api";
 import {
   fetchCategoryProducts,
   fetchProductsPage,
@@ -16,15 +23,26 @@ import {
 import { useCart } from "@/lib/cart";
 import { useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
-import { getPromotions } from "@/lib/cms/promotions";
+import { getPromotions, type Promotion } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
-import type { MarketplaceOffer } from "@/integrations/techaven/types";
+
+type ProductPageData = {
+  product: CatalogProduct;
+  shop: CatalogShop | null;
+  shops: (CatalogShop | null)[];
+  related: CatalogProduct[];
+  promotions: Promotion[];
+};
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: async ({ params }) => {
+  loader: async ({ params }): Promise<ProductPageData> => {
     const product = await resolveProduct(params.slug);
     if (!product) throw notFound();
-    const shop = product.shop ? await resolveShop(product.shop) : null;
+    const shopIds = [
+      ...new Set((product.offers ?? []).flatMap((offer) => (offer.shop ? [offer.shop.id] : []))),
+    ];
+    const shops = await Promise.all(shopIds.map((id) => resolveShop(`shop-${id}`)));
+    const shop = shops.find((item) => item?.slug === product.shop) ?? null;
     let related: CatalogProduct[] = [];
     try {
       if (product.categoryId) {
@@ -38,7 +56,7 @@ export const Route = createFileRoute("/product/$slug")({
       related = [];
     }
     const promotions = await getPromotions("product_inline_1");
-    return { product, shop, related, promotions };
+    return { product, shop, shops, related, promotions };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -64,28 +82,37 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product, shop, related, promotions } = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  return <ProductDetails key={data.product.slug} data={data} />;
+}
+
+function ProductDetails({ data }: { data: ProductPageData }) {
+  const { product, shops, related, promotions } = data;
   const categorySlug = product.category;
   const { add, count } = useCart();
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedListingId, setSelectedListingId] = useState(product.listingId);
-  const selectedOffer = product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
-  const selectedProduct = useMemo(() => selectedOffer ? {
-    ...product,
-    taxExclusive: Boolean(selectedOffer.details?.tax_exclusive),
-    listingId: selectedOffer.id,
-    price: selectedOffer.price,
-    shop: selectedOffer.shop ? `shop-${selectedOffer.shop.id}` : product.shop,
-    ...(selectedOffer.shop?.name ? { shopName: selectedOffer.shop.name } : {}),
-  } : product, [product, selectedOffer]);
+  const selectedOffer =
+    product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
+  const selectedProduct = useMemo(
+    () => (selectedOffer ? selectMarketplaceOffer(product, selectedOffer) : product),
+    [product, selectedOffer],
+  );
+  const shop = shops.find((item) => item?.apiId === selectedOffer?.shop?.id) ?? null;
+  const selectedVariant = product.marketplaceDevice?.variants.find(
+    (item) => item.id === selectedOffer?.variant_id,
+  );
+  const specGroups = selectedProduct.specGroups ?? [
+    { title: "Device", rows: selectedProduct.specs },
+  ];
 
   const images =
-    product.images && product.images.length > 0
-      ? product.images
-      : product.imageUrl
-        ? [product.imageUrl]
+    selectedProduct.images && selectedProduct.images.length > 0
+      ? selectedProduct.images
+      : selectedProduct.imageUrl
+        ? [selectedProduct.imageUrl]
         : [];
   const shopName = selectedOffer?.shop?.name ?? shop?.name ?? product.shopName ?? "Shop";
   const discount = discountPercent(product);
@@ -118,6 +145,7 @@ function ProductPage() {
             category={product.category}
             src={images[activeImage]}
             alt={product.name}
+            priority
             className="rounded-2xl"
           />
           {images.length > 1 ? (
@@ -158,12 +186,15 @@ function ProductPage() {
               <span className="text-muted-foreground">({product.reviews} reviews)</span>
             </span>
             <span className="rounded-[6px] bg-success-soft px-2 py-0.5 text-xs font-semibold text-ink-800">
-              {product.condition}
+              {selectedProduct.condition}
             </span>
           </div>
 
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
-            <span className="text-4xl font-extrabold tracking-tight text-ink-800">
+            <span
+              aria-live="polite"
+              className="text-4xl font-extrabold tracking-tight text-ink-800"
+            >
               {formatMwk(selectedProduct.price)}
               {selectedProduct.taxExclusive ? <span className="ml-3 text-base font-medium">excl. VAT</span> : null}
             </span>
@@ -178,33 +209,27 @@ function ProductPage() {
               </>
             ) : null}
           </div>
+          {offerFacts(selectedProduct.offers?.find(offer => offer.id === selectedProduct.listingId)?.details).map(fact => <p key={fact} className="mt-3 text-sm leading-relaxed text-ink-800">{fact}</p>)}
 
-          {product.offers && product.offers.length > 1 ? (
-            <label className="mt-5 block">
-              <span className="mb-1.5 block text-sm font-semibold text-ink-800">Choose an offer</span>
-              <select
-                value={selectedOffer?.id}
-                onChange={(event) => setSelectedListingId(Number(event.target.value))}
-                className="h-12 w-full rounded-lg border border-border bg-surface px-3 text-sm text-ink-800"
-              >
-                {product.offers.map((offer: MarketplaceOffer) => (
-                  <option key={offer.id} value={offer.id}>
-                    {offer.shop?.name ?? "Techaven shop"} · {offer.condition.replace("_", " ")} · {formatMwk(offer.price)}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {selectedVariant ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {[
+                selectedVariant.ram_gb != null ? `${selectedVariant.ram_gb} GB RAM` : null,
+                selectedVariant.storage_gb != null
+                  ? `${selectedVariant.storage_gb} GB storage`
+                  : null,
+                selectedVariant.network_generation,
+                  selectedVariant.sim_type,
+                  selectedVariant.region,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           ) : null}
 
           <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink-900 text-sm font-bold text-white">
-                {shopName
-                  .split(" ")
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join("")}
-              </span>
+              <ShopLogo name={shopName} src={shop?.logoUrl} />
               <div className="min-w-0">
                 <p className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-800">
                   Sold by{" "}
@@ -238,11 +263,15 @@ function ProductPage() {
               onClick={() => {
                 void add(selectedProduct).then(() => setAdded(true));
               }}
-              disabled={!selectedProduct.listingId || selectedProduct.taxExclusive}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700"
+              disabled={!selectedProduct.listingId || !selectedProduct.inStock || selectedProduct.taxExclusive}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Icon name="cart-large-2-linear" className="h-5 w-5" />
-              {selectedProduct.taxExclusive ? "Confirm VAT-inclusive price with shop" : selectedProduct.listingId ? "Add to basket" : "No offer available"}
+              {selectedProduct.listingId
+                ? selectedProduct.inStock
+                  ? selectedProduct.taxExclusive ? "Confirm VAT-inclusive price with shop" : "Add to basket"
+                  : "Out of stock"
+                : "No offer available"}
             </button>
             <Link
               to="/cart"
@@ -261,9 +290,8 @@ function ProductPage() {
 
           <ul className="mt-6 space-y-2.5 text-sm">
             {[
-              { icon: "box-linear", text: product.delivery },
-              { icon: "shield-check-linear", text: product.warranty },
-              { icon: "refresh-circle-linear", text: "Trade-in accepted towards this device" },
+              { icon: "box-linear", text: selectedProduct.delivery },
+              { icon: "shield-check-linear", text: selectedProduct.warranty },
             ].map((row) => (
               <li key={row.text} className="flex items-center gap-2.5 text-ink-800/80">
                 <Icon name={row.icon} className="h-[18px] w-[18px] text-brand-500" />
@@ -280,16 +308,22 @@ function ProductPage() {
             <h2 className="text-xl font-bold text-ink-800">Specifications</h2>
             {product.description ? (
               <p className="mt-4 text-sm leading-relaxed text-ink-800/80">{product.description}</p>
-            ) : (
-              <dl className="mt-4 divide-y divide-border">
-                {product.specs.map((spec) => (
-                  <div key={spec.label} className="flex justify-between gap-6 py-3 text-sm">
-                    <dt className="text-muted-foreground">{spec.label}</dt>
-                    <dd className="text-right font-semibold text-ink-800">{spec.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+            ) : null}
+            {specGroups.map((group) => (
+              <div key={group.title} className="mt-6">
+                <h3 className="text-sm font-semibold text-ink-800">{group.title}</h3>
+                <dl className="mt-2 divide-y divide-border">
+                  {group.rows.map((spec) => (
+                    <div key={spec.label} className="grid grid-cols-2 gap-6 py-3 text-sm">
+                      <dt className="min-w-0 break-words text-muted-foreground">{spec.label}</dt>
+                      <dd className="min-w-0 break-words text-right font-semibold text-ink-800">
+                        {spec.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
           </div>
           <div>
             <h2 className="text-xl font-bold text-ink-800">Good to know</h2>
@@ -320,6 +354,79 @@ function ProductPage() {
           </div>
         </div>
       </section>
+
+      {product.offers?.length ? (
+        <section className="shell pb-12" aria-labelledby="offers-heading">
+          <h2 id="offers-heading" className="text-2xl font-bold tracking-tight text-ink-800">
+            Available offers
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Choose a shop and configuration for your basket.
+          </p>
+          <div className="mt-5 space-y-3">
+            {product.offers.map((offer) => {
+              const seller = shops.find((item) => item?.apiId === offer.shop?.id);
+              const variant = product.marketplaceDevice?.variants.find(
+                (item) => item.id === offer.variant_id,
+              );
+              const selected = offer.id === selectedOffer?.id;
+              const details = [
+                variant?.ram_gb != null ? `${variant.ram_gb} GB RAM` : null,
+                variant?.storage_gb != null ? `${variant.storage_gb} GB storage` : null,
+                variant?.network_generation,
+                  variant?.sim_type,
+                  variant?.region,
+                conditionLabel[offer.condition],
+              ]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <div
+                  key={offer.id}
+                  className={cn(
+                    "flex flex-wrap items-center gap-4 rounded-2xl border bg-surface p-4 md:p-5",
+                    selected ? "border-brand-500" : "border-border",
+                  )}
+                >
+                  <ShopLogo name={offer.shop?.name ?? "Shop"} src={seller?.logoUrl} />
+                  <div className="min-w-0 flex-1 basis-40">
+                    {offer.shop ? (
+                      <Link
+                        to="/shops/$shopSlug"
+                        params={{ shopSlug: `shop-${offer.shop.id}` }}
+                        className="text-sm font-semibold text-ink-800 hover:underline"
+                      >
+                        {offer.shop.name}
+                      </Link>
+                    ) : null}
+                    <p className="mt-1 text-sm text-muted-foreground">{details}</p>
+                  </div>
+                  <p className="text-xl font-bold text-ink-800">{formatMwk(offer.price)}</p>
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={`Select ${offer.shop?.name ?? "shop"} offer: ${details}, ${formatMwk(offer.price)}`}
+                    disabled={offer.quantity <= 0}
+                    onClick={() => {
+                      setSelectedListingId(offer.id);
+                      setActiveImage(0);
+                      setAdded(false);
+                    }}
+                    className={cn(
+                      "min-h-11 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                      selected
+                        ? "bg-brand-500 text-white"
+                        : "border border-border text-ink-800 hover:bg-stage",
+                    )}
+                  >
+                    {offer.quantity <= 0 ? "Out of stock" : selected ? "Selected" : "Select offer"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="shell pb-14">
         <SectionHeader title="You might also like" />

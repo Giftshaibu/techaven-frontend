@@ -115,8 +115,12 @@ export const promotionSchema = z.object({
 export type Promotion = z.infer<typeof promotionSchema>;
 
 function baseUrl() {
+  // SSR may run in a container, where localhost is not the browser's host.
+  const serverUrl = import.meta.env.SSR
+    ? (import.meta.env.VITE_PROMOTIONS_SERVER_API_URL as string | undefined)
+    : undefined;
   return (
-    (import.meta.env.VITE_PROMOTIONS_API_URL as string | undefined)?.replace(/\/$/, "") ??
+    (serverUrl || (import.meta.env.VITE_PROMOTIONS_API_URL as string | undefined))?.replace(/\/$/, "") ??
     "http://localhost:1337"
   );
 }

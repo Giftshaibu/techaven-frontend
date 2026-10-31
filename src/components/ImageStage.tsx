@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +13,7 @@ const categoryIcon: Record<string, string> = {
   "home-electronics": "tv-linear",
 };
 
-/**
- * Neutral product stage. Placeholder imagery for now: a calm stage with a
- * category glyph, sized so real photography can drop in later unchanged.
- */
+/** Neutral product stage with an explicit empty state for unavailable photography. */
 export function ImageStage({
   category,
   ratio = "square",
@@ -47,6 +44,13 @@ export function ImageStage({
   const name = (category && categoryIcon[category]) || "bag-4-linear";
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  // A cached/server-rendered image can finish before React attaches onLoad.
+  const imageRef = useCallback(
+    (image: HTMLImageElement | null) => {
+      if (image?.complete && image.naturalWidth > 0) setLoadedSrc(src ?? null);
+    },
+    [src],
+  );
   const failed = Boolean(src) && failedSrc === src;
   const loaded = Boolean(src) && loadedSrc === src;
   const showImage = Boolean(src) && !failed;
@@ -65,10 +69,16 @@ export function ImageStage({
       )}
     >
       {!showImage || !loaded ? (
-        <Icon name={name} className={cn("h-1/3 w-1/3 text-neutral-400", iconClassName)} />
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+          <Icon name={name} className={cn("h-1/3 w-1/3 text-neutral-400", iconClassName)} />
+          {!showImage ? (
+            <span className="text-xs text-muted-foreground">Photo unavailable</span>
+          ) : null}
+        </div>
       ) : null}
       {showImage ? (
         <img
+          ref={imageRef}
           src={src}
           alt={alt}
           sizes={sizes}

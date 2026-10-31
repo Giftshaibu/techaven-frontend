@@ -4,4 +4,4 @@ Eight supplied shops and 167 offers are available locally. All seeded shop heroe
 
 Validation: 13 focused frontend tests and production build pass; rendered shop/product/catalogue HTTP checks return 200. IAB backend unavailable, so desktop/mobile visual inspection is outstanding. Backend handoff and held/photo reports are in sibling `techaven-backend/docs/SHOP_ONBOARDING_20261022.md`.
 
-Pre-existing product/specification/API edits are interleaved in this checkout. Focused commits preserve unrelated work; integration hunks in the already-dirty product route/catalogue adapter remain local working-tree changes. No push or deployment.
+Remaining product/specification/API edits are included with the repository publication authorized on 31 October 2026. Local environment files remain excluded. The original frontend remote is retained as previous-origin; origin points to Giftshaibu/techaven-frontend.

@@ -86,7 +86,7 @@ export function ProductCard({
             )}
           >
             <Icon
-              name={compared ? "scale-broken-linear" : "scale-linear"}
+              name={compared ? "scale-bold" : "scale-linear"}
               className="h-[18px] w-[18px]"
             />
           </button>

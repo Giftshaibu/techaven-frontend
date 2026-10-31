@@ -2,11 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
-import {
-  categories as fallbackCategories,
-  popularBrands,
-  shops as fallbackShops,
-} from "@/data/catalog";
+import type { Category, Shop } from "@/data/catalog";
 import { useAuth } from "@/lib/auth";
 import { useCart } from "@/lib/cart";
 import {
@@ -20,14 +16,7 @@ import { ctaHref, getPromotions, matchesTarget, type Promotion } from "@/lib/cms
 import { PromotionMedia } from "@/components/promotions/PromotionPrimitives";
 import { BrandTiles } from "@/components/BrandTiles";
 
-const utilityLinks = [
-  { label: "How Techaven works", to: "/help" },
-  { label: "Help", to: "/help" },
-  { label: "Track order", to: "/help" },
-  { label: "Sell on Techaven", to: "/help" },
-];
-
-const searchExamples = ["iPhone 15", "gaming laptop", "wireless earbuds", "4K TV", "power bank"];
+const utilityLinks = [{ label: "Help", to: "/help" }];
 
 function Wordmark() {
   return (
@@ -46,15 +35,6 @@ function SearchField({
 }) {
   const navigate = useNavigate();
   const [value, setValue] = useState("");
-  const [exampleIndex, setExampleIndex] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(
-      () => setExampleIndex((i) => (i + 1) % searchExamples.length),
-      3200,
-    );
-    return () => window.clearInterval(id);
-  }, []);
 
   return (
     <form
@@ -67,13 +47,13 @@ function SearchField({
       className={cn("relative w-full", !mobile && "max-w-[680px]")}
     >
       <Icon
-        name="magnifer-linear"
+        name="magnifier-linear"
         className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground"
       />
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={`Search ${searchExamples[exampleIndex]}`}
+        placeholder="Search products"
         aria-label="Search Techaven"
         className="h-11 w-full rounded-full bg-stage pl-11 pr-24 text-[15px] text-ink-800 outline-none ring-brand-500 placeholder:text-muted-foreground focus:bg-surface focus:ring-2"
       />
@@ -99,9 +79,9 @@ function MegaMenu({
   onNavigate,
 }: {
   slug: string;
-  categories: typeof fallbackCategories;
-  shops: typeof fallbackShops;
-  promotion?: Promotion;
+  categories: Category[];
+  shops: Shop[];
+  promotion?: Promotion | undefined;
   open: boolean;
   menuId: string;
   onEnter: () => void;
@@ -111,6 +91,12 @@ function MegaMenu({
   const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
   const featuredShops = shops.slice(0, 3);
+  const columnCount =
+    Number(category.subcategories.length > 0) +
+    Number(category.brands.length > 0) +
+    Number(featuredShops.length > 0) +
+    Number(Boolean(promotion));
+  if (!columnCount) return null;
 
   if (category.brandTiles?.length) return (
     <div id={menuId} role="region" aria-label={`${category.name} menu`} onPointerEnter={onEnter} onPointerLeave={onLeave}
@@ -130,7 +116,6 @@ function MegaMenu({
     </div>
   );
 
-
   return (
     <div
       id={menuId}
@@ -146,67 +131,77 @@ function MegaMenu({
       <div
         className={cn(
           "shell grid gap-8 py-8",
-          promotion ? "lg:grid-cols-[1.1fr_0.9fr_0.9fr_1.2fr]" : "lg:grid-cols-3",
+          columnCount === 4
+            ? "lg:grid-cols-4"
+            : columnCount === 3
+              ? "lg:grid-cols-3"
+              : columnCount === 2
+                ? "lg:grid-cols-2"
+                : "lg:grid-cols-1",
         )}
       >
-        <div>
-          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
-            Shop {category.name.toLowerCase()}
-          </h3>
-          <ul className="space-y-2 text-sm">
-            {category.subcategories.map((sub) => (
-              <li key={sub}>
-                <Link
-                  to="/category/$slug"
-                  params={{ slug: category.slug }}
-                  className="text-ink-800 hover:text-brand-500 hover:underline"
-                  onClick={onNavigate}
-                >
-                  {sub}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {category.subcategories.length > 0 ? (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
+              Shop {category.name.toLowerCase()}
+            </h3>
+            <ul className="space-y-2 text-sm">
+              {category.subcategories.map((sub) => (
+                <li key={sub}>
+                  <Link
+                    to="/category/$slug"
+                    params={{ slug: category.slug }}
+                    className="text-ink-800 hover:text-brand-500 hover:underline"
+                    onClick={onNavigate}
+                  >
+                    {sub}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
-        <div>
-          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">Brands</h3>
-          <ul className="space-y-2 text-sm">
-            {category.brands.map((brand) => (
-              <li key={brand}>
-                <Link
-                  to="/category/$slug"
-                  params={{ slug: category.slug }}
-                  search={{ brand }}
-                  className="text-ink-800 hover:text-brand-500 hover:underline"
-                  onClick={onNavigate}
-                >
-                  {brand}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {category.brands.length > 0 ? (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">Brands</h3>
+            <ul className="space-y-2 text-sm">
+              {category.brands.map((brand) => (
+                <li key={brand}>
+                  <Link
+                    to="/category/$slug"
+                    params={{ slug: category.slug }}
+                    search={{ brand }}
+                    className="text-ink-800 hover:text-brand-500 hover:underline"
+                    onClick={onNavigate}
+                  >
+                    {brand}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
-        <div>
-          <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">
-            Featured shops
-          </h3>
-          <ul className="space-y-2 text-sm">
-            {featuredShops.map((shop) => (
-              <li key={shop.slug}>
-                <Link
-                  to="/shops/$shopSlug"
-                  params={{ shopSlug: shop.slug }}
-                  className="text-ink-800 hover:text-brand-500 hover:underline"
-                  onClick={onNavigate}
-                >
-                  {shop.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {featuredShops.length > 0 ? (
+          <div>
+            <h3 className="mb-3 text-sm font-semibold tracking-normal text-ink-800">Shops</h3>
+            <ul className="space-y-2 text-sm">
+              {featuredShops.map((shop) => (
+                <li key={shop.slug}>
+                  <Link
+                    to="/shops/$shopSlug"
+                    params={{ shopSlug: shop.slug }}
+                    className="text-ink-800 hover:text-brand-500 hover:underline"
+                    onClick={onNavigate}
+                  >
+                    {shop.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {promotion ? (
           <div className="overflow-hidden rounded-2xl bg-brand-100">
@@ -255,16 +250,14 @@ export function Header() {
   const categories =
     apiCategories.data && apiCategories.data.length > 0
       ? enrichCategoryIcons(apiCategories.data.map(mapApiCategoryToCatalog))
-      : fallbackCategories;
+      : [];
   const shops =
-    apiShops.data && apiShops.data.length > 0
-      ? apiShops.data.map(mapApiShopToCatalog)
-      : fallbackShops;
+    apiShops.data && apiShops.data.length > 0 ? apiShops.data.map(mapApiShopToCatalog) : [];
   const [announcement, setAnnouncement] = useState(true);
   const [mobileNav, setMobileNav] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const closeMenuTimer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const closeMenuTimer = useRef<number | null>(null);
   const headerRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -306,7 +299,13 @@ export function Header() {
       if (openMenu && !headerRef.current?.contains(event.target as Node)) closeMenu();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeMenu();
+      if (event.key === "Escape" && openMenu) {
+        const trigger = Array.from(
+          headerRef.current?.querySelectorAll<HTMLAnchorElement>("a[aria-controls]") ?? [],
+        ).find((link) => link.getAttribute("aria-controls") === `mega-menu-${openMenu}`);
+        trigger?.focus();
+        closeMenu();
+      }
     };
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
@@ -535,43 +534,49 @@ export function Header() {
           >
             Deals
           </Link>
-          {categories.filter((category) => category.name !== "Loans" && category.name !== "Pay as you go (PAYGO)").slice(0, 7).map((category) => (
-            <div
-              key={category.slug}
-              onPointerEnter={() => showMenu(category.slug)}
-              onPointerLeave={scheduleMenuClose}
-              onFocus={() => showMenu(category.slug)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  scheduleMenuClose();
-                }
-              }}
-            >
-              <Link
-                to="/category/$slug"
-                params={{ slug: category.slug }}
-                className="inline-flex rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
-                aria-expanded={openMenu === category.slug}
-                aria-controls={`mega-menu-${category.slug}`}
-                onClick={closeMenu}
+          {categories.filter((category) => category.name !== "Loans" && category.name !== "Pay as you go (PAYGO)").slice(0, 7).map((category) => {
+            const promotion = menuPromotions.find((p) =>
+              matchesTarget(p, { categorySlug: category.slug }),
+            );
+            const hasMenu = Boolean(
+              category.subcategories.length || category.brands.length || shops.length || promotion,
+            );
+            return (
+              <div
+                key={category.slug}
+                onPointerEnter={() => hasMenu && showMenu(category.slug)}
+                onPointerLeave={scheduleMenuClose}
+                onFocus={() => hasMenu && showMenu(category.slug)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    scheduleMenuClose();
+                  }
+                }}
               >
-                {category.name}
-              </Link>
-              <MegaMenu
-                slug={category.slug}
-                categories={categories}
-                shops={shops}
-                promotion={menuPromotions.find((p) =>
-                  matchesTarget(p, { categorySlug: category.slug }),
-                )}
-                open={openMenu === category.slug}
-                menuId={`mega-menu-${category.slug}`}
-                onEnter={() => showMenu(category.slug)}
-                onLeave={scheduleMenuClose}
-                onNavigate={closeMenu}
-              />
-            </div>
-          ))}
+                <Link
+                  to="/category/$slug"
+                  params={{ slug: category.slug }}
+                  className="inline-flex rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
+                  aria-expanded={hasMenu ? openMenu === category.slug : undefined}
+                  aria-controls={hasMenu ? `mega-menu-${category.slug}` : undefined}
+                  onClick={closeMenu}
+                >
+                  {category.name}
+                </Link>
+                <MegaMenu
+                  slug={category.slug}
+                  categories={categories}
+                  shops={shops}
+                  promotion={promotion}
+                  open={openMenu === category.slug}
+                  menuId={`mega-menu-${category.slug}`}
+                  onEnter={() => showMenu(category.slug)}
+                  onLeave={scheduleMenuClose}
+                  onNavigate={closeMenu}
+                />
+              </div>
+            );
+          })}
           <Link
             to="/categories"
             className="rounded-full px-3 py-1.5 font-medium text-ink-800 hover:bg-stage"
@@ -622,6 +627,7 @@ export function Header() {
                 </h2>
                 <nav className="mt-2" aria-label="Quick access">
                   {[
+                    { label: "PAYGO", to: "/paygo", icon: "smartphone-2-linear" },
                     {
                       label: signedIn ? "Account" : "Sign in",
                       to: signedIn ? "/account" : "/auth",
@@ -699,13 +705,13 @@ export function Header() {
                 </h2>
                 <nav className="mt-2 grid grid-cols-2 gap-2" aria-label="Marketplace shortcuts">
                   {[
+                    { label: "PAYGO", to: "/paygo", icon: "smartphone-2-linear" },
                     { label: "Deals", to: "/deals", icon: "sale-square-linear" },
                     { label: "All products", to: "/products", icon: "box-minimalistic-linear" },
                     { label: "Shops", to: "/shops", icon: "shop-linear" },
                     { label: "Compare", to: "/compare", icon: "scale-linear" },
                     { label: "Trade-in", to: "/trade-in", icon: "smartphone-update-linear" },
                     { label: "Help", to: "/help", icon: "question-circle-linear" },
-                    { label: "Track order", to: "/help", icon: "delivery-linear" },
                     { label: "Catalogs", to: "/catalogs", icon: "notebook-bookmark-linear" },
                     { label: "Categories", to: "/categories", icon: "widget-4-linear" },
                   ].map((item) => (
@@ -722,10 +728,6 @@ export function Header() {
                   ))}
                 </nav>
               </section>
-
-              <p className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-                Popular brands: {popularBrands.slice(0, 6).join(" · ")}
-              </p>
             </div>
           </aside>
         </div>
