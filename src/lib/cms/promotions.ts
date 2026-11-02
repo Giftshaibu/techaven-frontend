@@ -117,11 +117,11 @@ export type Promotion = z.infer<typeof promotionSchema>;
 function baseUrl() {
   // SSR may run in a container, where localhost is not the browser's host.
   const serverUrl = import.meta.env.SSR
-    ? (import.meta.env.VITE_PROMOTIONS_SERVER_API_URL as string | undefined)
+    ? (process.env.PROMOTIONS_API_URL || (import.meta.env.VITE_PROMOTIONS_SERVER_API_URL as string | undefined))
     : undefined;
   return (
     (serverUrl || (import.meta.env.VITE_PROMOTIONS_API_URL as string | undefined))?.replace(/\/$/, "") ??
-    "http://localhost:1337"
+    (import.meta.env.SSR ? "http://localhost:1337" : "/cms")
   );
 }
 async function cmsFetch(path: string): Promise<unknown> {

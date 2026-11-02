@@ -48,12 +48,17 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const requestUrl = new URL(request.url);
-      if (requestUrl.pathname.startsWith('/api/')) {
-        const target = (import.meta.env['VITE_TECHAVEN_SERVER_API_URL'] as string | undefined) || 'http://localhost:8000';
+      if (requestUrl.pathname === '/healthz') return new Response('ok', { headers: { 'content-type': 'text/plain' } });
+      const cmsRequest = requestUrl.pathname.startsWith('/cms/');
+      if (cmsRequest || requestUrl.pathname.startsWith('/api/') || requestUrl.pathname.startsWith('/uploads/')) {
+        const target = cmsRequest
+          ? (process.env.PROMOTIONS_API_URL || (import.meta.env['VITE_PROMOTIONS_SERVER_API_URL'] as string | undefined) || 'http://localhost:1337')
+          : (process.env.TECHAVEN_API_URL || (import.meta.env['VITE_TECHAVEN_SERVER_API_URL'] as string | undefined) || 'http://localhost:8000');
+        const pathname = cmsRequest ? requestUrl.pathname.slice(4) : requestUrl.pathname;
         const headers = new Headers(request.headers);
         headers.delete('host');
         headers.delete('connection');
-        const upstream = await fetch(`${target.replace(/\/$/, '')}${requestUrl.pathname}${requestUrl.search}`, {
+        const upstream = await fetch(`${target.replace(/\/$/, '')}${pathname}${requestUrl.search}`, {
           method: request.method, headers, redirect: 'manual',
           ...(request.method !== 'GET' && request.method !== 'HEAD' ? { body: await request.arrayBuffer() } : {}),
         });
