@@ -279,6 +279,7 @@ export function getCourierServices() {
 
 // —— Orders ——
 export function createOrder(body: {
+  payment_method?: string;
   shipping_address_id: number;
   courier_service_id?: number;
   items: { seller_listing_id: number; quantity: number }[];
@@ -392,6 +393,7 @@ export function getShippingAddresses() {
 }
 
 export function addShippingAddress(body: {
+  latitude?: number | null; longitude?: number | null; location_accuracy?: number | null; delivery_notes?: string | null;
   label?: string;
   name: string;
   phone: string;
@@ -410,6 +412,7 @@ export function addShippingAddress(body: {
 export function updateShippingAddress(
   id: number,
   body: Partial<{
+    latitude: number | null; longitude: number | null; location_accuracy: number | null; delivery_notes: string | null;
     label: string;
     name: string;
     phone: string;

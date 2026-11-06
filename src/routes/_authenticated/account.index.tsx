@@ -1,3 +1,4 @@
+import { AddressLocation } from "@/components/AddressLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -196,6 +197,8 @@ function AccountDetails() {
         )}
 
         <div className={cn("mt-6 grid gap-4 sm:grid-cols-2", adding ? "" : "hidden")}>
+          <AddressLocation value={form} onChange={setForm} />
+          <label className="sm:col-span-2 text-sm font-semibold">Delivery notes<textarea value={form.notes} maxLength={1000} onChange={e => setForm({ ...form, notes: e.target.value })} className="mt-1 w-full rounded-lg border border-border p-3" /></label>
           <Field
             label="Full name"
             value={form.recipient}

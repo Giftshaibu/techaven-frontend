@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { recordVisit } from "@/lib/browsing-history";
 import { offerFacts } from "@/lib/offer-facts";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -83,6 +85,7 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const data = Route.useLoaderData();
+  useEffect(() => { recordVisit({ kind: "product", slug: data.product.slug, category: data.product.category }); }, [data.product.slug, data.product.category]);
   return <ProductDetails key={data.product.slug} data={data} />;
 }
 

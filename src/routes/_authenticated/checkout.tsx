@@ -1,3 +1,5 @@
+import { getCommerceConfig } from "@/lib/manual-payments";
+import { AddressLocation } from "@/components/AddressLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -81,6 +83,7 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const commerceConfig = useQuery({ queryKey: ["commerce-config"], queryFn: getCommerceConfig });
   const [step, setStep] = useState<Step>(1);
   const [addressId, setAddressId] = useState<number | "new">("new");
   const [courierServiceId, setCourierServiceId] = useState<number | null>(null);
@@ -185,6 +188,7 @@ function CheckoutPage() {
       }));
 
       const result = await createOrder({
+        payment_method: payment,
         shipping_address_id: shippingAddressId,
         courier_service_id: courierServiceId,
         items: orderItems,
@@ -198,7 +202,7 @@ function CheckoutPage() {
       if (payment === "airtel-money" && delivery.phone) {
         const msisdn = delivery.phone.replace(/\s/g, "");
         try {
-          await payOrderAirtel(order.id, { msisdn });
+          for (const checkoutOrder of result.orders) await payOrderAirtel(checkoutOrder.id, { msisdn });
         } catch {
           /* payment can be completed later from order details */
         }
@@ -346,6 +350,7 @@ function CheckoutPage() {
                     onChange={(v) => setForm({ ...form, phone: v })}
                     placeholder="+265 ..."
                   />
+                  <AddressLocation value={form} onChange={setForm} />
                   <Field
                     label="City or town"
                     value={form.city}
@@ -408,7 +413,7 @@ function CheckoutPage() {
             <div>
               <h2 className="text-lg font-bold text-ink-800">How would you like to pay?</h2>
               <div className="mt-4 space-y-2">
-                {paymentMethods.map((method) => (
+                {paymentMethods.filter(method => method.id !== "bank-transfer" || commerceConfig.data?.manual_payment.enabled).map((method) => (
                   <button
                     key={method.id}
                     type="button"

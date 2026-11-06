@@ -1,3 +1,4 @@
+import { ManualPayment } from "@/components/ManualPayment";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -76,6 +77,7 @@ function OrderPage() {
         ) : null}
       </div>
 
+      <ManualPayment orderId={String(data.id).replace("ord_", "")} />
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="rounded-3xl bg-surface p-6 md:p-8">
           <h2 className="text-lg font-bold text-ink-800">What you ordered</h2>

@@ -484,6 +484,7 @@ export function Header() {
             ) : (
               <Link
                 to="/auth"
+                aria-label="Sign in"
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500"
               >
                 <Icon name="user-circle-linear" className="h-[22px] w-[22px]" />

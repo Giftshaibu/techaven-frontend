@@ -139,6 +139,10 @@ export type ApiShop = {
 };
 
 export type ShippingAddress = {
+  latitude?: number | null;
+  longitude?: number | null;
+  location_accuracy?: number | null;
+  delivery_notes?: string | null;
   id: number;
   label: string;
   name: string;

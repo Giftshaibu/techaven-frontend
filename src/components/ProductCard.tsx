@@ -26,7 +26,7 @@ export function ProductCard({
   const compared = isSelected(product.slug);
 
   return (
-    <article className="group relative">
+    <article className="group relative min-w-0">
       <div className="relative">
         <Link
           to="/product/$slug"
@@ -62,7 +62,7 @@ export function ProductCard({
               });
             }}
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
+              "grid h-11 w-11 md:h-9 md:w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
               saved ? "text-brand-500" : "text-ink-800",
             )}
           >
@@ -81,7 +81,7 @@ export function ProductCard({
               toggle(product.slug);
             }}
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
+              "grid h-11 w-11 md:h-9 md:w-9 place-items-center rounded-full bg-surface/90 transition-colors hover:text-brand-500",
               compared ? "text-brand-500" : "text-ink-800",
             )}
           >

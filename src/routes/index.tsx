@@ -11,6 +11,7 @@ import { enrichCategoryIcons, filterHotSales, filterSpecialOffers } from "@/lib/
 import { loadHomeFeed } from "@/lib/resolve-catalog";
 import { getPromotions } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
+import { MobileHomeCatalog } from "@/components/MobileHomeCatalog";
 import { DefaultHomeHero } from "@/components/promotions/DefaultHomeHero";
 
 export const Route = createFileRoute("/")({
@@ -60,12 +61,13 @@ function Home() {
 
   return (
     <>
-      <PromotionSlot
+      <MobileHomeCatalog products={products} />
+      <div className="hidden md:block"><PromotionSlot
         placement="home_hero"
         promotions={promotions}
         fallback={<DefaultHomeHero />}
         heroHeading="h1"
-      />
+      /></div>
 
       <section className="shell py-10 md:py-14">
         <SectionHeader

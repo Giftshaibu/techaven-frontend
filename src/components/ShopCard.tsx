@@ -12,9 +12,9 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
     <Link
       to="/shops/$shopSlug"
       params={{ shopSlug: shop.slug }}
-      className="group block rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-brand-300"
+      className="group grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-x-3 rounded-2xl md:block border border-border bg-surface p-3 transition-colors hover:border-brand-300"
     >
-      <div className="relative">
+      <div className="relative min-w-0">
         <ImageStage
           category="home-electronics"
           src={catalogShop.logoUrl ?? marketplaceMedia.shop.src}
@@ -23,15 +23,15 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
           position={marketplaceMedia.shop.position}
           ratio="wide"
           sizes="(max-width: 767px) 82vw, (max-width: 1023px) 50vw, 25vw"
-          className="rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+          className="!aspect-square md:!aspect-[16/9] rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
         />
-        <span className="absolute bottom-2 left-2 rounded-md bg-surface/90 px-2 py-1 text-xs font-bold text-brand-800 backdrop-blur-sm">
+        <span className="hidden md:block absolute bottom-2 left-2 rounded-md bg-surface/90 px-2 py-1 text-xs font-bold text-brand-800 backdrop-blur-sm">
           {shop.name}
         </span>
       </div>
 
-      <div className="mt-3 flex items-start gap-2.5">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink-900 text-sm font-bold text-white">
+      <div className="min-w-0 md:mt-3 flex items-start gap-2.5">
+        <span className="hidden md:grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink-900 text-sm font-bold text-white">
           {shop.name
             .split(" ")
             .map((w) => w[0])
@@ -49,7 +49,7 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <div className="col-start-2 mt-1 md:mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Icon name="map-point-linear" className="h-3.5 w-3.5" />
           {shop.location}

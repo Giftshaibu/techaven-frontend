@@ -9,6 +9,9 @@ export type AddressForm = {
   area: string;
   street: string;
   notes: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_accuracy?: number | null;
 };
 
 export function apiAddressToForm(addr: ShippingAddress): AddressForm {
@@ -19,7 +22,10 @@ export function apiAddressToForm(addr: ShippingAddress): AddressForm {
     city: addr.city,
     area: addr.region ?? "",
     street: addr.address,
-    notes: "",
+    notes: addr.delivery_notes ?? "",
+    latitude: addr.latitude == null ? null : Number(addr.latitude),
+    longitude: addr.longitude == null ? null : Number(addr.longitude),
+    location_accuracy: addr.location_accuracy == null ? null : Number(addr.location_accuracy),
   };
 }
 
@@ -30,7 +36,11 @@ export function formToApiBody(form: AddressForm, isDefault?: boolean) {
     phone: form.phone,
     address: [form.street, form.area].filter(Boolean).join(", ") || form.street,
     city: form.city,
-    region: form.area || undefined,
-    is_default: isDefault,
+    ...(form.area ? { region: form.area } : {}),
+    ...(isDefault == null ? {} : { is_default: isDefault }),
+    latitude: form.latitude ?? null,
+    longitude: form.longitude ?? null,
+    location_accuracy: form.location_accuracy ?? null,
+    delivery_notes: form.notes || null,
   };
 }

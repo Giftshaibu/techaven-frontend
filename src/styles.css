@@ -199,3 +199,14 @@
     display: none;
   }
 }
+
+/* Shared responsive containment: intrinsic media and long labels must not widen grids. */
+main { min-width: 0; }
+img, video, canvas { max-width: 100%; }
+@media (max-width: 767px) {
+  main .grid > *, main .flex > * { min-width: 0; }
+  main h1, main h2, main h3 { overflow-wrap: anywhere; }
+  input, select, textarea { max-width: 100%; font-size: 16px; }
+}
+
+.delivery-map-pin { color: #4545ff; font-size: 28px; line-height: 28px; text-shadow: 0 1px 3px white; }

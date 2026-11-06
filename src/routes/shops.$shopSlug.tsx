@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { recordVisit } from "@/lib/browsing-history";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
@@ -44,6 +46,7 @@ export const Route = createFileRoute("/shops/$shopSlug")({
 
 function ShopPage() {
   const { shop, products, heroPromotions, inlinePromotions } = Route.useLoaderData();
+  useEffect(() => { recordVisit({ kind: "shop", slug: shop.slug }); }, [shop.slug]);
 
   return (
     <>
