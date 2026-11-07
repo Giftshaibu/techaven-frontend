@@ -116,7 +116,11 @@ function ShopsPage() {
           </div>
         </div>
 
-        <div className={cn("mt-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-5 lg:grid-cols-3")}>
+        <div
+          className={cn(
+            "mt-5 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 lg:grid-cols-3",
+          )}
+        >
           {list.map((shop) => (
             <ShopCard key={shop.slug} shop={shop} />
           ))}

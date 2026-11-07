@@ -22,14 +22,16 @@ export function CategoryCard({ category }: { category: Category }) {
     <Link
       to="/category/$slug"
       params={{ slug: category.slug }}
-      className="group flex flex-col rounded-2xl border border-border bg-surface p-5 transition-colors hover:border-brand-300"
+      className="group flex flex-col rounded-2xl border border-border bg-surface p-3 md:p-5 transition-colors hover:border-brand-300"
     >
       <span className="grid h-12 w-12 place-items-center rounded-xl bg-brand-100 text-brand-800">
         <Icon name={category.icon} className="h-6 w-6" />
       </span>
-      <h3 className="mt-4 text-lg font-bold text-ink-800 group-hover:underline">{category.name}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{category.blurb}</p>
-      <p className="mt-3 text-xs text-muted-foreground">
+      <h3 className="mt-3 text-sm md:mt-4 md:text-lg !break-normal font-bold text-ink-800 group-hover:underline">
+        {category.name}
+      </h3>
+      <p className="hidden md:block mt-1 text-sm text-muted-foreground">{category.blurb}</p>
+      <p className="hidden md:block mt-3 text-xs text-muted-foreground">
         {category.subcategories.slice(0, 3).join(" · ")}
       </p>
     </Link>

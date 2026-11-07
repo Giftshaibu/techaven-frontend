@@ -50,9 +50,12 @@ export function HorizontalRail({
   };
 
   return (
-    <div>
+    <div className="relative flex flex-col">
       {hasOverflow ? (
-        <div className="mb-3 flex justify-end gap-2 md:hidden" aria-label={`${label} controls`}>
+        <div
+          className="order-2 mt-2 flex justify-end gap-2 md:hidden"
+          aria-label={`${label} controls`}
+        >
           <button
             type="button"
             onClick={() => scroll(-1)}
@@ -79,6 +82,7 @@ export function HorizontalRail({
         aria-label={label}
         tabIndex={0}
         onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
           if (event.key === "ArrowLeft") {
             event.preventDefault();
             scroll(-1);
@@ -89,7 +93,7 @@ export function HorizontalRail({
           }
         }}
         className={cn(
-          "no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 [scroll-padding-inline:0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 md:overflow-visible",
+          "order-1 no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-2 [scroll-padding-inline:0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 md:overflow-visible",
           desktopClassName,
           className,
         )}

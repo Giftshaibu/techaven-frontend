@@ -1,3 +1,4 @@
+import { CustomerExperience } from "@/components/CustomerExperience";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -131,6 +132,7 @@ function RootComponent() {
             </main>
             <Footer />
           </div>
+          <CustomerExperience />
           <CompareBar />
           <Toaster />
         </CartProvider>

@@ -1,3 +1,4 @@
+import { MobileShoppingBanner } from "@/components/MobileShoppingBanner";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CategoryCard, CategoryTile } from "@/components/CategoryTile";
 import { Icon } from "@/components/Icon";
@@ -61,13 +62,16 @@ function Home() {
 
   return (
     <>
+      <MobileShoppingBanner promotions={promotions} />
       <MobileHomeCatalog products={products} />
-      <div className="hidden md:block"><PromotionSlot
-        placement="home_hero"
-        promotions={promotions}
-        fallback={<DefaultHomeHero />}
-        heroHeading="h1"
-      /></div>
+      <div className="hidden md:block">
+        <PromotionSlot
+          placement="home_hero"
+          promotions={promotions}
+          fallback={<DefaultHomeHero />}
+          heroHeading="h1"
+        />
+      </div>
 
       <section className="shell py-10 md:py-14">
         <SectionHeader

@@ -1,3 +1,4 @@
+import { AccountPaymentMethods } from "@/components/PaymentMethods";
 import { AddressLocation } from "@/components/AddressLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -6,6 +7,8 @@ import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
 import {
+  getCustomerSetup,
+  completeAddressSetup,
   addShippingAddress,
   deleteShippingAddress,
   getProfile,
@@ -51,6 +54,18 @@ function AccountDetails() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(emptyAddress);
 
+  const setup = useQuery({
+    queryKey: ["customer-setup", user?.id],
+    queryFn: getCustomerSetup,
+    enabled: Boolean(user),
+  });
+  useEffect(() => {
+    if (setup.data?.requires_address) {
+      setAdding(true);
+      document.getElementById("delivery-details")?.scrollIntoView({ block: "start" });
+    }
+  }, [setup.data?.requires_address]);
+
   const profile = useQuery({
     queryKey: ["profile", user?.id ?? "anon"],
     queryFn: () => getProfile(),
@@ -74,7 +89,10 @@ function AccountDetails() {
 
   const saveProfile = useMutation({
     mutationFn: async () => {
-      await updateProfile({ name: fullName || undefined, phone_number: phone || undefined });
+      await updateProfile({
+        ...(fullName ? { name: fullName } : {}),
+        ...(phone ? { phone_number: phone } : {}),
+      });
     },
     onSuccess: () => {
       toast.success("Details saved");
@@ -85,15 +103,21 @@ function AccountDetails() {
 
   const addAddress = useMutation({
     mutationFn: async () => {
-      await addShippingAddress(
-        formToApiBody(form, !(addresses.data?.length ?? 0)),
-      );
+      await addShippingAddress(formToApiBody(form, !(addresses.data?.length ?? 0)));
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Delivery details saved");
       setForm(emptyAddress);
       setAdding(false);
-      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      if (setup.data?.requires_address) {
+        try {
+          await completeAddressSetup();
+        } catch {
+          toast.error("Your address was saved. Select Use my saved address to finish setup.");
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ["customer-setup"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save the address"),
   });
@@ -136,11 +160,35 @@ function AccountDetails() {
         </button>
       </div>
 
-      <div className="rounded-3xl bg-surface p-6 md:p-8">
+      <div id="delivery-details" className="scroll-mt-28 rounded-3xl bg-surface p-5 md:p-8">
+        {setup.data?.requires_address ? (
+          <div className="mb-5 rounded-xl bg-brand-100 p-4 text-sm">
+            <p className="font-semibold">First, add your delivery address</p>
+            <p className="mt-1">
+              Save an address to continue shopping. Mobile-money setup comes next and is optional.
+            </p>
+            {addresses.data?.length ? (
+              <button
+                className="min-h-11 font-semibold underline"
+                onClick={async () => {
+                  try {
+                    await completeAddressSetup();
+                    await queryClient.invalidateQueries({ queryKey: ["customer-setup"] });
+                  } catch {
+                    toast.error("Unable to finish setup. Please retry.");
+                  }
+                }}
+              >
+                Use my saved address
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-ink-800">Delivery details</h2>
           <button
             type="button"
+            disabled={setup.data?.requires_address}
             onClick={() => setAdding((v) => !v)}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:underline"
           >
@@ -198,7 +246,15 @@ function AccountDetails() {
 
         <div className={cn("mt-6 grid gap-4 sm:grid-cols-2", adding ? "" : "hidden")}>
           <AddressLocation value={form} onChange={setForm} />
-          <label className="sm:col-span-2 text-sm font-semibold">Delivery notes<textarea value={form.notes} maxLength={1000} onChange={e => setForm({ ...form, notes: e.target.value })} className="mt-1 w-full rounded-lg border border-border p-3" /></label>
+          <label className="sm:col-span-2 text-sm font-semibold">
+            Delivery notes
+            <textarea
+              value={form.notes}
+              maxLength={1000}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-border p-3"
+            />
+          </label>
           <Field
             label="Full name"
             value={form.recipient}
@@ -233,6 +289,7 @@ function AccountDetails() {
           </button>
         </div>
       </div>
+      <AccountPaymentMethods disabled={Boolean(setup.data?.requires_address)} />
     </div>
   );
 }

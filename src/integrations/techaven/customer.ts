@@ -35,17 +35,27 @@ export function login(body: { email: string; password: string }) {
 }
 
 export function googleSignIn(body: { id_token: string; challenge_id: string; nonce: string }) {
-  return techavenRequest<AuthPayload | { link_required: true; linking_challenge: string }>("/api/v2/auth/google", { method: "POST", body, auth: false });
+  return techavenRequest<AuthPayload | { link_required: true; linking_challenge: string }>(
+    "/api/v2/auth/google",
+    { method: "POST", body, auth: false },
+  );
 }
 export function googleChallenge() {
-  return techavenRequest<{ challenge_id: string; nonce: string; client_id: string }>("/api/v2/auth/google/challenge", { method: 'POST', body: {} });
+  return techavenRequest<{ challenge_id: string; nonce: string; client_id: string }>(
+    "/api/v2/auth/google/challenge",
+    { method: "POST", body: {} },
+  );
 }
 export function linkGoogle(body: { linking_challenge: string; password: string }) {
-  return techavenRequest<AuthPayload>('/api/v2/auth/google/link', { method: 'POST', body });
+  return techavenRequest<AuthPayload>("/api/v2/auth/google/link", { method: "POST", body });
 }
 
 export function sendLoginOtp(body: { email: string }) {
-  return techavenRequest<unknown>("/api/auth/send-login-otp", { method: "POST", body, auth: false });
+  return techavenRequest<unknown>("/api/auth/send-login-otp", {
+    method: "POST",
+    body,
+    auth: false,
+  });
 }
 
 export function verifyOtp(body: {
@@ -65,15 +75,19 @@ export function resendOtp(body: { email: string; type: "signup" | "login" | "pas
 }
 
 export function forgotPassword(body: { email: string }) {
-  return techavenRequest<unknown>("/api/v2/auth/forgot-password", { method: "POST", body, auth: false });
+  return techavenRequest<unknown>("/api/v2/auth/forgot-password", {
+    method: "POST",
+    body,
+    auth: false,
+  });
 }
 
-export function resetPassword(body: {
-  email: string;
-  otp: string;
-  new_password: string;
-}) {
-  return techavenRequest<unknown>("/api/v2/auth/reset-password", { method: "POST", body, auth: false });
+export function resetPassword(body: { email: string; otp: string; new_password: string }) {
+  return techavenRequest<unknown>("/api/v2/auth/reset-password", {
+    method: "POST",
+    body,
+    auth: false,
+  });
 }
 
 export function logout() {
@@ -85,11 +99,7 @@ export function getProfile() {
   return techavenRequest<TechavenUser>("/api/v2/auth/me", { auth: true });
 }
 
-export function updateProfile(body: {
-  name?: string;
-  email?: string;
-  phone_number?: string;
-}) {
+export function updateProfile(body: { name?: string; email?: string; phone_number?: string }) {
   return techavenRequest<TechavenUser>("/api/user/profile", { method: "PUT", body, auth: true });
 }
 
@@ -220,10 +230,11 @@ export function getMarketplaceDevices(params: MarketplaceQuery = {}) {
     if (value === undefined || value === "") return;
     query.set(field, Array.isArray(value) ? value.join(",") : String(value));
   });
-  return techavenRequest<{ devices: MarketplaceDevice[]; missing_ids?: number[]; pagination: unknown }>(
-    `/api/v2/marketplace/devices${query.size ? `?${query}` : ""}`,
-    { auth: false },
-  );
+  return techavenRequest<{
+    devices: MarketplaceDevice[];
+    missing_ids?: number[];
+    pagination: unknown;
+  }>(`/api/v2/marketplace/devices${query.size ? `?${query}` : ""}`, { auth: false });
 }
 
 export function getMarketplaceDevice(idOrSlug: number | string) {
@@ -272,9 +283,10 @@ export function clearCart() {
 
 // —— Courier ——
 export function getCourierServices() {
-  return techavenRequest<
-    { id: number; name: string; description?: string; logo_url?: string }[]
-  >("/api/courier-services", { auth: false });
+  return techavenRequest<{ id: number; name: string; description?: string; logo_url?: string }[]>(
+    "/api/courier-services",
+    { auth: false },
+  );
 }
 
 // —— Orders ——
@@ -285,7 +297,11 @@ export function createOrder(body: {
   items: { seller_listing_id: number; quantity: number }[];
   notes?: string;
 }) {
-  return techavenRequest<{ orders: ApiOrder[] }>("/api/v2/orders", { method: "POST", body, auth: true });
+  return techavenRequest<{ orders: ApiOrder[] }>("/api/v2/orders", {
+    method: "POST",
+    body,
+    auth: true,
+  });
 }
 
 export function getOrders(params: { page?: number; limit?: number; status?: string } = {}) {
@@ -393,7 +409,10 @@ export function getShippingAddresses() {
 }
 
 export function addShippingAddress(body: {
-  latitude?: number | null; longitude?: number | null; location_accuracy?: number | null; delivery_notes?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_accuracy?: number | null;
+  delivery_notes?: string | null;
   label?: string;
   name: string;
   phone: string;
@@ -412,7 +431,10 @@ export function addShippingAddress(body: {
 export function updateShippingAddress(
   id: number,
   body: Partial<{
-    latitude: number | null; longitude: number | null; location_accuracy: number | null; delivery_notes: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    location_accuracy: number | null;
+    delivery_notes: string | null;
     label: string;
     name: string;
     phone: string;
@@ -453,31 +475,69 @@ export function getWalletBalance() {
 
 export function getWalletTransactions() {
   return techavenRequest<
-    { id: number; type: string; amount: number; description: string; status: string; created_at: string }[]
+    {
+      id: number;
+      type: string;
+      amount: number;
+      description: string;
+      status: string;
+      created_at: string;
+    }[]
   >("/api/wallet/transactions", { auth: true });
 }
 
 // —— Payment methods ——
-export function getPaymentMethods() {
-  return techavenRequest<{ available_providers?: unknown[] }>("/api/payment-methods", {
+export type SavedPaymentMethod = {
+  id: string;
+  type: "mobile_money";
+  provider: string;
+  phone_number: string;
+  is_default: boolean;
+};
+export type PaymentProvider = { id: number; name: string; slug: string; provider: string };
+export type CustomerSetup = {
+  requires_address: boolean;
+  offer_payment_setup: boolean;
+  payment_setup_status: "pending" | "completed" | "skipped";
+};
+export function getCustomerSetup() {
+  return techavenRequest<CustomerSetup>("/api/user/setup", { auth: true });
+}
+export function completeAddressSetup() {
+  return techavenRequest<CustomerSetup>("/api/user/setup/address-complete", {
+    method: "POST",
     auth: true,
   });
 }
-
+export function skipPaymentSetup() {
+  return techavenRequest<CustomerSetup>("/api/user/setup/payment-skip", {
+    method: "POST",
+    auth: true,
+  });
+}
+export function getPaymentMethods() {
+  return techavenRequest<{
+    payment_methods: SavedPaymentMethod[];
+    available_providers: PaymentProvider[];
+  }>("/api/payment-methods", { auth: true });
+}
 export function addPaymentMethod(body: {
-  type: string;
+  type: "mobile_money";
   provider: string;
   phone_number: string;
   is_default?: boolean;
+  use_for_contact?: boolean;
 }) {
-  return techavenRequest<unknown>("/api/payment-methods", { method: "POST", body, auth: true });
+  return techavenRequest<SavedPaymentMethod>("/api/payment-methods", {
+    method: "POST",
+    body,
+    auth: true,
+  });
 }
-
 export function deletePaymentMethod(id: string) {
-  return techavenRequest<unknown>(`/api/payment-methods/${id}`, { method: "DELETE", auth: true });
+  return techavenRequest<null>(`/api/payment-methods/${id}`, { method: "DELETE", auth: true });
 }
 
-// —— Notifications ——
 export function getNotifications() {
   return techavenRequest<NotificationItem[]>("/api/notifications", { auth: true });
 }

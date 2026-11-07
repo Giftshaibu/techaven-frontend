@@ -1,3 +1,4 @@
+import { ContactInfo } from "@/components/ContactInfo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Icon } from "@/components/Icon";
@@ -98,8 +99,9 @@ function HelpPage() {
         <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-3xl bg-ink-900 p-8 text-white md:flex-row md:items-center">
           <div>
             <h2 className="text-xl font-bold">Still need a hand?</h2>
+            <ContactInfo className="mt-3 text-white/85" />
             <p className="mt-1.5 text-sm text-white/75">
-              Accounts, order tracking and live support are coming to Techaven next.
+              Contact us for help with your account or order.
             </p>
           </div>
           <Link

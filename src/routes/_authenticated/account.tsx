@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
 import { useAuth } from "@/lib/auth";
@@ -22,11 +22,13 @@ function AccountLayout() {
 
   async function handleSignOut() {
     try {
-    await signOut();
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    navigate({ to: "/auth", replace: true });
-    } catch { toast.error('Could not sign out. Check your connection and try again.'); }
+      await signOut();
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      navigate({ to: "/auth", replace: true });
+    } catch {
+      toast.error("Could not sign out. Check your connection and try again.");
+    }
   }
 
   return (
@@ -34,7 +36,7 @@ function AccountLayout() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold tracking-normal text-brand-500">Your account</p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ink-800 md:text-4xl">
+          <h1 className="mt-2 break-all text-xl md:text-3xl font-extrabold tracking-tight text-ink-800 md:text-4xl">
             {user?.email}
           </h1>
         </div>

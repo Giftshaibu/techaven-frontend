@@ -37,6 +37,10 @@ type ProductPageData = {
 };
 
 export const Route = createFileRoute("/product/$slug")({
+  validateSearch: (search: Record<string, unknown>): { listing?: number } =>
+    Number.isSafeInteger(Number(search["listing"])) && Number(search["listing"]) > 0
+      ? { listing: Number(search["listing"]) }
+      : {},
   loader: async ({ params }): Promise<ProductPageData> => {
     const product = await resolveProduct(params.slug);
     if (!product) throw notFound();
@@ -85,7 +89,9 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const data = Route.useLoaderData();
-  useEffect(() => { recordVisit({ kind: "product", slug: data.product.slug, category: data.product.category }); }, [data.product.slug, data.product.category]);
+  useEffect(() => {
+    recordVisit({ kind: "product", slug: data.product.slug, category: data.product.category });
+  }, [data.product.slug, data.product.category]);
   return <ProductDetails key={data.product.slug} data={data} />;
 }
 
@@ -96,7 +102,11 @@ function ProductDetails({ data }: { data: ProductPageData }) {
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedListingId, setSelectedListingId] = useState(product.listingId);
+  const { listing } = Route.useSearch();
+  const [selectedListingId, setSelectedListingId] = useState(listing ?? product.listingId);
+  useEffect(() => {
+    setSelectedListingId(listing ?? product.listingId);
+  }, [listing, product.slug, product.listingId]);
   const selectedOffer =
     product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
   const selectedProduct = useMemo(
@@ -196,10 +206,12 @@ function ProductDetails({ data }: { data: ProductPageData }) {
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
             <span
               aria-live="polite"
-              className="text-4xl font-extrabold tracking-tight text-ink-800"
+              className="whitespace-nowrap text-2xl font-extrabold tracking-tight text-ink-800 sm:text-3xl md:text-4xl"
             >
               {formatMwk(selectedProduct.price)}
-              {selectedProduct.taxExclusive ? <span className="ml-3 text-base font-medium">excl. VAT</span> : null}
+              {selectedProduct.taxExclusive ? (
+                <span className="ml-3 text-base font-medium">excl. VAT</span>
+              ) : null}
             </span>
             {product.oldPrice ? (
               <>
@@ -212,7 +224,14 @@ function ProductDetails({ data }: { data: ProductPageData }) {
               </>
             ) : null}
           </div>
-          {offerFacts(selectedProduct.offers?.find(offer => offer.id === selectedProduct.listingId)?.details).map(fact => <p key={fact} className="mt-3 text-sm leading-relaxed text-ink-800">{fact}</p>)}
+          {offerFacts(
+            selectedProduct.offers?.find((offer) => offer.id === selectedProduct.listingId)
+              ?.details,
+          ).map((fact) => (
+            <p key={fact} className="mt-3 text-sm leading-relaxed text-ink-800">
+              {fact}
+            </p>
+          ))}
 
           {selectedVariant ? (
             <p className="mt-3 text-sm text-muted-foreground">
@@ -222,8 +241,8 @@ function ProductDetails({ data }: { data: ProductPageData }) {
                   ? `${selectedVariant.storage_gb} GB storage`
                   : null,
                 selectedVariant.network_generation,
-                  selectedVariant.sim_type,
-                  selectedVariant.region,
+                selectedVariant.sim_type,
+                selectedVariant.region,
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -260,19 +279,25 @@ function ProductDetails({ data }: { data: ProductPageData }) {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
             <button
               type="button"
               onClick={() => {
                 void add(selectedProduct).then(() => setAdded(true));
               }}
-              disabled={!selectedProduct.listingId || !selectedProduct.inStock || selectedProduct.taxExclusive}
+              disabled={
+                !selectedProduct.listingId ||
+                !selectedProduct.inStock ||
+                selectedProduct.taxExclusive
+              }
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Icon name="cart-large-2-linear" className="h-5 w-5" />
               {selectedProduct.listingId
                 ? selectedProduct.inStock
-                  ? selectedProduct.taxExclusive ? "Confirm VAT-inclusive price with shop" : "Add to basket"
+                  ? selectedProduct.taxExclusive
+                    ? "Confirm VAT-inclusive price with shop"
+                    : "Add to basket"
                   : "Out of stock"
                 : "No offer available"}
             </button>
@@ -377,8 +402,8 @@ function ProductDetails({ data }: { data: ProductPageData }) {
                 variant?.ram_gb != null ? `${variant.ram_gb} GB RAM` : null,
                 variant?.storage_gb != null ? `${variant.storage_gb} GB storage` : null,
                 variant?.network_generation,
-                  variant?.sim_type,
-                  variant?.region,
+                variant?.sim_type,
+                variant?.region,
                 conditionLabel[offer.condition],
               ]
                 .filter(Boolean)
