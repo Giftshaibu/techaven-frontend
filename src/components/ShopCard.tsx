@@ -2,13 +2,12 @@ import { ShopProductPreview } from "./ShopProductPreview";
 import { Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
-import { shopProductCount, type Shop } from "@/data/catalog";
+import { type Shop } from "@/data/catalog";
 import { type CatalogShop } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
 
 export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
   const catalogShop = shop as CatalogShop;
-  const listed = catalogShop.productCount ?? shopProductCount(shop.slug);
   return (
     <article className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface">
       <Link
@@ -58,7 +57,6 @@ export function ShopCard({ shop }: { shop: Shop | CatalogShop }) {
             <Icon name="map-point-linear" className="h-3.5 w-3.5" />
             {shop.location}
           </span>
-          <span className="shrink-0">{listed} products</span>
         </div>
       </Link>
       <ShopProductPreview shopId={catalogShop.apiId ?? 0} name={shop.name} />

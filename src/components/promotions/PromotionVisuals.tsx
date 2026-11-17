@@ -141,7 +141,7 @@ export function PromotionSplit({ promotions }: { promotions: Promotion[] }) {
           <article
             key={p.id}
             className={cn(
-              "flex min-h-[390px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl md:w-auto md:max-w-none",
+              "flex min-h-[300px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl md:w-auto md:max-w-none",
               valid.length === 1 ? "w-full" : "w-[86%] max-w-[560px]",
               themeClass[p.theme],
               p.presentation === "image_side" &&
@@ -152,11 +152,11 @@ export function PromotionSplit({ promotions }: { promotions: Promotion[] }) {
               promotion={p}
               ratio={p.presentation === "image_side" ? "none" : "wide"}
               className={cn(
-                "max-h-[260px] rounded-none",
-                p.presentation === "image_side" && "h-full max-h-none min-h-[260px]",
+                "max-h-[180px] rounded-none",
+                p.presentation === "image_side" && "aspect-video lg:aspect-auto lg:h-full lg:max-h-none lg:min-h-[180px]",
               )}
             />
-            <div className="flex flex-1 p-6 md:p-8">
+            <div className="flex flex-1 p-4 md:p-6">
               <PromotionCopy promotion={p} heading="h3" compact clamp card />
             </div>
           </article>

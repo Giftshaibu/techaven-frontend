@@ -7,11 +7,13 @@ export function HorizontalRail({
   label,
   className,
   desktopClassName,
+  desktopControls = false,
 }: {
   children: ReactNode;
   label: string;
   className?: string;
   desktopClassName?: string;
+  desktopControls?: boolean;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
   const [canBack, setCanBack] = useState(false);
@@ -37,7 +39,7 @@ export function HorizontalRail({
       observer.disconnect();
       rail.removeEventListener("scroll", updateControls);
     };
-  }, [updateControls]);
+  }, [children, updateControls]);
 
   const scroll = (direction: -1 | 1) => {
     const rail = railRef.current;
@@ -53,7 +55,7 @@ export function HorizontalRail({
     <div className="relative flex flex-col">
       {hasOverflow ? (
         <div
-          className="order-2 mt-2 flex justify-end gap-2 md:hidden"
+          className={cn("order-2 mt-2 flex justify-end gap-2", !desktopControls && "md:hidden")}
           aria-label={`${label} controls`}
         >
           <button

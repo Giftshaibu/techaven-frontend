@@ -1,7 +1,12 @@
+import { useQuery } from "@tanstack/react-query";
+import { selectMarketplaceOffer } from "@/lib/catalog-api";
+import { resolveProduct } from "@/lib/resolve-catalog";
+import { products } from "@/data/catalog";
 import { useEffect, useState } from "react";
 
 export const COMPARE_STORAGE_KEY = "techaven.compare.v1";
-export const MAX_COMPARE_ITEMS = 3;
+export const MAX_COMPARE_ITEMS = 2;
+const OFFER_STORAGE_PREFIX = "techaven.compare.offer.";
 const COMPARE_CHANGE_EVENT = "techaven:compare-change";
 
 export function readCompareSelection(): string[] {
@@ -14,7 +19,7 @@ export function readCompareSelection(): string[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((value): value is string => typeof value === "string");
+    return [...new Set(parsed.filter((value): value is string => typeof value === "string"))].slice(0, MAX_COMPARE_ITEMS);
   } catch {
     return [];
   }
@@ -63,7 +68,7 @@ export function useCompareSelection(initialSelection: string[] = []) {
   const initialSelectionKey = initialSelection.join("|");
   const [selected, setSelected] = useState<string[]>(() => {
     const stored = readCompareSelection();
-    return stored.length ? stored : initialSelection;
+    return (stored.length ? stored : initialSelection).slice(0, MAX_COMPARE_ITEMS);
   });
 
   useEffect(() => {
@@ -71,7 +76,7 @@ export function useCompareSelection(initialSelection: string[] = []) {
 
     const syncFromStorage = () => {
       const stored = readCompareSelection();
-      setSelected(stored.length ? stored : initialSelection);
+      setSelected(stored.length ? stored : initialSelection.slice(0, MAX_COMPARE_ITEMS));
     };
 
     window.addEventListener("storage", syncFromStorage);
@@ -87,20 +92,20 @@ export function useCompareSelection(initialSelection: string[] = []) {
     writeCompareSelection(next);
   };
 
-  const toggle = (slug: string) => {
-    setSelected((prev) => {
-      const next = toggleCompareSelection(prev, slug);
-      writeCompareSelection(next);
-      return next;
-    });
+  const toggle = (slug: string, listingId?: number | undefined) => {
+    const current = readCompareSelection();
+    const next = toggleCompareSelection(current, slug);
+    if (!current.includes(slug) && next.includes(slug)) {
+      try {
+        if (listingId) window.localStorage.setItem(OFFER_STORAGE_PREFIX + slug, String(listingId));
+        else window.localStorage.removeItem(OFFER_STORAGE_PREFIX + slug);
+      } catch { /* storage may be unavailable */ }
+    }
+    commit(next);
   };
 
   const remove = (slug: string) => {
-    setSelected((prev) => {
-      const next = removeCompareSelection(prev, slug);
-      writeCompareSelection(next);
-      return next;
-    });
+    commit(removeCompareSelection(readCompareSelection(), slug));
   };
 
   const clear = () => {
@@ -118,4 +123,30 @@ export function useCompareSelection(initialSelection: string[] = []) {
     isSelected: (slug: string) => selected.includes(slug),
     replaceAll: commit,
   };
+}
+
+export function useComparedProducts(selected: string[], replaceAll: (slugs: string[]) => void) {
+  const listingIds = selected.map(slug => {
+    try { return Number(window.localStorage.getItem(OFFER_STORAGE_PREFIX + slug)); } catch { return 0; }
+  });
+  const { data } = useQuery({
+    queryKey: ["compared-products", selected, listingIds],
+    enabled: selected.length > 0,
+    queryFn: () => Promise.all(selected.map(async (slug, index) => {
+      const product = await resolveProduct(slug);
+      const offer = product?.offers?.find(item => item.id === listingIds[index]);
+      return product && offer ? selectMarketplaceOffer(product, offer)
+        : product ?? products.find(item => item.slug === slug) ?? null;
+    })),
+  });
+
+  useEffect(() => {
+    if (!data || readCompareSelection().join("|") !== selected.join("|")) return;
+    const canonical = [...new Set(selected.map((slug, index) => data[index]?.slug ?? slug))];
+    if (canonical.join("|") !== selected.join("|")) replaceAll(canonical);
+  }, [data, selected, replaceAll]);
+
+  return [...new Map((data ?? []).flatMap((product) =>
+    product ? [[product.slug, product] as const] : [],
+  )).values()];
 }

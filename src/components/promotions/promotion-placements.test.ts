@@ -12,6 +12,7 @@ function promotion(slug: string, order: number, group = "pair"): Promotion {
     placement: "home_banner_1",
     layout: "split",
     slotGroup: group,
+    displayOrder: 100,
     groupOrder: order,
     theme: "light",
     desktopBackground: null,
@@ -25,6 +26,33 @@ function promotion(slug: string, order: number, group = "pair"): Promotion {
 }
 
 describe("selectPromotions", () => {
+  it("orders a square tile group and supports mixed banner rail layouts", () => {
+    const tiles = [2, 1, 4, 3, 5].map((order) => ({
+      ...promotion(String(order), order),
+      placement: "home_square_tiles" as const,
+      layout: "square_tile" as const,
+    }));
+    expect(selectPromotions(tiles, "home_square_tiles").map(({ slug }) => slug))
+      .toEqual(["1", "2", "3", "4"]);
+    const strip = {
+      ...promotion("strip", 0), placement: "home_promo_rails" as const,
+      layout: "banner_with_rail" as const, displayOrder: 20,
+    };
+    const side = { ...strip, id: "side", layout: "side_banner_with_rail" as const, displayOrder: 10 };
+    expect(selectPromotions([strip, side], "home_promo_rails")).toEqual([side, strip]);
+  });
+
+  it("sorts homepage promo rails by display order and ID, and caps them at eight", () => {
+    const records = ["j", "i", "h", "g", "f", "e", "d", "c", "b", "a"].map((slug) => ({
+      ...promotion(slug, 0),
+      placement: "home_promo_rails" as const,
+      layout: "banner_with_rail" as const,
+      displayOrder: slug === "j" ? 10 : 100,
+    }));
+    expect(selectPromotions(records, "home_promo_rails").map(({ slug }) => slug))
+      .toEqual(["j", "a", "b", "c", "d", "e", "f", "g"]);
+  });
+
   it("registers every marketing hero as a single controlled slot", () => {
     const heroes = [
       "home_hero",

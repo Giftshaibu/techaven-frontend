@@ -1,7 +1,9 @@
+export const TECHAVEN_PHONE = "+265983780656";
+
 export function ContactInfo({ className = "" }: { className?: string }) {
   return (
     <address className={`grid gap-1 text-sm not-italic ${className}`}>
-      <a className="flex min-h-11 items-center hover:underline" href="tel:+265983780656">
+      <a className="flex min-h-11 items-center hover:underline" href={`tel:${TECHAVEN_PHONE}`}>
         +265 983 78 06 56
       </a>
       <a

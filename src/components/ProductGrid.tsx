@@ -39,20 +39,23 @@ export function ProductGrid({
 export function ProductRail({
   products,
   label = "Products",
+  scrollOnDesktop = false,
 }: {
   products: Product[];
   label?: string;
+  scrollOnDesktop?: boolean;
 }) {
   return (
     <HorizontalRail
       label={label}
       className="gap-5"
-      desktopClassName="md:grid md:grid-cols-4 md:gap-6 2xl:grid-cols-5"
+      desktopClassName={scrollOnDesktop ? "md:!overflow-x-auto" : "md:grid md:grid-cols-4 md:gap-6 2xl:grid-cols-5"}
+      desktopControls={scrollOnDesktop}
     >
       {products.map((p) => (
         <div
           key={p.slug}
-          className="w-[72%] max-w-[280px] shrink-0 snap-start md:w-auto md:max-w-none"
+          className={cn("w-[72%] max-w-[280px] shrink-0 snap-start", scrollOnDesktop ? "md:w-[240px]" : "md:w-auto md:max-w-none")}
         >
           <ProductCard product={p} />
         </div>

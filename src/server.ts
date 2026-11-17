@@ -68,7 +68,13 @@ export default {
         const cookies = upstream.headers.getSetCookie?.() ?? [];
         if (cookies.length) {
           responseHeaders.delete('set-cookie');
-          for (const cookie of cookies) responseHeaders.append('set-cookie', cookie);
+          for (const cookie of cookies) {
+            // Strapi sees /admin upstream, but browsers reach it under /cms/admin.
+            const publicCookie = cmsRequest
+              ? cookie.replace(/(;\s*path=)(\/admin(?=\/|;|$))/i, '$1/cms$2')
+              : cookie;
+            responseHeaders.append('set-cookie', publicCookie);
+          }
         }
         responseHeaders.set('Cache-Control', 'no-store');
         return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });

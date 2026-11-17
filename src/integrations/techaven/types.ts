@@ -187,6 +187,8 @@ export type MarketplaceCartItem = {
 };
 
 export type ApiOrder = {
+  can_cancel?: boolean;
+  payment_method?: string | null;
   id: number | string;
   order_number?: string;
   reference?: string;
@@ -200,6 +202,9 @@ export type ApiOrder = {
     product_name?: string;
     quantity?: number;
     unit_price?: number;
+    price?: number;
+    subtotal?: number;
+    product_image?: string | null;
     [key: string]: unknown;
   }[];
   recipient?: string;
@@ -216,7 +221,9 @@ export type ApiOrder = {
 
 export type WishlistItem = {
   id: number;
-  product_id: number;
+  product_id?: number;
+  device_id?: number;
+  device_slug?: string;
   product?: ApiProduct;
 };
 

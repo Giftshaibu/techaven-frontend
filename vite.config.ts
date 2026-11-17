@@ -6,6 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+import { loadEnv } from "vite";
+
+const localProxy = loadEnv("development", process.cwd(), "TECHAVEN_LOCAL_PROXY_TARGET").TECHAVEN_LOCAL_PROXY_TARGET;
+
 export default defineConfig({
   ...(process.env.NITRO_PRESET ? { nitro: { preset: process.env.NITRO_PRESET } } : {}),
   tanstackStart: {
@@ -20,7 +24,7 @@ export default defineConfig({
       allowedHosts: ["fleta-noncontinuable-freya.ngrok-free.dev"],
       proxy: {
         "/api": {
-          target: process.env.TECHAVEN_PROXY_TARGET || "http://localhost:8000",
+          target: localProxy || process.env.TECHAVEN_PROXY_TARGET || "http://localhost:8000",
           changeOrigin: true,
         },
       },

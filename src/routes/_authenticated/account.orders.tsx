@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -42,6 +43,8 @@ function orderReference(order: ApiOrder): string {
 
 function OrdersPage() {
   const { user } = useAuth();
+  const [status, setStatus] = useState("all");
+  const [payment, setPayment] = useState("all");
 
   const orders = useQuery({
     queryKey: ["orders", "list", user?.id ?? "anon"],
@@ -70,9 +73,39 @@ function OrdersPage() {
     );
   }
 
+  const orderStatusOptions = ["pending", "processing", "shipped", "delivered", "confirmed", "cancelled"];
+  const matchingOrders = orders.data.filter(order => {
+    const paymentStatus = order.payment_status === "pending" ? "unpaid" : order.payment_status ?? "unpaid";
+    return (status === "all" || order.status === status) && (payment === "all" || paymentStatus === payment);
+  });
+
   return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3" aria-label="Order filters">
+        <label className="grid min-w-36 gap-1 text-sm font-semibold">
+          Order status
+          <select value={status} onChange={event => setStatus(event.target.value)} className="min-h-11 rounded-lg border border-border bg-surface px-3 font-normal capitalize">
+            <option value="all">All states</option>
+            {orderStatusOptions.map(value => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}
+          </select>
+        </label>
+        <label className="grid min-w-36 gap-1 text-sm font-semibold">
+          Payment status
+          <select value={payment} onChange={event => setPayment(event.target.value)} className="min-h-11 rounded-lg border border-border bg-surface px-3 font-normal">
+            <option value="all">All payment states</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </label>
+        {(status !== "all" || payment !== "all") && <button type="button" onClick={() => { setStatus("all"); setPayment("all"); }} className="min-h-11 self-end px-2 text-sm underline">Clear filters</button>}
+      </div>
+      {matchingOrders.length === 0 ? (
+        <p role="status" className="rounded-xl border border-border bg-surface p-6 text-sm text-muted-foreground">No orders match these filters.</p>
+      ) : (
     <ul className="space-y-4">
-      {orders.data.map((order) => {
+      {matchingOrders.map((order) => {
         const ref = orderReference(order);
         const itemCount = order.items?.length ?? 0;
         return (
@@ -108,13 +141,16 @@ function OrdersPage() {
             <Link
               to="/orders/$reference"
               params={{ reference: ref }}
+              {...(order.payment_method === "bank-transfer" ? { hash: "payment-proof" } : {})}
               className="mt-4 inline-flex text-sm font-semibold text-brand-500 hover:underline"
             >
-              View order
+              {order.payment_method === "bank-transfer" && ["pending", "unpaid"].includes(order.payment_status ?? "") ? "Payment details" : "View order"}
             </Link>
           </li>
         );
       })}
     </ul>
+      )}
+    </div>
   );
 }

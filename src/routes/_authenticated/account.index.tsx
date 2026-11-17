@@ -1,5 +1,5 @@
 import { AccountPaymentMethods } from "@/components/PaymentMethods";
-import { AddressLocation } from "@/components/AddressLocation";
+import { AddressDrawer } from "@/components/AddressDrawer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import {
   getCustomerSetup,
   completeAddressSetup,
   addShippingAddress,
+  updateShippingAddress,
   deleteShippingAddress,
   getProfile,
   getShippingAddresses,
@@ -17,8 +18,7 @@ import {
   updateProfile,
 } from "@/integrations/techaven/customer";
 import { useAuth } from "@/lib/auth";
-import { formToApiBody, type AddressForm } from "@/lib/addresses-ui";
-import { cn } from "@/lib/utils";
+import { apiAddressToForm, formToApiBody, type AddressForm } from "@/lib/addresses-ui";
 
 export const Route = createFileRoute("/_authenticated/account/")({
   head: () => ({
@@ -53,6 +53,7 @@ function AccountDetails() {
   const [phone, setPhone] = useState("");
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(emptyAddress);
+  const [editing, setEditing] = useState<number | null>(null);
 
   const setup = useQuery({
     queryKey: ["customer-setup", user?.id],
@@ -77,6 +78,16 @@ function AccountDetails() {
     setFullName(profile.data.name ?? "");
     setPhone(profile.data.phone_number ?? "");
   }, [profile.data]);
+
+  useEffect(() => {
+    const customer = profile.data;
+    if (!adding || editing !== null || !customer) return;
+    setForm(previous => ({
+      ...previous,
+      recipient: previous.recipient || customer.name || "",
+      phone: previous.phone || customer.phone_number || "",
+    }));
+  }, [adding, editing, profile.data]);
 
   const addresses = useQuery({
     queryKey: ["addresses", user?.id ?? "anon"],
@@ -103,7 +114,8 @@ function AccountDetails() {
 
   const addAddress = useMutation({
     mutationFn: async () => {
-      await addShippingAddress(formToApiBody(form, !(addresses.data?.length ?? 0)));
+      if (editing !== null) await updateShippingAddress(editing, formToApiBody(form));
+      else await addShippingAddress(formToApiBody(form, !(addresses.data?.length ?? 0)));
     },
     onSuccess: async () => {
       toast.success("Delivery details saved");
@@ -189,7 +201,7 @@ function AccountDetails() {
           <button
             type="button"
             disabled={setup.data?.requires_address}
-            onClick={() => setAdding((v) => !v)}
+            onClick={() => { setEditing(null); setForm({ ...emptyAddress, recipient: profile.data?.name ?? "", phone: profile.data?.phone_number ?? "" }); setAdding(true); }}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:underline"
           >
             <Icon name={adding ? "close-circle-linear" : "add-circle-linear"} className="h-4 w-4" />
@@ -216,6 +228,7 @@ function AccountDetails() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    <button type="button" className="text-xs underline" onClick={() => { setEditing(a.id); setForm(apiAddressToForm(a)); setAdding(true); }}>Edit</button>
                     {!a.is_default ? (
                       <button
                         type="button"
@@ -244,50 +257,10 @@ function AccountDetails() {
           </p>
         )}
 
-        <div className={cn("mt-6 grid gap-4 sm:grid-cols-2", adding ? "" : "hidden")}>
-          <AddressLocation value={form} onChange={setForm} />
-          <label className="sm:col-span-2 text-sm font-semibold">
-            Delivery notes
-            <textarea
-              value={form.notes}
-              maxLength={1000}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-border p-3"
-            />
-          </label>
-          <Field
-            label="Full name"
-            value={form.recipient}
-            onChange={(v) => setForm({ ...form, recipient: v })}
-          />
-          <Field
-            label="Phone"
-            value={form.phone}
-            onChange={(v) => setForm({ ...form, phone: v })}
-          />
-          <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-          <Field label="Area" value={form.area} onChange={(v) => setForm({ ...form, area: v })} />
-          <Field
-            label="Street"
-            value={form.street}
-            onChange={(v) => setForm({ ...form, street: v })}
-          />
-          <Field
-            label="Label"
-            value={form.label}
-            onChange={(v) => setForm({ ...form, label: v })}
-          />
-          <button
-            type="button"
-            onClick={() => addAddress.mutate()}
-            disabled={
-              addAddress.isPending || !form.recipient || !form.phone || !form.city || !form.area
-            }
-            className="sm:col-span-2 rounded-lg bg-brand-500 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            {addAddress.isPending ? "Saving…" : "Save address"}
-          </button>
-        </div>
+        <AddressDrawer key={editing ?? "new"} open={adding} close={() => setAdding(false)}
+          title={editing === null ? "Add address" : "Edit address"} value={form}
+          onChange={setForm} onSave={() => addAddress.mutate()} busy={addAddress.isPending}
+          savedPhone={profile.data?.phone_number ?? undefined} />
       </div>
       <AccountPaymentMethods disabled={Boolean(setup.data?.requires_address)} />
     </div>

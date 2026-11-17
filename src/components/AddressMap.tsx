@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AddressForm } from "@/lib/addresses-ui";
+import { validDistrict, type AddressForm } from "@/lib/addresses-ui";
 import { techavenRequest } from "@/integrations/techaven/client";
 import "leaflet/dist/leaflet.css";
 export default function AddressMap({
@@ -43,7 +43,7 @@ export default function AddressMap({
           latitude: lat,
           longitude: lon,
           location_accuracy: accuracy ?? null,
-          city: found.city || fresh.value.city,
+          city: validDistrict(fresh.value.city) ? fresh.value.city : found.city && validDistrict(found.city) ? found.city : fresh.value.city,
           area: found.area || fresh.value.area,
           street: found.street || fresh.value.street,
         });

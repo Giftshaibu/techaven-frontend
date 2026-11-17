@@ -5,20 +5,19 @@ import {
   resolveCategory,
 } from "@/lib/resolve-catalog";
 import { parseApiShopId } from "@/lib/catalog-api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ProductCard } from "@/components/ProductCard";
 import type { CatalogProduct } from "@/lib/catalog-api";
-import { readVisits, clearVisits, rankProducts } from "@/lib/browsing-history";
-export function MobileHomeCatalog({ products }: { products: CatalogProduct[] }) {
-  const generation = useRef(0);
+import { readVisits, rankProducts } from "@/lib/browsing-history";
+export function MobileHomeCatalog({ products, historyCleared }: { products: CatalogProduct[]; historyCleared: number }) {
   const [visits, setVisits] = useState<ReturnType<typeof readVisits>>([]);
   const [extra, setExtra] = useState<CatalogProduct[]>([]);
   useEffect(() => {
     let active = true;
-    const current = ++generation.current;
     const history = readVisits();
     setVisits(history);
+    setExtra([]);
     if (!window.matchMedia("(max-width: 767px)").matches || !history.length) return;
     const productVisits = history.filter((v) => v.kind === "product").slice(0, 5);
     const shopIds = history
@@ -40,13 +39,13 @@ export function MobileHomeCatalog({ products }: { products: CatalogProduct[] }) 
           ]
         : []),
     ]).then((results) => {
-      if (active && generation.current === current)
+      if (active)
         setExtra(results.flatMap((r) => (r.status === "fulfilled" ? r.value : [])));
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [historyCleared]);
   return (
     <section className="shell py-5 md:hidden" aria-labelledby="mobile-shopping-title">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -57,19 +56,6 @@ export function MobileHomeCatalog({ products }: { products: CatalogProduct[] }) 
           View all products
         </Link>
       </div>
-      {visits.length > 0 && (
-        <button
-          className="mb-3 min-h-11 text-xs underline"
-          onClick={() => {
-            generation.current++;
-            clearVisits();
-            setVisits([]);
-            setExtra([]);
-          }}
-        >
-          Clear browsing history
-        </button>
-      )}
       <div className="grid grid-cols-2 gap-x-3 gap-y-6">
         {rankProducts([...products, ...extra], visits).map((p) => (
           <ProductCard key={p.slug} product={p} compact />

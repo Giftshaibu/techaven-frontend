@@ -13,7 +13,10 @@ export const Route = createFileRoute("/promotions/preview")({
   validateSearch: (search: Record<string, unknown>): PreviewSearch => ({
     documentId: typeof search.documentId === "string" ? search.documentId : undefined,
     status: search.status === "published" ? "published" : "draft",
-    expires: typeof search.expires === "string" ? search.expires : undefined,
+    expires:
+      typeof search.expires === "string" || typeof search.expires === "number"
+        ? String(search.expires)
+        : undefined,
     signature: typeof search.signature === "string" ? search.signature : undefined,
   }),
   loaderDeps: ({ search }) => search,

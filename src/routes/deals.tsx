@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ProductGrid } from "@/components/ProductGrid";
+import { FilteredProductGrid } from "@/components/FilteredProductGrid";
 import { filterHotSales, filterSpecialOffers, mapMarketplaceDeviceToCatalog } from "@/lib/catalog-api";
 import { getMarketplaceDevices } from "@/integrations/techaven/customer";
 import { getPromotions } from "@/lib/cms/promotions";
@@ -38,7 +38,7 @@ function DealsPage() {
     <>
       <PromotionSlot placement="deals_hero" promotions={promotions} heroHeading="h1" />
       <section className="shell pb-14">
-        <ProductGrid products={products} />
+        <FilteredProductGrid products={products} />
       </section>
       <PromotionSlot placement="deals_inline_1" promotions={promotions} />
     </>

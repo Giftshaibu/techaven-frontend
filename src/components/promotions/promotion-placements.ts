@@ -43,6 +43,8 @@ export const promotionPlacements: Record<Placement, Rule> = {
     max: 1,
     layouts: ["product_rail", "product_grid", "flash_deals"],
   },
+  home_promo_rails: { cardinality: "collection", max: 8, layouts: ["banner_with_rail", "side_banner_with_rail"] },
+  home_square_tiles: { cardinality: "collection", max: 4, layouts: ["square_tile"] },
   home_banner_2: {
     cardinality: "collection",
     max: 4,
@@ -122,10 +124,15 @@ export function selectPromotions(records: Promotion[], placement: Placement, exc
       !excluded.has(p.id) &&
       !excluded.has(p.slug),
   );
+  if (placement === "home_promo_rails") {
+    return eligible.sort((a, b) =>
+      a.displayOrder - b.displayOrder || a.id.localeCompare(b.id),
+    ).slice(0, rule.max);
+  }
   if (!eligible.length) return [];
   if (rule.cardinality === "single") return eligible.slice(0, 1);
   const lead = eligible[0]!;
-  const groupedLayouts = new Set<Promotion["layout"]>(["split", "service_grid", "card_rail"]);
+  const groupedLayouts = new Set<Promotion["layout"]>(["split", "service_grid", "card_rail", "square_tile"]);
   if (!groupedLayouts.has(lead.layout) || !lead.slotGroup) return [lead];
   const grouped = eligible.filter(
     (p) => p.layout === lead.layout && p.slotGroup === lead.slotGroup,

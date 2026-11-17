@@ -11,7 +11,13 @@ test("brand tiles navigate with canonical slugs and retain live imagery", () => 
   act(() => root.render(<BrandTiles category={{ slug: "c-1", name: "Smartphones", icon: "", blurb: "", brands: [], subcategories: [], brandTiles: [{ slug: "apple", name: "Apple", image: "https://example.com/iphone.png", product_count: 26 }] }} />));
   expect(container.querySelector("a")?.getAttribute("href")).toBe("/category/c-1?brand=apple");
   expect(container.textContent).toContain("iPhone");
-  expect(container.textContent).toContain("26 available models");
+  expect(container.textContent).not.toContain("available models");
+  const image = container.querySelector("img");
+  expect(image).toBeTruthy();
+  if (image?.getAttribute("src")?.includes("img.logo.dev")) {
+    act(() => image.dispatchEvent(new Event("error")));
+  }
   expect(container.querySelector("img")?.getAttribute("src")).toBe("https://example.com/iphone.png");
+  expect(container.querySelector('[aria-label="Next brands"]')).toBeTruthy();
   act(() => root.unmount());
 });

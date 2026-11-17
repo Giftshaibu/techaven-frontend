@@ -1,3 +1,4 @@
+import { CatalogueControls } from "@/components/CatalogueControls";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { BrandTiles } from "@/components/BrandTiles";
@@ -116,12 +117,7 @@ function CategoryPage() {
           promotions={promotions}
           context={{ categorySlug: category.slug, brandSlug: brand ?? undefined }}
         />
-      ) : category.brandTiles?.length ? (
-        <section className="shell border-b border-border py-7">
-          <div className="mb-5 flex items-baseline justify-between gap-4"><h1 className="text-3xl font-bold text-ink-800">{category.name}</h1><span className="text-sm text-muted-foreground">Shop by brand</span></div>
-          <BrandTiles category={category} />
-        </section>
-      ) : (
+      ) : !category.brandTiles?.length ? (
         <MegaHeader
           eyebrow="Category"
           title={category.name}
@@ -133,7 +129,15 @@ function CategoryPage() {
           stages={[category.slug, category.slug, category.slug]}
           tone="brand-soft"
         />
-      )}
+      ) : null}
+      {category.brandTiles?.length ? (
+        <section className="shell border-b border-border py-5">
+          {promotions.some(p => p.placement === "category_hero")
+            ? <h2 className="mb-3 text-sm font-semibold">Shop by brand</h2>
+            : <h1 className="mb-3 text-2xl font-bold text-ink-800">{category.name}</h1>}
+          <BrandTiles category={category} />
+        </section>
+      ) : null}
       <section className="shell py-8">
         <div className="flex flex-wrap gap-2">
           {category.subcategories.map((sub) => (
@@ -146,89 +150,26 @@ function CategoryPage() {
           ))}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setBrand(null)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              brand === null
-                ? "bg-ink-900 text-white"
-                : "bg-stage text-ink-800 hover:bg-neutral-200",
-            )}
-          >
-            All brands
-          </button>
-          {(category.brandTiles ?? []).map((b) => (
-            <button
-              key={b.slug}
-              type="button"
-              onClick={() => setBrand(b.slug)}
-              aria-pressed={brand?.toLowerCase() === b.slug || brand?.toLowerCase() === b.name.toLowerCase()}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                brand?.toLowerCase() === b.slug || brand?.toLowerCase() === b.name.toLowerCase()
-                  ? "bg-ink-900 text-white"
-                  : "bg-stage text-ink-800 hover:bg-neutral-200",
-              )}
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
       </section>
 
       <section className="shell pb-12 md:pb-16">
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-ink-800">{category.name}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {filtered.length} product{filtered.length === 1 ? "" : "s"} from{" "}
-              {shopsInCategory.length} shops
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={shopFilter ?? ""}
-              onChange={(e) => setShopFilter(e.target.value || null)}
-              aria-label="Filter by shop"
-              className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-ink-800"
-            >
+        <div className="flex items-center justify-end border-b border-border pb-3">
+          <CatalogueControls filters={<>
+            <select aria-label="Filter by brand" value={brand ?? ""} onChange={e => setBrand(e.target.value || null)} className="rounded-lg border border-border bg-surface p-2">
+              <option value="">All brands</option>
+              {(category.brandTiles ?? []).map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+            </select>
+            <select aria-label="Filter by shop" value={shopFilter ?? ""} onChange={e => setShopFilter(e.target.value || null)} className="rounded-lg border border-border bg-surface p-2">
               <option value="">All shops</option>
-              {shopsInCategory.map((s) => (
-                <option key={s.slug} value={s.slug}>
-                  {s.name}
-                </option>
-              ))}
+              {shopsInCategory.map(shop => <option key={shop.slug} value={shop.slug}>{shop.name}</option>)}
             </select>
-
-            <select
-              value={condition}
-              onChange={(e) => setCondition(e.target.value as typeof condition)}
-              aria-label="Filter by condition"
-              className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-ink-800"
-            >
-              <option value="all">Any condition</option>
-              <option value="new">New</option>
-              <option value="refurbished">Refurbished</option>
+            <select aria-label="Filter by condition" value={condition} onChange={e => setCondition(e.target.value as typeof condition)} className="rounded-lg border border-border bg-surface p-2">
+              <option value="all">Any condition</option><option value="new">New</option><option value="refurbished">Refurbished</option>
             </select>
-
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as (typeof sorts)[number])}
-              aria-label="Sort products"
-              className="h-10 rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-ink-800"
-            >
-              {sorts.map((s) => (
-                <option key={s} value={s}>
-                  Sort: {s}
-                </option>
-              ))}
-            </select>
-          </div>
+          </>} sort={<select aria-label="Sort products" value={sort} onChange={e => setSort(e.target.value as (typeof sorts)[number])} className="rounded-lg border border-border bg-surface p-2">
+            {sorts.map(option => <option key={option}>{option}</option>)}
+          </select>} />
         </div>
-
         <div className="pt-8">
           {shown.length ? (
             <>

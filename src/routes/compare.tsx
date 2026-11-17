@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
-import { formatMwk, getShop, products } from "@/data/catalog";
-import { useCompareSelection } from "@/lib/compare";
+import { formatMwk, getShop } from "@/data/catalog";
+import { searchCatalogProducts } from "@/lib/resolve-catalog";
+import { MAX_COMPARE_ITEMS, useComparedProducts, useCompareSelection } from "@/lib/compare";
 import { cn } from "@/lib/utils";
 import { getPromotions } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
@@ -17,12 +18,12 @@ export const Route = createFileRoute("/compare")({
       {
         name: "description",
         content:
-          "Pick two to three phones, laptops or tablets and see price, condition, seller and specifications side by side.",
+          "Pick two phones, laptops or tablets and see price, condition, seller and specifications side by side.",
       },
       { property: "og:title", content: "Compare devices side by side — Techaven" },
       {
         property: "og:description",
-        content: "See price, condition, seller and specs for up to three devices at once.",
+        content: "See price, condition, seller and specs for up to two devices at once.",
       },
     ],
   }),
@@ -35,13 +36,11 @@ function ComparePage() {
       queryKey: ["promotions", "compare_hero"],
       queryFn: () => getPromotions("compare_hero"),
     }).data ?? [];
-  const { selected, toggle, remove, clear, count } = useCompareSelection();
+  const { selected, toggle, remove, clear, count, replaceAll } = useCompareSelection();
   const [query, setQuery] = useState("");
   const [differencesOnly, setDifferencesOnly] = useState(false);
 
-  const chosen = selected
-    .map((s) => products.find((p) => p.slug === s))
-    .filter((p): p is (typeof products)[number] => Boolean(p));
+  const chosen = useComparedProducts(selected, replaceAll);
 
   function getVariation(label: string) {
     const values = chosen
@@ -57,15 +56,11 @@ function ComparePage() {
 
   const canCompare = chosen.length >= 2;
   const normalizedQuery = query.trim().toLowerCase();
-  const searchResults = normalizedQuery
-    ? products
-        .filter((product) =>
-          [product.name, product.brand, product.category].some((value) =>
-            value.toLowerCase().includes(normalizedQuery),
-          ),
-        )
-        .slice(0, 5)
-    : [];
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ["compare-search", normalizedQuery],
+    enabled: normalizedQuery.length >= 2,
+    queryFn: async () => (await searchCatalogProducts(normalizedQuery, 1, 5)).products,
+  });
 
   return (
     <>
@@ -77,7 +72,7 @@ function ComparePage() {
           <MegaHeader
             eyebrow="Compare"
             title="Compare before you buy"
-            support="Pick two to three devices and see the differences side-by-side — price, condition, shop and specifications."
+            support="Pick two devices and see the differences side-by-side — price, condition, shop and specifications."
             stages={["smartphones", "laptops"]}
             tone="dark"
           />
@@ -140,7 +135,7 @@ function ComparePage() {
               <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-surface">
                 {searchResults.map((product) => {
                   const alreadySelected = selected.includes(product.slug);
-                  const atLimit = selected.length >= 3 && !alreadySelected;
+                  const atLimit = selected.length >= MAX_COMPARE_ITEMS && !alreadySelected;
 
                   return (
                     <div
@@ -148,7 +143,7 @@ function ComparePage() {
                       className="flex items-center gap-3 border-b border-neutral-200 px-3 py-3 last:border-b-0"
                     >
                       <ImageStage
-                        category={product.category}
+                        category={product.category} src={"imageUrl" in product ? product.imageUrl as string : undefined}
                         className="h-12 w-12 shrink-0 rounded-lg"
                       />
                       <div className="min-w-0 flex-1">
@@ -156,14 +151,14 @@ function ComparePage() {
                           {product.name}
                         </p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {getShop(product.shop)?.name} · {formatMwk(product.price)}
+                          {product.shopName ?? getShop(product.shop)?.name} · {formatMwk(product.price)}
                         </p>
                       </div>
                       <button
                         type="button"
                         disabled={atLimit}
                         onClick={() => {
-                          toggle(product.slug);
+                          toggle(product.slug, product.listingId);
                           if (!alreadySelected) setQuery("");
                         }}
                         className={cn(
@@ -189,22 +184,22 @@ function ComparePage() {
           <div className="mt-6">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-base font-bold text-ink-800">Selected devices</h3>
-              {selected.length < 3 ? (
+              {selected.length < MAX_COMPARE_ITEMS ? (
                 <span className="text-xs text-muted-foreground">
-                  {3 - selected.length} slot(s) available
+                  {MAX_COMPARE_ITEMS - selected.length} slot(s) available
                 </span>
               ) : null}
             </div>
 
             {chosen.length ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
                 {chosen.map((product) => (
                   <div
                     key={product.slug}
                     className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-050 p-2.5"
                   >
                     <ImageStage
-                      category={product.category}
+                      category={product.category} src={"imageUrl" in product ? product.imageUrl as string : undefined}
                       className="h-14 w-14 shrink-0 rounded-lg"
                     />
                     <div className="min-w-0 flex-1">
@@ -242,25 +237,25 @@ function ComparePage() {
             <p className="mt-2 max-w-xl">
               {chosen.length === 1
                 ? "Choose another device to view a side-by-side comparison of price, shop, condition and core specs."
-                : "Add two or three devices to view a side-by-side comparison of price, shop, condition and core specs."}
+                : "Add two devices to view a side-by-side comparison of price, shop, condition and core specs."}
             </p>
           </div>
         ) : (
           <div className="mt-8 overflow-hidden rounded-[28px] border border-neutral-200 bg-surface">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <table className="w-full md:min-w-[760px] max-md:block max-md:[&>thead]:block max-md:[&>tbody]:block max-md:[&_tr]:grid max-md:[&_tr]:grid-cols-2 max-md:[&_tbody_th]:col-span-2 max-md:[&_th]:static max-md:[&_td]:min-w-0 max-md:[&_td]:break-words border-collapse text-left text-sm">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 z-20 w-40 border-b border-neutral-200 bg-neutral-050 px-4 py-4 text-[13px] font-semibold tracking-normal text-ink-800">
+                    <th className="hidden md:table-cell sticky left-0 z-20 w-40 border-b border-neutral-200 bg-neutral-050 px-4 py-4 text-[13px] font-semibold tracking-normal text-ink-800">
                       Device
                     </th>
                     {chosen.map((p) => (
                       <th key={p.slug} className="border-b border-neutral-200 px-4 py-4 align-top">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-3">
                           <div className="min-w-0 flex-1">
                             <ImageStage
-                              category={p.category}
-                              className="w-24 rounded-2xl md:w-28"
+                              category={p.category} src={"imageUrl" in p ? p.imageUrl as string : undefined}
+                              className="w-16 rounded-xl md:w-28"
                             />
                             <Link
                               to="/product/$slug"
@@ -270,7 +265,7 @@ function ComparePage() {
                               {p.name}
                             </Link>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {getShop(p.shop)?.name}
+                              {("shopName" in p && typeof p.shopName === "string" ? p.shopName : undefined) ?? getShop(p.shop)?.name}
                             </p>
                           </div>
 
@@ -294,7 +289,7 @@ function ComparePage() {
                     </th>
                     {chosen.map((p) => (
                       <td key={p.slug} className="px-4 py-4 align-top">
-                        <span className="text-xl font-extrabold tracking-tight text-ink-800">
+                        <span className="text-sm font-extrabold md:text-xl tracking-tight text-ink-800">
                           {formatMwk(p.price)}
                         </span>
                         {p.oldPrice ? (
@@ -323,7 +318,7 @@ function ComparePage() {
                     </th>
                     {chosen.map((p) => (
                       <td key={p.slug} className="px-4 py-4 align-top text-ink-800">
-                        {getShop(p.shop)?.name}
+                        {("shopName" in p && typeof p.shopName === "string" ? p.shopName : undefined) ?? getShop(p.shop)?.name}
                       </td>
                     ))}
                   </tr>

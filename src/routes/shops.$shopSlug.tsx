@@ -4,7 +4,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
 import { MegaHeader } from "@/components/MegaHeader";
-import { ProductGrid } from "@/components/ProductGrid";
+import { FilteredProductGrid } from "@/components/FilteredProductGrid";
 import { fetchShopProducts, resolveShop } from "@/lib/resolve-catalog";
 import { parseApiShopId } from "@/lib/catalog-api";
 import { marketplaceMedia } from "@/data/media";
@@ -74,9 +74,9 @@ function ShopPage() {
 
       <section className="shell pb-14">
         <p className="mb-6 text-sm text-muted-foreground">
-          {shop.location} · {products.length} product{products.length === 1 ? "" : "s"} listed
+          {shop.location}
         </p>
-        <ProductGrid products={products} />
+        <FilteredProductGrid products={products} />
       </section>
       <PromotionSlot
         placement="shop_inline_1"

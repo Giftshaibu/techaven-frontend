@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
+import { useAuth } from "@/lib/auth";
 import { ProductGrid } from "@/components/ProductGrid";
 import { getWishlist } from "@/integrations/techaven/customer";
+import { resolveProduct } from "@/lib/resolve-catalog";
 import { mapApiProductToCatalog } from "@/lib/catalog-api";
 
 export const Route = createFileRoute("/_authenticated/account/saved")({
@@ -19,13 +21,17 @@ export const Route = createFileRoute("/_authenticated/account/saved")({
 });
 
 function SavedPage() {
+  const { user } = useAuth();
   const wishlist = useQuery({
-    queryKey: ["wishlist", "full"],
+    queryKey: ["wishlist", "full", user?.id],
+    enabled: Boolean(user),
     queryFn: async () => {
       const data = await getWishlist();
-      return (data.items ?? [])
-        .map((item) => (item.product ? mapApiProductToCatalog(item.product) : null))
-        .filter((p): p is NonNullable<typeof p> => p != null);
+      const products = await Promise.all((data.items ?? []).map((item) =>
+        item.device_slug ? resolveProduct(item.device_slug) :
+          item.product ? mapApiProductToCatalog(item.product) : null,
+      ));
+      return [...new Map(products.flatMap((product) => product ? [[product.slug, product] as const] : [])).values()];
     },
   });
 

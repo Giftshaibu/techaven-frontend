@@ -86,7 +86,7 @@ export async function fetchProductsPage(page = 1, limit = 30) {
 }
 
 export async function fetchCategoryProducts(categoryId: number, page = 1, limit = 30, brand?: string) {
-  const data = await getMarketplaceDevices({ category_id: categoryId, page, limit, brand });
+  const data = await getMarketplaceDevices({ category_id: categoryId, page, limit, ...(brand ? { brand } : {}) });
   const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
   return { products, pagination: data.pagination };
 }
@@ -108,9 +108,9 @@ const PRODUCT_LIST_PAGE_SIZE = 48;
 function paginationHasNext(page: number, raw: unknown): boolean {
   if (!raw || typeof raw !== "object") return false;
   const p = raw as Record<string, unknown>;
-  if (typeof p.has_next === "boolean") return p.has_next;
-  const current = Number(p.current_page ?? page);
-  const totalPages = Number(p.total_pages);
+  if (typeof p["has_next"] === "boolean") return p["has_next"];
+  const current = Number(p["current_page"] ?? page);
+  const totalPages = Number(p["total_pages"]);
   if (Number.isFinite(current) && Number.isFinite(totalPages) && totalPages > 0) {
     return current < totalPages;
   }
@@ -120,12 +120,11 @@ function paginationHasNext(page: number, raw: unknown): boolean {
 export async function fetchProductListing(
   page = 1,
   limit = PRODUCT_LIST_PAGE_SIZE,
-  sort: ProductsQuery["sort"] = "newest",
+  sort: NonNullable<ProductsQuery["sort"]> = "newest",
+  filters: { category_id?: number; brand?: string } = {},
 ) {
-  const data = await getMarketplaceDevices({ page, limit });
+  const data = await getMarketplaceDevices({ page, limit, sort, ...filters });
   const products = (data.devices ?? []).map(mapMarketplaceDeviceToCatalog);
-  if (sort === "price_asc") products.sort((a, b) => a.price - b.price);
-  if (sort === "price_desc") products.sort((a, b) => b.price - a.price);
   const hasMore =
     paginationHasNext(page, data.pagination) ||
     (products.length >= limit && !paginationHasNext(page, data.pagination) && data.pagination == null);
@@ -133,29 +132,17 @@ export async function fetchProductListing(
 }
 
 export async function loadHomeFeed() {
-  const [categories, productsData, shops] = await Promise.all([
+  const [categories, productsData] = await Promise.all([
     getCategories().catch(() => [] as Awaited<ReturnType<typeof getCategories>>),
     getMarketplaceDevices({ page: 1, limit: 30 }).catch(() => ({ devices: [], pagination: {} })),
-    import("@/integrations/techaven/customer").then((m) => m.getShops()).catch(() => []),
   ]);
 
   const mappedCategories = categories.map(mapApiCategoryToCatalog);
   const allProducts = (productsData.devices ?? []).map(mapMarketplaceDeviceToCatalog);
-  const mappedShops = shops.map(mapApiShopToCatalog);
-
-  let banners: { id?: number; title?: string; image?: string; link?: string }[] = [];
-  try {
-    const raw = await import("@/integrations/techaven/customer").then((m) => m.getBanners());
-    banners = Array.isArray(raw) ? raw : [];
-  } catch {
-    banners = [];
-  }
 
   return {
     categories: mappedCategories,
     products: allProducts,
-    shops: mappedShops,
-    banners,
     pagination: productsData.pagination,
   };
 }

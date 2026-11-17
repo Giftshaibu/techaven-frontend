@@ -76,7 +76,7 @@ function CartPage() {
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           <ul className="divide-y divide-border rounded-3xl bg-surface px-6">
             {items.map(({ line, product }) => (
-              <li key={line.slug} className="flex gap-4 py-5">
+              <li key={line.listingId} className="flex gap-4 py-5">
                 <div className="w-24 shrink-0">
                   <ImageStage
                     category={product!.category}
@@ -88,6 +88,7 @@ function CartPage() {
                   <Link
                     to="/product/$slug"
                     params={{ slug: line.slug }}
+                    search={{ listing: line.listingId }}
                     className="font-semibold text-ink-800 hover:underline"
                   >
                     {product!.name}
@@ -101,14 +102,14 @@ function CartPage() {
                         min={1}
                         value={line.quantity}
                         onChange={(e) =>
-                          void setQuantity(line.slug, Number(e.target.value) || 1)
+                          void setQuantity(line.listingId, Number(e.target.value) || 1)
                         }
                         className="h-9 w-16 rounded-lg border border-border px-2"
                       />
                     </label>
                     <button
                       type="button"
-                      onClick={() => void remove(line.slug)}
+                      onClick={() => void remove(line.listingId)}
                       className="text-sm font-semibold text-brand-500 hover:underline"
                     >
                       Remove

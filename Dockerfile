@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ARG VITE_TECHAVEN_X_URL
+ARG VITE_TECHAVEN_FACEBOOK_URL
+ARG VITE_TECHAVEN_INSTAGRAM_URL
 ENV NITRO_PRESET=node_server
 RUN npm run build && test -f .output/server/index.mjs
 

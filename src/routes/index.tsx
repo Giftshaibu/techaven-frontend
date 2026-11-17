@@ -1,12 +1,10 @@
+import { useEffect, useState } from "react";
+import { ContinueBrowsing } from "@/components/ContinueBrowsing";
 import { MobileShoppingBanner } from "@/components/MobileShoppingBanner";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CategoryCard, CategoryTile } from "@/components/CategoryTile";
-import { Icon } from "@/components/Icon";
-import { HorizontalRail } from "@/components/HorizontalRail";
-import { ImageStage } from "@/components/ImageStage";
+import { CategoryTile } from "@/components/CategoryTile";
 import { ProductRail } from "@/components/ProductGrid";
 import { SectionHeader, ViewAllLink } from "@/components/SectionHeader";
-import { ShopCard } from "@/components/ShopCard";
 import { TrustStrip } from "@/components/TrustStrip";
 import { enrichCategoryIcons, filterHotSales, filterSpecialOffers } from "@/lib/catalog-api";
 import { loadHomeFeed } from "@/lib/resolve-catalog";
@@ -22,6 +20,8 @@ export const Route = createFileRoute("/")({
       "home_banner_1",
       "home_product_rail_1",
       "home_banner_2",
+      "home_promo_rails",
+      "home_square_tiles",
       "home_inline_1",
     ] as const;
     const [feedResult, ...promotionResults] = await Promise.allSettled([
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
     const promotions = promotionResults.flatMap((result) =>
       result.status === "fulfilled" ? result.value : [],
     );
-    return { ...feedResult.value, promotions };
+    return { ...feedResult.value, promotions, promoRails: promotions.filter((record) => record.placement === "home_promo_rails") };
   },
   head: () => ({
     meta: [
@@ -53,8 +53,41 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
+function HomePromotionRails({ initial }: { initial: Awaited<ReturnType<typeof getPromotions>> }) {
+  const [promotions, setPromotions] = useState(initial);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    setPromotions(initial);
+  }, [initial]);
+  useEffect(() => {
+    let cancelled = false;
+    const scheduledAt = Date.now();
+    const nextEnd = Math.min(...promotions.flatMap(({ schedule }) =>
+      schedule.endsAt && Date.parse(schedule.endsAt) > scheduledAt ? [Date.parse(schedule.endsAt)] : [],
+    ));
+    const timer = window.setTimeout(async () => {
+      setNow(Date.now());
+      const records = await getPromotions("home_promo_rails");
+      if (!cancelled) {
+        setNow(Date.now());
+        setPromotions(records);
+      }
+    }, Math.max(0, Math.min(nextEnd - Date.now(), 60_000)));
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [promotions]);
+  const active = promotions.filter(({ schedule }) =>
+    (!schedule.startsAt || Date.parse(schedule.startsAt) <= now) &&
+    (!schedule.endsAt || Date.parse(schedule.endsAt) > now),
+  );
+  return <PromotionSlot placement="home_promo_rails" promotions={active} />;
+}
+
 function Home() {
-  const { categories, products, shops, promotions } = Route.useLoaderData();
+  const { categories, products, promotions, promoRails } = Route.useLoaderData();
+  const [historyCleared, setHistoryCleared] = useState(0);
   const navCategories = enrichCategoryIcons(categories);
   const hotDeals = filterHotSales(products).slice(0, 8);
   const hotFallback = hotDeals.length ? hotDeals : filterSpecialOffers(products).slice(0, 8);
@@ -63,7 +96,6 @@ function Home() {
   return (
     <>
       <MobileShoppingBanner promotions={promotions} />
-      <MobileHomeCatalog products={products} />
       <div className="hidden md:block">
         <PromotionSlot
           placement="home_hero"
@@ -72,6 +104,9 @@ function Home() {
           heroHeading="h1"
         />
       </div>
+
+      <ContinueBrowsing onClear={() => setHistoryCleared((value) => value + 1)} />
+      <MobileHomeCatalog products={products} historyCleared={historyCleared} />
 
       <section className="shell py-10 md:py-14">
         <SectionHeader
@@ -102,42 +137,10 @@ function Home() {
 
       <PromotionSlot placement="home_banner_1" promotions={promotions} />
 
-      {navCategories.length > 4 ? (
-        <section className="shell pb-10 md:pb-14">
-          <SectionHeader
-            title="Browse by category"
-            description="Categories from Techaven — sellers list products under these."
-          />
-          <div className="grid grid-cols-2 gap-4 md:gap-5 lg:grid-cols-4">
-            {navCategories.slice(0, 4).map((c) => (
-              <CategoryCard key={c.slug} category={c} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="shell pb-10 md:pb-14">
-        <SectionHeader
-          title="Featured shops"
-          description="Real shops with their own catalogs, stock and delivery options."
-          action={<ViewAllLink to="/shops" label="View all shops" />}
-        />
-        <HorizontalRail
-          label="Featured shops"
-          desktopClassName="md:grid md:grid-cols-2 md:gap-5 lg:grid-cols-4"
-        >
-          {shops.slice(0, 4).map((s) => (
-            <div
-              key={s.slug}
-              className="w-[82%] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none"
-            >
-              <ShopCard shop={s} />
-            </div>
-          ))}
-        </HorizontalRail>
-      </section>
-
       <PromotionSlot placement="home_product_rail_1" promotions={promotions} />
+
+      <PromotionSlot placement="home_square_tiles" promotions={promotions} />
+      <HomePromotionRails initial={promoRails} />
 
       <PromotionSlot placement="home_inline_1" promotions={promotions} />
 

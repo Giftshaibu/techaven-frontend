@@ -1,3 +1,4 @@
+import { CatalogueControls } from "@/components/CatalogueControls";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -92,28 +93,13 @@ function ShopsPage() {
               className="h-11 w-full rounded-lg border border-border bg-surface pl-10 pr-3 text-sm outline-none focus:border-brand-500"
             />
           </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as (typeof sorts)[number])}
-              className="h-11 rounded-lg border border-border bg-surface px-3 text-sm"
-            >
-              {sorts.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <label className="flex items-center gap-2 text-sm font-semibold text-ink-800">
-              <input
-                type="checkbox"
-                checked={verifiedOnly}
-                onChange={(e) => setVerifiedOnly(e.target.checked)}
-                className="h-4 w-4 accent-[var(--color-brand-500)]"
-              />
-              Verified only
-            </label>
-          </div>
+          <CatalogueControls filters={<label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={verifiedOnly} onChange={event => setVerifiedOnly(event.target.checked)} />
+            Verified only
+          </label>} sort={<select aria-label="Sort shops" value={sort} onChange={event => setSort(event.target.value as (typeof sorts)[number])}
+            className="rounded-lg border border-border bg-surface p-2">
+            {sorts.map(value => <option key={value}>{value}</option>)}
+          </select>} />
         </div>
 
         <div

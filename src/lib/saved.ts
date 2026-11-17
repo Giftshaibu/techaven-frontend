@@ -6,6 +6,8 @@ import {
   removeFromWishlist,
 } from "@/integrations/techaven/customer";
 import { productSlugFromApiId } from "@/lib/catalog-api";
+import { techavenRequest } from "@/integrations/techaven/client";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 
 export function useSavedSlugs() {
@@ -16,11 +18,11 @@ export function useSavedSlugs() {
     enabled: Boolean(user),
     queryFn: async () => {
       const data = await getWishlist();
-      return (data.items ?? []).map((item) =>
-        item.product?.slug && !String(item.product.slug).match(/^\d+$/)
-          ? String(item.product.slug)
-          : productSlugFromApiId(item.product_id),
-      );
+      return (data.items ?? []).flatMap((item) => {
+        if (item.device_slug) return [item.device_slug];
+        if (item.product?.slug && !/^\d+$/.test(item.product.slug)) return [item.product.slug];
+        return item.product_id ? [productSlugFromApiId(item.product_id)] : [];
+      });
     },
   });
 
@@ -36,12 +38,22 @@ export function useToggleSaved() {
       slug,
       saved,
       productId,
+      deviceId,
     }: {
       slug: string;
       saved: boolean;
       productId?: number;
+      deviceId?: number;
     }) => {
       if (!user) throw new Error("Sign in to save products");
+      if (deviceId) {
+        await techavenRequest(saved ? `/api/wishlist/devices/${deviceId}` : "/api/wishlist/devices", {
+          method: saved ? "DELETE" : "POST",
+          ...(saved ? {} : { body: { device_id: deviceId } }),
+          auth: true,
+        });
+        return;
+      }
       const id =
         productId ??
         (slug.startsWith("p-") ? Number(slug.slice(2)) : Number.isFinite(Number(slug)) ? Number(slug) : NaN);
@@ -51,8 +63,7 @@ export function useToggleSaved() {
       if (saved) await removeFromWishlist(id);
       else await addToWishlist({ product_id: id });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["wishlist"] }),
+    onError: () => toast.error("Could not update Saved Items."),
   });
 }

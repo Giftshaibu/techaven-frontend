@@ -21,7 +21,8 @@ export function apiAddressToForm(addr: ShippingAddress): AddressForm {
     phone: addr.phone,
     city: addr.city,
     area: addr.region ?? "",
-    street: addr.address,
+    street: addr.address === addr.region ? "" : addr.region && addr.address.endsWith(`, ${addr.region}`)
+      ? addr.address.slice(0, -(addr.region.length + 2)) : addr.address,
     notes: addr.delivery_notes ?? "",
     latitude: addr.latitude == null ? null : Number(addr.latitude),
     longitude: addr.longitude == null ? null : Number(addr.longitude),
@@ -44,3 +45,11 @@ export function formToApiBody(form: AddressForm, isDefault?: boolean) {
     delivery_notes: form.notes || null,
   };
 }
+
+export const malawiDistricts = {
+  Northern: ["Chitipa", "Karonga", "Likoma", "Mzimba", "Nkhata Bay", "Rumphi"],
+  Central: ["Dedza", "Dowa", "Kasungu", "Lilongwe", "Mchinji", "Nkhotakota", "Ntcheu", "Ntchisi", "Salima"],
+  Southern: ["Balaka", "Blantyre", "Chikwawa", "Chiradzulu", "Machinga", "Mangochi", "Mulanje", "Mwanza", "Neno", "Nsanje", "Phalombe", "Thyolo", "Zomba"],
+};
+const names = Object.values(malawiDistricts).flat();
+export const validDistrict = (value: string) => names.includes(value);

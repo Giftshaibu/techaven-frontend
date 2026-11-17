@@ -3,6 +3,9 @@ import type { Placement, Promotion, PromotionContext } from "@/lib/cms/promotion
 import { matchesTarget } from "@/lib/cms/promotions";
 import { selectPromotions } from "./promotion-placements";
 import {
+  BannerWithRail,
+  SideBannerWithRail,
+  SquarePromotionTiles,
   PromotionHeroProduct,
   PromotionProducts,
   PromotionShops,
@@ -23,7 +26,7 @@ class PromotionErrorBoundary extends Component<
   { failed: boolean }
 > {
   override state = { failed: false };
-  static override getDerivedStateFromError() {
+  static getDerivedStateFromError() {
     return { failed: true };
   }
   override componentDidCatch(error: unknown) {
@@ -51,6 +54,18 @@ function Renderer({
       return <PromotionHero promotion={promotion} heading={heroHeading} />;
   }
   switch (promotion.layout) {
+    case "banner_with_rail":
+    case "side_banner_with_rail":
+      return promotions.map((record) => {
+        const Rail = record.layout === "side_banner_with_rail" ? SideBannerWithRail : BannerWithRail;
+        return (
+          <PromotionErrorBoundary key={record.id}>
+            <Rail promotion={record} heading={heroHeading} />
+          </PromotionErrorBoundary>
+        );
+      });
+    case "square_tile":
+      return <SquarePromotionTiles promotions={promotions} />;
     case "hero":
       return <PromotionHero promotion={promotion} heading={heroHeading} />;
     case "hero_product":

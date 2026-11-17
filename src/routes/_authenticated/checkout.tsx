@@ -1,5 +1,6 @@
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { getCommerceConfig } from "@/lib/manual-payments";
-import { AddressLocation } from "@/components/AddressLocation";
+import { AddressDrawer } from "@/components/AddressDrawer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -12,13 +13,11 @@ import type { CatalogProduct } from "@/lib/catalog-api";
 import {
   addShippingAddress,
   createOrder,
-  getCourierServices,
   getProfile,
   getShippingAddresses,
-  payOrderAirtel,
 } from "@/integrations/techaven/customer";
 import { useAuth } from "@/lib/auth";
-import { apiAddressToForm, formToApiBody, type AddressForm } from "@/lib/addresses-ui";
+import { apiAddressToForm, formToApiBody, validDistrict, type AddressForm } from "@/lib/addresses-ui";
 import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
@@ -40,31 +39,11 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 
 type Step = 1 | 2 | 3;
 
-const paymentMethods = [
-  {
-    id: "airtel-money",
-    name: "Airtel Money",
-    icon: "smartphone-2-linear",
-    blurb: "Approve the payment prompt on your phone when the shop confirms stock.",
-  },
-  {
-    id: "mpamba",
-    name: "TNM Mpamba",
-    icon: "wallet-money-linear",
-    blurb: "Pay from your Mpamba wallet using the order reference.",
-  },
-  {
-    id: "bank-transfer",
-    name: "Bank transfer",
-    icon: "banknote-linear",
-    blurb: "Transfer to the Techaven holding account; we release funds on delivery.",
-  },
-  {
-    id: "cash-on-delivery",
-    name: "Cash on delivery",
-    icon: "hand-money-linear",
-    blurb: "Pay the courier in cash once you've checked the device.",
-  },
+const paymentOptions = [
+  { id: "bank-transfer", label: "Bank transfer", hint: "Transfer through your bank, then submit proof." },
+  { id: "airtel-money", label: "Airtel Money", hint: "Pay using the Techaven code, then submit proof." },
+  { id: "mpamba", label: "TNM Mpamba", hint: "Payment instructions are currently unavailable." },
+  { id: "cash-on-delivery", label: "Cash on delivery", hint: "Pay the courier when your order arrives." },
 ] as const;
 
 const emptyAddress: AddressForm = {
@@ -86,11 +65,13 @@ function CheckoutPage() {
   const commerceConfig = useQuery({ queryKey: ["commerce-config"], queryFn: getCommerceConfig });
   const [step, setStep] = useState<Step>(1);
   const [addressId, setAddressId] = useState<number | "new">("new");
-  const [courierServiceId, setCourierServiceId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyAddress);
-  const [saveAddress, setSaveAddress] = useState(true);
+  const [addressOpen, setAddressOpen] = useState(false);
+
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
-  const [payment, setPayment] = useState<string>(paymentMethods[0].id);
+  const [payment, setPayment] = useState<(typeof paymentOptions)[number]["id"]>("cash-on-delivery");
+  const manualPaymentAvailable = commerceConfig.data?.manual_payment.enabled === true;
+  const canPay = payment === "cash-on-delivery" || (payment !== "mpamba" && manualPaymentAvailable);
 
   const items = useMemo(
     () =>
@@ -120,17 +101,6 @@ function CheckoutPage() {
     },
   });
 
-  const couriers = useQuery({
-    queryKey: ["courier-services"],
-    queryFn: getCourierServices,
-  });
-
-  useEffect(() => {
-    if (courierServiceId == null && couriers.data?.length) {
-      setCourierServiceId(couriers.data[0]!.id);
-    }
-  }, [couriers.data, courierServiceId]);
-
   const profile = useQuery({
     queryKey: ["profile", user?.id ?? "anon"],
     enabled: Boolean(user),
@@ -140,22 +110,18 @@ function CheckoutPage() {
   useEffect(() => {
     const saved = addresses.data;
     if (!saved) return;
-    if (saved.length && addressId === "new" && !form.recipient) {
+    if (saved.length && addressId === "new") {
       setAddressId(saved[0]!.id);
     }
-  }, [addresses.data, addressId, form.recipient]);
+  }, [addresses.data, addressId]);
 
   useEffect(() => {
     if (!profile.data) return;
-    setForm((prev) =>
-      prev.recipient || prev.phone
-        ? prev
-        : {
-            ...prev,
-            recipient: profile.data?.name ?? "",
-            phone: profile.data?.phone_number ?? "",
-          },
-    );
+    setForm(previous => ({
+      ...previous,
+      recipient: previous.recipient || profile.data?.name || "",
+      phone: previous.phone || profile.data?.phone_number || "",
+    }));
   }, [profile.data]);
 
   const chosen = addresses.data?.find((a) => a.id === addressId);
@@ -163,19 +129,29 @@ function CheckoutPage() {
     addressId !== "new" && chosen ? apiAddressToForm(chosen) : form;
 
   const deliveryComplete = Boolean(
-    delivery.recipient && delivery.phone && delivery.city && delivery.area,
+    delivery.recipient && delivery.phone && delivery.city && (addressId !== "new" || (validDistrict(delivery.city) && delivery.area)),
   );
+
+  const saveDeliveryAddress = useMutation({
+    mutationFn: () => addShippingAddress(formToApiBody(form, !(addresses.data?.length ?? 0))),
+    onSuccess: async address => {
+      await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+      setAddressId(address.id);
+      setAddressOpen(false);
+    },
+    onError: error => toast.error(error instanceof Error ? error.message : "Could not save address"),
+  });
 
   const placeOrder = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Please sign in again");
+      if (!canPay) throw new Error("This payment option is unavailable right now");
       if (!items.length) throw new Error("Your basket is empty");
-      if (!courierServiceId) throw new Error("Delivery service is unavailable. Try again shortly.");
 
       let shippingAddressId: number;
       if (addressId === "new") {
         const created = await addShippingAddress(
-          formToApiBody(form, saveAddress && !(addresses.data?.length ?? 0)),
+          formToApiBody(form, !(addresses.data?.length ?? 0)),
         );
         shippingAddressId = created.id;
       } else {
@@ -188,9 +164,8 @@ function CheckoutPage() {
       }));
 
       const result = await createOrder({
-        payment_method: payment,
+        payment_method: payment === "cash-on-delivery" ? payment : "bank-transfer",
         shipping_address_id: shippingAddressId,
-        courier_service_id: courierServiceId,
         items: orderItems,
         ...(delivery.notes ? { notes: delivery.notes } : {}),
       });
@@ -199,22 +174,14 @@ function CheckoutPage() {
 
       const orderKey = order.order_number ?? order.reference ?? String(order.id);
 
-      if (payment === "airtel-money" && delivery.phone) {
-        const msisdn = delivery.phone.replace(/\s/g, "");
-        try {
-          for (const checkoutOrder of result.orders) await payOrderAirtel(checkoutOrder.id, { msisdn });
-        } catch {
-          /* payment can be completed later from order details */
-        }
-      }
-
       return orderKey;
     },
     onSuccess: (reference) => {
       clear();
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
-      navigate({ to: "/orders/$reference", params: { reference }, replace: true });
+      navigate({ to: "/orders/$reference", params: { reference }, replace: true,
+        ...(payment === "cash-on-delivery" ? {} : { hash: "payment-proof" }) });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "We couldn't place your order");
@@ -269,7 +236,7 @@ function CheckoutPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="rounded-3xl bg-surface p-6 md:p-8">
-          {step === 1 ? (
+          {step !== 3 ? (
             <div>
               <h2 className="text-lg font-bold text-ink-800">Where should we deliver?</h2>
 
@@ -297,18 +264,14 @@ function CheckoutPage() {
                 ))}
               </div>
 
-              {addresses.data?.length ? (
-                <div className="mt-6 space-y-2">
-                  <p className="text-[13px] font-semibold tracking-normal text-ink-800">
-                    Saved details
-                  </p>
-                  {addresses.data.map((a) => (
+              <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-3">
+                  {(addresses.data ?? []).map((a) => (
                     <button
                       key={a.id}
                       type="button"
                       onClick={() => setAddressId(a.id)}
                       className={cn(
-                        "block w-full rounded-2xl border p-4 text-left",
+                        "block h-full w-full rounded-xl border p-3 text-left",
                         addressId === a.id
                           ? "border-brand-500 bg-brand-100"
                           : "border-border hover:bg-stage",
@@ -318,85 +281,19 @@ function CheckoutPage() {
                         {a.label} · {a.name}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        {[a.address, a.region, a.city].filter(Boolean).join(", ")} · {a.phone}
+                        {[a.address, a.city].filter(Boolean).join(", ")} · {a.phone}
                       </p>
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setAddressId("new")}
-                    className={cn(
-                      "block w-full rounded-2xl border p-4 text-left text-sm font-semibold",
-                      addressId === "new"
-                        ? "border-brand-500 bg-brand-100 text-brand-800"
-                        : "border-border text-ink-800 hover:bg-stage",
-                    )}
-                  >
-                    Use new details
-                  </button>
-                </div>
-              ) : null}
-
-              {addressId === "new" ? (
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <Field
-                    label="Full name"
-                    value={form.recipient}
-                    onChange={(v) => setForm({ ...form, recipient: v })}
-                  />
-                  <Field
-                    label="Phone number"
-                    value={form.phone}
-                    onChange={(v) => setForm({ ...form, phone: v })}
-                    placeholder="+265 ..."
-                  />
-                  <AddressLocation value={form} onChange={setForm} />
-                  <Field
-                    label="City or town"
-                    value={form.city}
-                    onChange={(v) => setForm({ ...form, city: v })}
-                    placeholder="Blantyre"
-                  />
-                  <Field
-                    label="Area"
-                    value={form.area}
-                    onChange={(v) => setForm({ ...form, area: v })}
-                    placeholder="Namiwawa"
-                  />
-                  <Field
-                    label="Street or building"
-                    value={form.street}
-                    onChange={(v) => setForm({ ...form, street: v })}
-                  />
-                  <Field
-                    label="Label"
-                    value={form.label}
-                    onChange={(v) => setForm({ ...form, label: v })}
-                    placeholder="Home"
-                  />
-                  <label className="sm:col-span-2 block">
-                    <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
-                      Delivery notes
-                    </span>
-                    <textarea
-                      value={form.notes}
-                      onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                      rows={3}
-                      placeholder="Landmarks, gate colour, best time to call"
-                      className="w-full rounded-lg border border-border bg-surface p-3.5 text-[15px] text-ink-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
-                  </label>
-                  <label className="sm:col-span-2 flex items-center gap-2 text-sm text-ink-800">
-                    <input
-                      type="checkbox"
-                      checked={saveAddress}
-                      onChange={(e) => setSaveAddress(e.target.checked)}
-                      className="h-4 w-4 accent-[var(--color-brand-500)]"
-                    />
-                    Save these details to my account
-                  </label>
-                </div>
-              ) : null}
+                <button type="button" onClick={() => setAddressOpen(true)}
+                  className="grid min-h-24 place-content-center gap-1 rounded-xl border border-dashed border-border text-center text-sm font-semibold hover:bg-stage">
+                  <Icon name="add-circle-linear" className="mx-auto size-5" />
+                  Add address
+                </button>
+              </div>
+              <AddressDrawer open={addressOpen} close={() => setAddressOpen(false)} title="Delivery address"
+                value={form} onChange={setForm} onSave={() => saveDeliveryAddress.mutate()} busy={saveDeliveryAddress.isPending}
+                savedPhone={profile.data?.phone_number ?? undefined} />
 
               <button
                 type="button"
@@ -409,45 +306,28 @@ function CheckoutPage() {
             </div>
           ) : null}
 
-          {step === 2 ? (
-            <div>
-              <h2 className="text-lg font-bold text-ink-800">How would you like to pay?</h2>
-              <div className="mt-4 space-y-2">
-                {paymentMethods.filter(method => method.id !== "bank-transfer" || commerceConfig.data?.manual_payment.enabled).map((method) => (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => setPayment(method.id)}
-                    className={cn(
-                      "flex w-full items-start gap-3 rounded-2xl border p-4 text-left",
-                      payment === method.id
-                        ? "border-brand-500 bg-brand-100"
-                        : "border-border hover:bg-stage",
-                    )}
-                  >
-                    <Icon name={method.icon} className="mt-0.5 h-5 w-5 text-brand-500" />
-                    <span>
-                      <span className="block text-sm font-semibold text-ink-800">
-                        {method.name}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground">
-                        {method.blurb}
-                      </span>
+          <Sheet open={step === 2} onOpenChange={open => { if (!open && step === 2) setStep(1); }}>
+            <SheetContent className="flex h-dvh w-full flex-col gap-0 p-0 sm:max-w-lg">
+              <header className="border-b border-border px-6 py-5">
+                <SheetTitle>Choose a payment method</SheetTitle>
+                <SheetDescription>Choose how you’ll pay for this order.</SheetDescription>
+              </header>
+              <div className="no-scrollbar min-h-0 grow overflow-y-auto px-6 py-4">
+              <fieldset className="mt-4 grid gap-2">
+                <legend className="sr-only">Payment method</legend>
+                {paymentOptions.map(option => {
+                  const available = option.id === "cash-on-delivery" || (option.id !== "mpamba" && manualPaymentAvailable);
+                  return <label key={option.id} className="flex items-start gap-3 rounded-xl border border-border p-4 has-[:checked]:border-brand-500 has-[:disabled]:opacity-60">
+                    <input type="radio" name="payment" value={option.id} checked={payment === option.id}
+                      disabled={!available} onChange={() => setPayment(option.id)} className="mt-1 accent-brand-500" />
+                    <span><strong className="block text-sm">{option.label}</strong>
+                      <span className="text-sm text-muted-foreground">{available || option.id === "mpamba" ? option.hint : "Temporarily unavailable."}</span>
                     </span>
-                  </button>
-                ))}
+                  </label>;
+                })}
+              </fieldset>
               </div>
-
-              <p className="mt-4 flex items-start gap-2 rounded-2xl bg-info-soft p-4 text-xs text-ink-800/80">
-                <Icon
-                  name="shield-check-linear"
-                  className="mt-0.5 h-4 w-4 shrink-0 text-brand-500"
-                />
-                No money leaves your account yet. Techaven confirms stock with the shop first, then
-                sends you payment instructions for the method you pick.
-              </p>
-
-              <div className="mt-7 flex flex-wrap gap-3">
+              <footer className="flex flex-wrap gap-3 border-t border-border bg-surface p-4">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
@@ -457,14 +337,15 @@ function CheckoutPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={!canPay}
                   onClick={() => setStep(3)}
                   className="rounded-lg bg-brand-500 px-5 py-3.5 text-[15px] font-semibold text-white hover:bg-brand-700"
                 >
                   Review order
                 </button>
-              </div>
-            </div>
-          ) : null}
+              </footer>
+            </SheetContent>
+          </Sheet>
 
           {step === 3 ? (
             <div>
@@ -489,19 +370,19 @@ function CheckoutPage() {
                     Paying with
                   </p>
                   <p className="mt-2 text-sm font-semibold text-ink-800">
-                    {paymentMethods.find((m) => m.id === payment)?.name}
+                    {paymentOptions.find(option => option.id === payment)?.label}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {paymentMethods.find((m) => m.id === payment)?.blurb}
+                    {paymentOptions.find(option => option.id === payment)?.hint}
                   </p>
                 </div>
               </div>
 
               <ul className="mt-6 divide-y divide-border">
                 {items.map(({ line, product }) => (
-                  <li key={line.slug} className="flex items-center gap-4 py-4">
+                  <li key={line.listingId} className="flex items-center gap-4 py-4">
                     <div className="w-16 shrink-0">
-                      <ImageStage category={product.category} />
+                      <ImageStage category={product.category} src={product.imageUrl} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink-800">{product.name}</p>
@@ -526,7 +407,7 @@ function CheckoutPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={placeOrder.isPending}
+                  disabled={placeOrder.isPending || !canPay}
                   onClick={() => placeOrder.mutate()}
                   className="rounded-lg bg-ink-900 px-6 py-3.5 text-[15px] font-semibold text-white hover:bg-ink-800 disabled:opacity-60"
                 >
@@ -568,31 +449,5 @@ function CheckoutPage() {
         </aside>
       </div>
     </section>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-sm font-semibold tracking-normal text-ink-800">
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-11 w-full rounded-lg border border-border bg-surface px-3.5 text-[15px] text-ink-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-      />
-    </label>
   );
 }

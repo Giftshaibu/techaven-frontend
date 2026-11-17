@@ -1,9 +1,32 @@
-import { ContactInfo } from "./ContactInfo";
+import { ContactInfo, TECHAVEN_PHONE } from "./ContactInfo";
 import { useQuery } from "@tanstack/react-query";
 import { techavenRequest } from "@/integrations/techaven/client";
 import { Link } from "@tanstack/react-router";
-import { Icon } from "@/components/Icon";
-import { categories, shops } from "@/data/catalog";
+import { Facebook, Instagram, Phone } from "lucide-react";
+import { categories } from "@/data/catalog";
+
+const socialProfiles = [
+  { label: "X", url: import.meta.env["VITE_TECHAVEN_X_URL"], icon: <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-7.4L5.5 22H2.4l7.3-8.4L2 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.5 4H5.7l12.1 16Z" /></svg> },
+  { label: "Facebook", url: import.meta.env["VITE_TECHAVEN_FACEBOOK_URL"], icon: <Facebook className="size-4" aria-hidden="true" /> },
+  { label: "Instagram", url: import.meta.env["VITE_TECHAVEN_INSTAGRAM_URL"], icon: <Instagram className="size-4" aria-hidden="true" /> },
+];
+
+function ContactLinks() {
+  const links = [
+    { label: "WhatsApp", url: `https://wa.me/${TECHAVEN_PHONE.slice(1)}`, icon: <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.7 15L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.4-1.3l-.3-.2-2.5.7.7-2.4-.2-.4A8 8 0 1 1 12 20Zm4.5-6.2c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.2l-.7.8c-.1.2-.3.2-.6.1a7 7 0 0 1-3.3-2.9c-.2-.3 0-.4.1-.5l.5-.6c.1-.2.2-.3.1-.5L9.5 8c-.1-.3-.3-.3-.5-.3h-.5c-.2 0-.5.1-.7.3-.2.3-.8.8-.8 1.9s.8 2.2.9 2.4c.1.1 1.7 2.6 4.2 3.7 1.9.8 2.6.7 3.3.6.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .1-1.1l-.6-.5Z" /></svg> },
+    { label: "Call Techaven", url: `tel:${TECHAVEN_PHONE}`, icon: <Phone className="size-4" aria-hidden="true" /> },
+    ...socialProfiles.filter(({ url }) => typeof url === "string" && /^https:\/\//i.test(url)),
+  ];
+  return (
+    <div className="my-4 flex flex-wrap gap-2.5">
+      {links.map(({ label, url, icon }) => (
+        <a key={label} href={url} aria-label={label} className="grid size-11 place-items-center rounded-full border border-white/20 hover:bg-white/15 focus-visible:outline focus-visible:outline-2">
+          {icon}
+        </a>
+      ))}
+    </div>
+  );
+}
 
 export function Footer() {
   const config = useQuery({
@@ -22,6 +45,7 @@ export function Footer() {
         />
         <p className="mt-3 text-sm text-white/70">Shop electronics from Malawian shops.</p>
         <ContactInfo className="my-3 text-white/85" />
+        <ContactLinks />
         {[
           {
             title: "Shop",
@@ -86,17 +110,7 @@ export function Footer() {
                   everything is gathered in one trusted place.
                 </p>
                 <ContactInfo className="mt-4 text-white/85" />
-                <div className="mt-6 flex gap-2.5">
-                  {["facebook", "instagram", "whatsapp", "tiktok"].map((name) => (
-                    <span
-                      key={name}
-                      className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5"
-                      aria-hidden
-                    >
-                      <Icon name="global-linear" className="h-4 w-4" />
-                    </span>
-                  ))}
-                </div>
+                <ContactLinks />
               </div>
 
               <div>
@@ -127,17 +141,6 @@ export function Footer() {
               <div>
                 <h3 className="text-sm font-semibold tracking-normal text-white">Stores</h3>
                 <ul className="mt-4 space-y-2.5 text-sm">
-                  {[].map((s: (typeof shops)[number]) => (
-                    <li key={s.slug}>
-                      <Link
-                        to="/shops/$shopSlug"
-                        params={{ shopSlug: s.slug }}
-                        className="text-white/80 transition-colors hover:text-white hover:underline"
-                      >
-                        {s.name}
-                      </Link>
-                    </li>
-                  ))}
                   <li>
                     <Link
                       to="/shops"
@@ -214,6 +217,9 @@ export function Footer() {
         <div className="border-t border-white/10 bg-ink-900">
           <div className="shell flex flex-col gap-3 py-5 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
             <p>© {new Date().getFullYear()} Techaven. All prices in Malawi kwacha.</p>
+            {import.meta.env.VITE_LOGO_DEV_PUBLISHABLE_KEY?.trim().startsWith("pk_") && (
+              <a href="https://www.logo.dev/" className="hover:underline">Logos provided by Logo.dev</a>
+            )}
           </div>
         </div>
 

@@ -35,7 +35,42 @@ describe("mobile commerce task states",()=>{
   const host=await mount(<ManualPayment orderId={1}/>);
   expect(host.textContent).toContain("Incorrect reference");expect(host.querySelector('input[name="receipt"]')).not.toBeNull();
  });
+ it("reveals the transaction-specific WhatsApp message only after a successful copy", async () => {
+  const writeText = vi.fn(async (_value: string) => {});
+  const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockImplementation(writeText);
+  const popup = vi.spyOn(window, "open").mockReturnValue(null);
+  const proof = "https://example.com/orders/ORDER-ONE#payment-proof";
+  mock.config.mockResolvedValue({ manual_payment: { enabled: true, whatsapp: "265991234567",
+    destinations: Array.from({ length: 7 }, (_, i) => ({ provider: "Fixture bank", account_name: "Company", account_number: String(100 + i), brand: "" }))
+  } });
+  mock.context.mockResolvedValue({ ...context, deadline: new Date(Date.now() + 3600000).toISOString(),
+    proof_url: proof, summary: "Fixture product", items: [{ id: 1, product_name: "Fixture product", product_image: "https://example.com/product.jpg", quantity: 1, subtotal: 30 }] });
+  try {
+    const host = await mount(<ManualPayment orderId={1} />);
+    expect(host.querySelector('a[href^="https://wa.me/"]')).toBeNull();
+    const buttons = [...host.querySelectorAll<HTMLButtonElement>('button[aria-label^="Copy"]')];
+    expect(buttons).toHaveLength(7);
+    writeText.mockRejectedValueOnce(new Error("Clipboard denied"));
+    await act(async () => { buttons[0]?.click(); });
+    expect(host.textContent).toContain("Copy failed");
+    expect(popup).not.toHaveBeenCalled();
+    writeText.mockClear();
+
+    for (const button of buttons) await act(async () => { button.click(); });
+    expect(writeText.mock.calls.map(call => call[0])).toEqual(["100", "101", "102", "103", "104", "105", "106"]);
+    const url = new URL(host.querySelector<HTMLAnchorElement>('a[href^="https://wa.me/"]')!.href);
+    expect(url.searchParams.get("text")?.split("\n").at(-1)).toBe(proof);
+    expect(url.searchParams.get("text")).toContain("Fixture bank · 106");
+    expect(url.searchParams.get("text")).toContain("https://example.com/product.jpg");
+    expect(popup).not.toHaveBeenCalled();
+    expect(host.textContent).toContain("Opening WhatsApp");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 1550)); });
+    expect(popup).toHaveBeenCalledWith(url.href, "_self");
+    expect(url.searchParams.get("text")).toContain("Fixture product");
+  } finally { clipboard.mockRestore(); popup.mockRestore(); }
+ });
  it("does not request location on render and preserves manual entry when maps are unconfigured",async()=>{
+  await import("./AddressMap");
   mock.request.mockResolvedValue({maps:{key:null}});const onChange=vi.fn();
   const host=await mount(<AddressLocation value={{label:"Home",recipient:"",phone:"",city:"",area:"",street:"",notes:""}} onChange={onChange}/>);
   expect(mock.request).not.toHaveBeenCalled();

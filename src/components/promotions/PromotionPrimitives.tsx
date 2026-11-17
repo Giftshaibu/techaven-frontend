@@ -55,6 +55,7 @@ export function PromotionMedia({
   imageClassName,
   onUnavailable,
   priority = false,
+  mobileMediaQuery = "(max-width: 767px)",
 }: {
   promotion: Promotion;
   className?: string;
@@ -63,8 +64,10 @@ export function PromotionMedia({
   imageClassName?: string;
   onUnavailable?: () => void;
   priority?: boolean;
+  mobileMediaQuery?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const [source, setSource] = useState<string>();
   const media = promotion.desktopBackground ?? promotion.foregroundImage;
   if (!media || failed) return null;
   return (
@@ -80,11 +83,12 @@ export function PromotionMedia({
       )}
     >
       {promotion.mobileBackground ? (
-        <source media="(max-width: 767px)" srcSet={promotion.mobileBackground.url} />
+        <source media={mobileMediaQuery} srcSet={promotion.mobileBackground.url} />
       ) : null}
       <img
         src={media.url}
-        alt={media.alt}
+        alt={source && source === promotion.mobileBackground?.url ? promotion.mobileBackground.alt : media.alt}
+        onLoad={(event) => setSource(event.currentTarget.currentSrc)}
         loading={priority ? "eager" : "lazy"}
         fetchPriority={priority ? "high" : "auto"}
         decoding="async"

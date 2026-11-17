@@ -3,7 +3,7 @@ import { googleChallenge, googleSignIn } from '@/integrations/techaven/customer'
 import type { AuthPayload } from '@/integrations/techaven/types';
 
 type GoogleIdentity = { initialize: (options: { client_id: string; nonce: string; auto_select: false; callback: (result: { credential: string }) => void }) => void;
-  renderButton: (element: HTMLElement, options: { theme: string; size: string; text: string }) => void };
+  renderButton: (element: HTMLElement, options: { theme: string; size: string; text: string; width: number; shape: string; logo_alignment: string }) => void };
 declare global { interface Window { google?: { accounts: { id: GoogleIdentity } } } }
 let scriptPromise: Promise<void> | undefined;
 function loadGoogle() {
@@ -27,6 +27,7 @@ export function GoogleSignIn({ onAuth, onLink }: { onAuth: (session: AuthPayload
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
+    let observer: ResizeObserver | undefined;
     setError(null);
     void googleChallenge().then(async challenge => {
       await loadGoogle();
@@ -41,14 +42,28 @@ export function GoogleSignIn({ onAuth, onLink }: { onAuth: (session: AuthPayload
             .finally(() => { if (active) setBusy(false); });
         } });
       container.current.replaceChildren();
-      window.google!.accounts.id.renderButton(container.current, { theme: 'outline', size: 'large', text: 'continue_with' });
-    }).catch(() => { if (active) setError('Google sign-in is currently unavailable. You can sign in with email.'); });
+      const host = container.current;
+      let renderedWidth = 0;
+      const render = () => {
+        const width = Math.min(host.clientWidth || 280, 400);
+        if (!active || width === renderedWidth) return;
+        renderedWidth = width;
+        host.replaceChildren();
+        window.google!.accounts.id.renderButton(host, { theme: 'outline', size: 'large',
+          text: 'continue_with', shape: 'pill', logo_alignment: 'left', width });
+      };
+      render();
+      if (typeof ResizeObserver !== "undefined") {
+        observer = new ResizeObserver(render);
+        observer.observe(host);
+      }
+    }).catch(() => { if (active) setError('Google unavailable. You can sign in with email.'); });
     // The nonce expires after five minutes; refresh before the next click can use an expired challenge.
     const timer = setTimeout(() => { if (active) setRetry(value => value + 1); }, 240000);
-    return () => { active = false; clearTimeout(timer); };
+    return () => { active = false; clearTimeout(timer); observer?.disconnect(); };
   }, [retry]);
-  return <div className="mt-6 border-t border-border pt-6">
-    <div ref={container} aria-label="Continue with Google" className={busy ? 'pointer-events-none opacity-60' : ''} />
+  return <div className="mt-5 grid justify-items-center gap-2 border-t border-border pt-4">
+    <div ref={container} aria-label="Continue with Google" className={`flex w-full justify-center ${busy ? 'pointer-events-none opacity-60' : ''}`} />
     {busy ? <p role="status" className="mt-2 text-sm">Signing in…</p> : null}
     {error ? <p role="status" className="text-sm text-muted-foreground">{error} <button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>Retry</button></p> : null}
   </div>;

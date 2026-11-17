@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ProductGrid } from "@/components/ProductGrid";
+import { FilteredProductGrid } from "@/components/FilteredProductGrid";
 import { searchCatalogProducts } from "@/lib/resolve-catalog";
 import { getPromotions } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
@@ -91,7 +91,7 @@ function SearchPage() {
           </p>
         ) : (
           <div className="mt-8">
-            <ProductGrid products={results.data.products} />
+            <FilteredProductGrid key={query} products={results.data.products} />
           </div>
         )}
       </section>

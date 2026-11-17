@@ -1,3 +1,4 @@
+import { Share2 } from "lucide-react";
 import { useEffect } from "react";
 import { recordVisit } from "@/lib/browsing-history";
 import { offerFacts } from "@/lib/offer-facts";
@@ -51,13 +52,22 @@ export const Route = createFileRoute("/product/$slug")({
     const shop = shops.find((item) => item?.slug === product.shop) ?? null;
     let related: CatalogProduct[] = [];
     try {
-      if (product.categoryId) {
-        const data = await fetchCategoryProducts(product.categoryId, 1, 12);
-        related = data.products.filter((p) => p.slug !== product.slug).slice(0, 5);
-      } else {
-        const data = await fetchProductsPage(1, 12);
-        related = data.products.filter((p) => p.slug !== product.slug).slice(0, 5);
-      }
+      const brand = product.marketplaceDevice?.brand?.slug;
+      const candidatePages = await Promise.allSettled([
+        product.categoryId ? fetchCategoryProducts(product.categoryId, 1, 48) : fetchProductsPage(1, 48),
+        ...(product.categoryId && brand ? [fetchCategoryProducts(product.categoryId, 1, 48, brand)] : []),
+      ]);
+      const specs = new Map(product.specs.map(({ label, value }) => [label, value]));
+      const similarity = (candidate: CatalogProduct) =>
+        candidate.specs.filter(({ label, value }) => value && value !== "—" && specs.get(label) === value).length;
+      const candidates = candidatePages.flatMap((result) => result.status === "fulfilled" ? result.value.products : []);
+      related = [...new Map(candidates
+        .filter((candidate) => candidate.apiId !== product.apiId && candidate.category === product.category && candidate.price > 0)
+        .map((candidate) => [candidate.apiId, candidate])).values()]
+        .sort((a, b) => Number(b.brand === product.brand) - Number(a.brand === product.brand)
+          || similarity(b) - similarity(a)
+          || Math.abs(a.price - product.price) - Math.abs(b.price - product.price))
+        .slice(0, 5);
     } catch {
       related = [];
     }
@@ -99,16 +109,19 @@ function ProductDetails({ data }: { data: ProductPageData }) {
   const { product, shops, related, promotions } = data;
   const categorySlug = product.category;
   const { add, count } = useCart();
+  const [shareStatus, setShareStatus] = useState("");
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const { listing } = Route.useSearch();
-  const [selectedListingId, setSelectedListingId] = useState(listing ?? product.listingId);
+  const [chosenListingId, setChosenListingId] = useState<number>();
+  const requestedListingId = chosenListingId ?? listing;
   useEffect(() => {
-    setSelectedListingId(listing ?? product.listingId);
+    setChosenListingId(undefined);
+    setShareStatus("");
   }, [listing, product.slug, product.listingId]);
   const selectedOffer =
-    product.offers?.find((offer) => offer.id === selectedListingId) ?? product.offers?.[0];
+    product.offers?.find((offer) => offer.id === (requestedListingId ?? product.listingId)) ?? product.offers?.[0];
   const selectedProduct = useMemo(
     () => (selectedOffer ? selectMarketplaceOffer(product, selectedOffer) : product),
     [product, selectedOffer],
@@ -127,7 +140,6 @@ function ProductDetails({ data }: { data: ProductPageData }) {
       : selectedProduct.imageUrl
         ? [selectedProduct.imageUrl]
         : [];
-  const shopName = selectedOffer?.shop?.name ?? shop?.name ?? product.shopName ?? "Shop";
   const discount = discountPercent(product);
 
   return (
@@ -154,6 +166,7 @@ function ProductDetails({ data }: { data: ProductPageData }) {
 
       <section className="shell grid gap-10 pb-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
+          <div className="relative">
           <ImageStage
             category={product.category}
             src={images[activeImage]}
@@ -161,6 +174,39 @@ function ProductDetails({ data }: { data: ProductPageData }) {
             priority
             className="rounded-2xl"
           />
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            <button type="button" aria-pressed={isSelected(product.slug)} aria-label="Toggle comparison" title="Compare"
+              className="grid size-11 place-items-center rounded-full border border-border bg-surface aria-pressed:bg-brand-500 aria-pressed:text-white"
+              onClick={() => toggle(product.slug, selectedProduct.listingId)}>
+              <Icon name={isSelected(product.slug) ? "scale-bold" : "scale-linear"} className="size-[18px]" />
+            </button>
+            <button type="button" aria-label="Share product" title="Share" className="grid size-11 place-items-center rounded-full border border-border bg-surface aria-pressed:bg-brand-500 aria-pressed:text-white"
+              onClick={async () => {
+                const url = new URL(window.location.href);
+                url.pathname = `/product/${encodeURIComponent(product.slug)}`;
+                url.search = "";
+                url.hash = "";
+                if (selectedOffer && selectedOffer.id === requestedListingId) {
+                  url.searchParams.set("listing", String(selectedOffer.id));
+                }
+                try {
+                  if (navigator.share) await navigator.share({ title: product.name, url: url.href });
+                  else {
+                    await navigator.clipboard.writeText(url.href);
+                    setShareStatus("Link copied");
+                  }
+                } catch (error) {
+                  if (!(error instanceof DOMException && error.name === "AbortError")) {
+                    setShareStatus("Could not share this link");
+                  }
+                }
+              }}>
+              <Share2 size={18} aria-hidden />
+            </button>
+            <span role="status" className="absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-surface px-2 text-sm">{shareStatus}</span>
+          </div>
+
+          </div>
           {images.length > 1 ? (
             <div className="mt-4 flex gap-3">
               {images.map((src, i) => (
@@ -249,37 +295,7 @@ function ProductDetails({ data }: { data: ProductPageData }) {
             </p>
           ) : null}
 
-          <div className="mt-6 rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-start gap-3">
-              <ShopLogo name={shopName} src={shop?.logoUrl} />
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-[15px] font-semibold text-ink-800">
-                  Sold by{" "}
-                  {shop ? (
-                    <Link
-                      to="/shops/$shopSlug"
-                      params={{ shopSlug: shop.slug }}
-                      className="hover:underline"
-                    >
-                      {shopName}
-                    </Link>
-                  ) : (
-                    shopName
-                  )}
-                  {shop?.verified ? (
-                    <Icon name="verified-check-bold" className="h-4 w-4 text-brand-500" />
-                  ) : null}
-                </p>
-                {shop ? (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {shop.location} · {shop.rating.toFixed(1)} rating
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => {
@@ -366,19 +382,6 @@ function ProductDetails({ data }: { data: ProductPageData }) {
                 </li>
               ))}
             </ul>
-            <div className="mt-6 rounded-2xl bg-info-soft p-5">
-              <h3 className="text-base font-bold text-ink-800">Still deciding?</h3>
-              <p className="mt-1.5 text-sm text-ink-800/70">
-                Compare this with up to three other devices before you buy.
-              </p>
-              <button
-                type="button"
-                onClick={() => toggle(product.slug)}
-                className="mt-4 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-              >
-                {isSelected(product.slug) ? "Added to compare" : "Add to compare"}
-              </button>
-            </div>
           </div>
         </div>
       </section>
@@ -436,7 +439,7 @@ function ProductDetails({ data }: { data: ProductPageData }) {
                     aria-label={`Select ${offer.shop?.name ?? "shop"} offer: ${details}, ${formatMwk(offer.price)}`}
                     disabled={offer.quantity <= 0}
                     onClick={() => {
-                      setSelectedListingId(offer.id);
+                      setChosenListingId(offer.id);
                       setActiveImage(0);
                       setAdded(false);
                     }}
@@ -456,10 +459,12 @@ function ProductDetails({ data }: { data: ProductPageData }) {
         </section>
       ) : null}
 
-      <section className="shell pb-14">
-        <SectionHeader title="You might also like" />
-        <ProductGrid products={related} columns={4} />
-      </section>
+      {related.length > 0 && (
+        <section className="shell pb-14">
+          <SectionHeader title="More offers like this" />
+          <ProductGrid products={related} columns={4} />
+        </section>
+      )}
 
       <PromotionSlot
         placement="product_inline_1"

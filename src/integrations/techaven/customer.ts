@@ -212,6 +212,7 @@ export function getCategories() {
 }
 
 export type MarketplaceQuery = {
+  sort?: ProductsQuery["sort"];
   page?: number;
   limit?: number;
   category_id?: number;
@@ -376,7 +377,7 @@ export function confirmOrderDelivery(
 
 // —— Wishlist ——
 export function getWishlist() {
-  return techavenRequest<{ items: WishlistItem[]; total_items: number }>("/api/wishlist", {
+  return techavenRequest<{ items: WishlistItem[]; total_items: number }>("/api/wishlist?include_devices=true", {
     auth: true,
   });
 }

@@ -255,7 +255,7 @@ export function CustomerExperience() {
           if (!open && !skip.isPending) closePayment();
         }}
       >
-        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl bg-surface p-6 sm:p-8 [&>button:last-child]:flex [&>button:last-child]:h-11 [&>button:last-child]:w-11 [&>button:last-child]:items-center [&>button:last-child]:justify-center">
+        <DialogContent className="no-scrollbar max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl bg-surface p-6 sm:p-8 [&>button:last-child]:flex [&>button:last-child]:h-11 [&>button:last-child]:w-11 [&>button:last-child]:items-center [&>button:last-child]:justify-center">
           <DialogTitle className="pr-8 text-2xl font-bold">Add mobile money?</DialogTitle>
           <DialogDescription>
             Save a number for future payments. This step is optional.

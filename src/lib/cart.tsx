@@ -35,8 +35,8 @@ type CartContextValue = {
   lines: CartLine[];
   count: number;
   add: (product: CatalogProduct, quantity?: number) => Promise<void>;
-  setQuantity: (slug: string, quantity: number) => Promise<void>;
-  remove: (slug: string) => Promise<void>;
+  setQuantity: (listingId: number, quantity: number) => Promise<void>;
+  remove: (listingId: number) => Promise<void>;
   clear: () => Promise<void>;
   ready: boolean;
   syncing: boolean;
@@ -226,9 +226,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const remove = useCallback(
-    async (slug: string) => {
-      const line = lines.find((l) => l.slug === slug);
-      setLines((prev) => prev.filter((l) => l.slug !== slug));
+    async (listingId: number) => {
+      const line = lines.find((l) => l.listingId === listingId);
+      setLines((prev) => prev.filter((l) => l.listingId !== listingId));
 
       if (!user || !line?.cartItemId) return;
 
@@ -247,16 +247,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const setQuantity = useCallback(
-    async (slug: string, quantity: number) => {
-      const line = lines.find((l) => l.slug === slug);
+    async (listingId: number, quantity: number) => {
+      const line = lines.find((l) => l.listingId === listingId);
       if (!line) return;
 
       if (quantity <= 0) {
-        await remove(slug);
+        await remove(listingId);
         return;
       }
 
-      setLines((prev) => prev.map((l) => (l.slug === slug ? { ...l, quantity } : l)));
+      setLines((prev) => prev.map((l) => (l.listingId === listingId ? { ...l, quantity } : l)));
 
       if (!user || !line.cartItemId) return;
 
