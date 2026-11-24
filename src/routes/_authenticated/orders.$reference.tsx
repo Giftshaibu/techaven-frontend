@@ -1,5 +1,6 @@
 import { ImageStage } from "@/components/ImageStage";
 import { useEffect, useState } from "react";
+import { AirtelPayment } from "@/components/AirtelPayment";
 import { ManualPayment } from "@/components/ManualPayment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -44,8 +45,9 @@ function OrderPage() {
   });
 
   useEffect(() => {
-    if (order.data && window.location.hash === "#payment-proof") {
-      document.getElementById("payment-proof")?.scrollIntoView();
+    const target = window.location.hash.slice(1);
+    if (order.data && (target === "payment-proof" || target === "airtel-payment")) {
+      document.getElementById(target)?.scrollIntoView();
     }
   }, [order.data]);
 
@@ -110,6 +112,12 @@ function OrderPage() {
   if (data.payment_method === "bank-transfer" && data.status !== "cancelled") {
     return <section className="shell py-8">
       <ManualPayment orderId={String(data.id).replace("ord_", "")} footer={actions} />
+    </section>;
+  }
+
+  if (data.payment_method === "airtel" && data.payment_status !== "paid" && data.status !== "cancelled") {
+    return <section className="shell py-8">
+      <AirtelPayment orderId={String(data.id).replace("ord_", "")} footer={actions} />
     </section>;
   }
 

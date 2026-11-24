@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { subscriptionApi, type ShopSubscription } from "@/integrations/techaven/staff";
+import { isAirtelNumber } from "@/lib/airtel";
 import { cn } from "@/lib/utils";
 
 import { buttonClass, errorMessage, inputClass, mwk, shortDate } from "./kit";
@@ -18,15 +19,6 @@ type Phase = "phone" | "sending" | "waiting" | "paid" | "failed";
 const POLL_MS = 4000;
 const TIMEOUT_MS = 3 * 60 * 1000;
 const RESEND_AFTER_MS = 45 * 1000;
-
-/** Airtel Malawi numbers: 9 digits starting with 9 once the leading 0 / +265 is removed. */
-export function isAirtelNumber(value: string) {
-  const local = value
-    .replace(/[\s-]/g, "")
-    .replace(/^\+?265/, "")
-    .replace(/^0/, "");
-  return /^9\d{8}$/.test(local);
-}
 
 /**
  * Pays a pending shop subscription with an Airtel Money USSD push, then polls the server

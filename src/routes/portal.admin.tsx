@@ -14,6 +14,7 @@ const nav: PortalNavItem[] = [
   { to: "/portal/admin/shops", label: "Shops", icon: "shop-2-linear" },
   { to: "/portal/admin/catalog", label: "Catalogue", icon: "layers-linear" },
   { to: "/portal/admin/orders", label: "Orders", icon: "bag-4-linear" },
+  { to: "/portal/admin/payments", label: "Payments", icon: "bill-check-linear" },
   { to: "/portal/admin/users", label: "People", icon: "users-group-rounded-linear" },
   { to: "/portal/admin/subscriptions", label: "Subscriptions", icon: "card-linear" },
   { to: "/portal/admin/payouts", label: "Payouts", icon: "wallet-money-linear" },

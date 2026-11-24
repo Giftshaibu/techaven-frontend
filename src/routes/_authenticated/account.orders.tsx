@@ -140,7 +140,7 @@ function OrdersPage() {
             </div>
             <Link
               to="/orders/$reference"
-              params={{ reference: ref }}
+              params={{ reference: String(order.id) }}
               {...(order.payment_method === "bank-transfer" ? { hash: "payment-proof" } : {})}
               className="mt-4 inline-flex text-sm font-semibold text-brand-500 hover:underline"
             >

@@ -1,4 +1,4 @@
-import { techavenRequest } from "./client";
+import { techavenRequest, TechavenApiError } from "./client";
 import type {
   ApiCategory,
   ApiOrder,
@@ -321,8 +321,19 @@ export function getMyPaidOrders() {
   return techavenRequest<ApiOrder[]>("/api/orders/mine/paid", { auth: true });
 }
 
-export function getOrder(orderId: number | string) {
-  return techavenRequest<ApiOrder>(`/api/orders/${orderId}`, { auth: true });
+export async function getOrder(orderId: number | string) {
+  try {
+    return await techavenRequest<ApiOrder>(`/api/orders/${orderId}`, { auth: true });
+  } catch (error) {
+    // Links may carry an order number, but the API only looks orders up by id.
+    const isId = /^(ord_)?\d+$/.test(String(orderId));
+    if (isId || !(error instanceof TechavenApiError) || error.status !== 404) throw error;
+    const result = await getOrders({ limit: 100 });
+    const list = Array.isArray(result) ? result : (result.orders ?? []);
+    const match = list.find((order) => order.order_number === orderId);
+    if (!match) throw error;
+    return techavenRequest<ApiOrder>(`/api/orders/${match.id}`, { auth: true });
+  }
 }
 
 export function payOrderAirtel(orderId: number | string, body: { msisdn: string }) {
@@ -334,7 +345,10 @@ export function payOrderAirtel(orderId: number | string, body: { msisdn: string 
 }
 
 export function getOrderAirtelStatus(orderId: number | string) {
-  return techavenRequest<unknown>(`/api/orders/${orderId}/pay/airtel/status`, { auth: true });
+  return techavenRequest<{ payment_status?: string; airtel?: unknown }>(
+    `/api/orders/${orderId}/pay/airtel/status`,
+    { auth: true },
+  );
 }
 
 export function payOrderPaychangu(orderId: number | string, body: { tx_ref: string }) {
