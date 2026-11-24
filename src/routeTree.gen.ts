@@ -19,12 +19,17 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DealsRouteImport } from './routes/deals'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as PaygoRouteImport } from './routes/paygo'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as TradeInRouteImport } from './routes/trade-in'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedCheckoutRouteImport } from './routes/_authenticated/checkout'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as PortalAdminRouteImport } from './routes/portal.admin'
+import { Route as PortalDeliveryRouteImport } from './routes/portal.delivery'
+import { Route as PortalSellerRouteImport } from './routes/portal.seller'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as PromotionsSlugRouteImport } from './routes/promotions.$slug'
 import { Route as PromotionsPreviewRouteImport } from './routes/promotions.preview'
@@ -34,6 +39,25 @@ import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedAccountOrdersRouteImport } from './routes/_authenticated/account.orders'
 import { Route as AuthenticatedAccountSavedRouteImport } from './routes/_authenticated/account.saved'
 import { Route as AuthenticatedOrdersReferenceRouteImport } from './routes/_authenticated/orders.$reference'
+import { Route as PortalAdminIndexRouteImport } from './routes/portal.admin.index'
+import { Route as PortalAdminActivityRouteImport } from './routes/portal.admin.activity'
+import { Route as PortalAdminCatalogRouteImport } from './routes/portal.admin.catalog'
+import { Route as PortalAdminOrdersRouteImport } from './routes/portal.admin.orders'
+import { Route as PortalAdminPayoutsRouteImport } from './routes/portal.admin.payouts'
+import { Route as PortalAdminSettingsRouteImport } from './routes/portal.admin.settings'
+import { Route as PortalAdminShopsRouteImport } from './routes/portal.admin.shops'
+import { Route as PortalAdminSubscriptionsRouteImport } from './routes/portal.admin.subscriptions'
+import { Route as PortalAdminUsersRouteImport } from './routes/portal.admin.users'
+import { Route as PortalDeliveryIndexRouteImport } from './routes/portal.delivery.index'
+import { Route as PortalDeliveryHistoryRouteImport } from './routes/portal.delivery.history'
+import { Route as PortalDeliveryProfileRouteImport } from './routes/portal.delivery.profile'
+import { Route as PortalSellerIndexRouteImport } from './routes/portal.seller.index'
+import { Route as PortalSellerEarningsRouteImport } from './routes/portal.seller.earnings'
+import { Route as PortalSellerListingsRouteImport } from './routes/portal.seller.listings'
+import { Route as PortalSellerOrdersRouteImport } from './routes/portal.seller.orders'
+import { Route as PortalSellerPlanRouteImport } from './routes/portal.seller.plan'
+import { Route as PortalSellerRequestsRouteImport } from './routes/portal.seller.requests'
+import { Route as PortalSellerShopRouteImport } from './routes/portal.seller.shop'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -84,6 +108,11 @@ const PaygoRoute = PaygoRouteImport.update({
   path: '/paygo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsRoute = ProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -113,6 +142,26 @@ const CategorySlugRoute = CategorySlugRouteImport.update({
   id: '/category/$slug',
   path: '/category/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalAdminRoute = PortalAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDeliveryRoute = PortalDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSellerRoute = PortalSellerRouteImport.update({
+  id: '/seller',
+  path: '/seller',
+  getParentRoute: () => PortalRoute,
 } as any)
 const ProductSlugRoute = ProductSlugRouteImport.update({
   id: '/product/$slug',
@@ -163,6 +212,102 @@ const AuthenticatedOrdersReferenceRoute =
     path: '/orders/$reference',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const PortalAdminIndexRoute = PortalAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminActivityRoute = PortalAdminActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminCatalogRoute = PortalAdminCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminOrdersRoute = PortalAdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminPayoutsRoute = PortalAdminPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminSettingsRoute = PortalAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminShopsRoute = PortalAdminShopsRouteImport.update({
+  id: '/shops',
+  path: '/shops',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminSubscriptionsRoute =
+  PortalAdminSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => PortalAdminRoute,
+  } as any)
+const PortalAdminUsersRoute = PortalAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalDeliveryIndexRoute = PortalDeliveryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalDeliveryRoute,
+} as any)
+const PortalDeliveryHistoryRoute = PortalDeliveryHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => PortalDeliveryRoute,
+} as any)
+const PortalDeliveryProfileRoute = PortalDeliveryProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PortalDeliveryRoute,
+} as any)
+const PortalSellerIndexRoute = PortalSellerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerEarningsRoute = PortalSellerEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerListingsRoute = PortalSellerListingsRouteImport.update({
+  id: '/listings',
+  path: '/listings',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerOrdersRoute = PortalSellerOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerPlanRoute = PortalSellerPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerRequestsRoute = PortalSellerRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
+const PortalSellerShopRoute = PortalSellerShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -174,21 +319,45 @@ export interface FileRoutesByFullPath {
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
   '/paygo': typeof PaygoRoute
+  '/portal': typeof PortalRouteWithChildren
   '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
+  '/portal/admin': typeof PortalAdminRouteWithChildren
+  '/portal/delivery': typeof PortalDeliveryRouteWithChildren
+  '/portal/seller': typeof PortalSellerRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
   '/promotions/$slug': typeof PromotionsSlugRoute
   '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
+  '/portal/': typeof PortalIndexRoute
   '/shops/': typeof ShopsIndexRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/account/saved': typeof AuthenticatedAccountSavedRoute
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/portal/admin/activity': typeof PortalAdminActivityRoute
+  '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/settings': typeof PortalAdminSettingsRoute
+  '/portal/admin/shops': typeof PortalAdminShopsRoute
+  '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
+  '/portal/admin/users': typeof PortalAdminUsersRoute
+  '/portal/delivery/history': typeof PortalDeliveryHistoryRoute
+  '/portal/delivery/profile': typeof PortalDeliveryProfileRoute
+  '/portal/seller/earnings': typeof PortalSellerEarningsRoute
+  '/portal/seller/listings': typeof PortalSellerListingsRoute
+  '/portal/seller/orders': typeof PortalSellerOrdersRoute
+  '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/requests': typeof PortalSellerRequestsRoute
+  '/portal/seller/shop': typeof PortalSellerShopRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
+  '/portal/admin/': typeof PortalAdminIndexRoute
+  '/portal/delivery/': typeof PortalDeliveryIndexRoute
+  '/portal/seller/': typeof PortalSellerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -209,11 +378,31 @@ export interface FileRoutesByTo {
   '/promotions/$slug': typeof PromotionsSlugRoute
   '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
+  '/portal': typeof PortalIndexRoute
   '/shops': typeof ShopsIndexRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/account/saved': typeof AuthenticatedAccountSavedRoute
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/portal/admin/activity': typeof PortalAdminActivityRoute
+  '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/settings': typeof PortalAdminSettingsRoute
+  '/portal/admin/shops': typeof PortalAdminShopsRoute
+  '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
+  '/portal/admin/users': typeof PortalAdminUsersRoute
+  '/portal/delivery/history': typeof PortalDeliveryHistoryRoute
+  '/portal/delivery/profile': typeof PortalDeliveryProfileRoute
+  '/portal/seller/earnings': typeof PortalSellerEarningsRoute
+  '/portal/seller/listings': typeof PortalSellerListingsRoute
+  '/portal/seller/orders': typeof PortalSellerOrdersRoute
+  '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/requests': typeof PortalSellerRequestsRoute
+  '/portal/seller/shop': typeof PortalSellerShopRoute
   '/account': typeof AuthenticatedAccountIndexRoute
+  '/portal/admin': typeof PortalAdminIndexRoute
+  '/portal/delivery': typeof PortalDeliveryIndexRoute
+  '/portal/seller': typeof PortalSellerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -227,21 +416,45 @@ export interface FileRoutesById {
   '/deals': typeof DealsRoute
   '/help': typeof HelpRoute
   '/paygo': typeof PaygoRoute
+  '/portal': typeof PortalRouteWithChildren
   '/products': typeof ProductsRoute
   '/search': typeof SearchRoute
   '/trade-in': typeof TradeInRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/checkout': typeof AuthenticatedCheckoutRoute
   '/category/$slug': typeof CategorySlugRoute
+  '/portal/admin': typeof PortalAdminRouteWithChildren
+  '/portal/delivery': typeof PortalDeliveryRouteWithChildren
+  '/portal/seller': typeof PortalSellerRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
   '/promotions/$slug': typeof PromotionsSlugRoute
   '/promotions/preview': typeof PromotionsPreviewRoute
   '/shops/$shopSlug': typeof ShopsShopSlugRoute
+  '/portal/': typeof PortalIndexRoute
   '/shops/': typeof ShopsIndexRoute
   '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/_authenticated/account/saved': typeof AuthenticatedAccountSavedRoute
   '/_authenticated/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
+  '/portal/admin/activity': typeof PortalAdminActivityRoute
+  '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/settings': typeof PortalAdminSettingsRoute
+  '/portal/admin/shops': typeof PortalAdminShopsRoute
+  '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
+  '/portal/admin/users': typeof PortalAdminUsersRoute
+  '/portal/delivery/history': typeof PortalDeliveryHistoryRoute
+  '/portal/delivery/profile': typeof PortalDeliveryProfileRoute
+  '/portal/seller/earnings': typeof PortalSellerEarningsRoute
+  '/portal/seller/listings': typeof PortalSellerListingsRoute
+  '/portal/seller/orders': typeof PortalSellerOrdersRoute
+  '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/requests': typeof PortalSellerRequestsRoute
+  '/portal/seller/shop': typeof PortalSellerShopRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
+  '/portal/admin/': typeof PortalAdminIndexRoute
+  '/portal/delivery/': typeof PortalDeliveryIndexRoute
+  '/portal/seller/': typeof PortalSellerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -255,21 +468,45 @@ export interface FileRouteTypes {
     | '/deals'
     | '/help'
     | '/paygo'
+    | '/portal'
     | '/products'
     | '/search'
     | '/trade-in'
     | '/account'
     | '/checkout'
     | '/category/$slug'
+    | '/portal/admin'
+    | '/portal/delivery'
+    | '/portal/seller'
     | '/product/$slug'
     | '/promotions/$slug'
     | '/promotions/preview'
     | '/shops/$shopSlug'
+    | '/portal/'
     | '/shops/'
     | '/account/orders'
     | '/account/saved'
     | '/orders/$reference'
+    | '/portal/admin/activity'
+    | '/portal/admin/catalog'
+    | '/portal/admin/orders'
+    | '/portal/admin/payouts'
+    | '/portal/admin/settings'
+    | '/portal/admin/shops'
+    | '/portal/admin/subscriptions'
+    | '/portal/admin/users'
+    | '/portal/delivery/history'
+    | '/portal/delivery/profile'
+    | '/portal/seller/earnings'
+    | '/portal/seller/listings'
+    | '/portal/seller/orders'
+    | '/portal/seller/plan'
+    | '/portal/seller/requests'
+    | '/portal/seller/shop'
     | '/account/'
+    | '/portal/admin/'
+    | '/portal/delivery/'
+    | '/portal/seller/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -290,11 +527,31 @@ export interface FileRouteTypes {
     | '/promotions/$slug'
     | '/promotions/preview'
     | '/shops/$shopSlug'
+    | '/portal'
     | '/shops'
     | '/account/orders'
     | '/account/saved'
     | '/orders/$reference'
+    | '/portal/admin/activity'
+    | '/portal/admin/catalog'
+    | '/portal/admin/orders'
+    | '/portal/admin/payouts'
+    | '/portal/admin/settings'
+    | '/portal/admin/shops'
+    | '/portal/admin/subscriptions'
+    | '/portal/admin/users'
+    | '/portal/delivery/history'
+    | '/portal/delivery/profile'
+    | '/portal/seller/earnings'
+    | '/portal/seller/listings'
+    | '/portal/seller/orders'
+    | '/portal/seller/plan'
+    | '/portal/seller/requests'
+    | '/portal/seller/shop'
     | '/account'
+    | '/portal/admin'
+    | '/portal/delivery'
+    | '/portal/seller'
   id:
     | '__root__'
     | '/'
@@ -307,21 +564,45 @@ export interface FileRouteTypes {
     | '/deals'
     | '/help'
     | '/paygo'
+    | '/portal'
     | '/products'
     | '/search'
     | '/trade-in'
     | '/_authenticated/account'
     | '/_authenticated/checkout'
     | '/category/$slug'
+    | '/portal/admin'
+    | '/portal/delivery'
+    | '/portal/seller'
     | '/product/$slug'
     | '/promotions/$slug'
     | '/promotions/preview'
     | '/shops/$shopSlug'
+    | '/portal/'
     | '/shops/'
     | '/_authenticated/account/orders'
     | '/_authenticated/account/saved'
     | '/_authenticated/orders/$reference'
+    | '/portal/admin/activity'
+    | '/portal/admin/catalog'
+    | '/portal/admin/orders'
+    | '/portal/admin/payouts'
+    | '/portal/admin/settings'
+    | '/portal/admin/shops'
+    | '/portal/admin/subscriptions'
+    | '/portal/admin/users'
+    | '/portal/delivery/history'
+    | '/portal/delivery/profile'
+    | '/portal/seller/earnings'
+    | '/portal/seller/listings'
+    | '/portal/seller/orders'
+    | '/portal/seller/plan'
+    | '/portal/seller/requests'
+    | '/portal/seller/shop'
     | '/_authenticated/account/'
+    | '/portal/admin/'
+    | '/portal/delivery/'
+    | '/portal/seller/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -335,6 +616,7 @@ export interface RootRouteChildren {
   DealsRoute: typeof DealsRoute
   HelpRoute: typeof HelpRoute
   PaygoRoute: typeof PaygoRoute
+  PortalRoute: typeof PortalRouteWithChildren
   ProductsRoute: typeof ProductsRoute
   SearchRoute: typeof SearchRoute
   TradeInRoute: typeof TradeInRoute
@@ -418,6 +700,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaygoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products': {
       id: '/products'
       path: '/products'
@@ -459,6 +748,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/category/$slug'
       preLoaderRoute: typeof CategorySlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/admin': {
+      id: '/portal/admin'
+      path: '/admin'
+      fullPath: '/portal/admin'
+      preLoaderRoute: typeof PortalAdminRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/delivery': {
+      id: '/portal/delivery'
+      path: '/delivery'
+      fullPath: '/portal/delivery'
+      preLoaderRoute: typeof PortalDeliveryRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/seller': {
+      id: '/portal/seller'
+      path: '/seller'
+      fullPath: '/portal/seller'
+      preLoaderRoute: typeof PortalSellerRouteImport
+      parentRoute: typeof PortalRoute
     }
     '/product/$slug': {
       id: '/product/$slug'
@@ -523,6 +840,139 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrdersReferenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/portal/admin/': {
+      id: '/portal/admin/'
+      path: '/'
+      fullPath: '/portal/admin/'
+      preLoaderRoute: typeof PortalAdminIndexRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/activity': {
+      id: '/portal/admin/activity'
+      path: '/activity'
+      fullPath: '/portal/admin/activity'
+      preLoaderRoute: typeof PortalAdminActivityRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/catalog': {
+      id: '/portal/admin/catalog'
+      path: '/catalog'
+      fullPath: '/portal/admin/catalog'
+      preLoaderRoute: typeof PortalAdminCatalogRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/orders': {
+      id: '/portal/admin/orders'
+      path: '/orders'
+      fullPath: '/portal/admin/orders'
+      preLoaderRoute: typeof PortalAdminOrdersRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/payouts': {
+      id: '/portal/admin/payouts'
+      path: '/payouts'
+      fullPath: '/portal/admin/payouts'
+      preLoaderRoute: typeof PortalAdminPayoutsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/settings': {
+      id: '/portal/admin/settings'
+      path: '/settings'
+      fullPath: '/portal/admin/settings'
+      preLoaderRoute: typeof PortalAdminSettingsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/shops': {
+      id: '/portal/admin/shops'
+      path: '/shops'
+      fullPath: '/portal/admin/shops'
+      preLoaderRoute: typeof PortalAdminShopsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/subscriptions': {
+      id: '/portal/admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/portal/admin/subscriptions'
+      preLoaderRoute: typeof PortalAdminSubscriptionsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/users': {
+      id: '/portal/admin/users'
+      path: '/users'
+      fullPath: '/portal/admin/users'
+      preLoaderRoute: typeof PortalAdminUsersRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/delivery/': {
+      id: '/portal/delivery/'
+      path: '/'
+      fullPath: '/portal/delivery/'
+      preLoaderRoute: typeof PortalDeliveryIndexRouteImport
+      parentRoute: typeof PortalDeliveryRoute
+    }
+    '/portal/delivery/history': {
+      id: '/portal/delivery/history'
+      path: '/history'
+      fullPath: '/portal/delivery/history'
+      preLoaderRoute: typeof PortalDeliveryHistoryRouteImport
+      parentRoute: typeof PortalDeliveryRoute
+    }
+    '/portal/delivery/profile': {
+      id: '/portal/delivery/profile'
+      path: '/profile'
+      fullPath: '/portal/delivery/profile'
+      preLoaderRoute: typeof PortalDeliveryProfileRouteImport
+      parentRoute: typeof PortalDeliveryRoute
+    }
+    '/portal/seller/': {
+      id: '/portal/seller/'
+      path: '/'
+      fullPath: '/portal/seller/'
+      preLoaderRoute: typeof PortalSellerIndexRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/earnings': {
+      id: '/portal/seller/earnings'
+      path: '/earnings'
+      fullPath: '/portal/seller/earnings'
+      preLoaderRoute: typeof PortalSellerEarningsRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/listings': {
+      id: '/portal/seller/listings'
+      path: '/listings'
+      fullPath: '/portal/seller/listings'
+      preLoaderRoute: typeof PortalSellerListingsRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/orders': {
+      id: '/portal/seller/orders'
+      path: '/orders'
+      fullPath: '/portal/seller/orders'
+      preLoaderRoute: typeof PortalSellerOrdersRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/plan': {
+      id: '/portal/seller/plan'
+      path: '/plan'
+      fullPath: '/portal/seller/plan'
+      preLoaderRoute: typeof PortalSellerPlanRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/requests': {
+      id: '/portal/seller/requests'
+      path: '/requests'
+      fullPath: '/portal/seller/requests'
+      preLoaderRoute: typeof PortalSellerRequestsRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
+    '/portal/seller/shop': {
+      id: '/portal/seller/shop'
+      path: '/shop'
+      fullPath: '/portal/seller/shop'
+      preLoaderRoute: typeof PortalSellerShopRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
   }
 }
 
@@ -556,6 +1006,91 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface PortalAdminRouteChildren {
+  PortalAdminActivityRoute: typeof PortalAdminActivityRoute
+  PortalAdminCatalogRoute: typeof PortalAdminCatalogRoute
+  PortalAdminOrdersRoute: typeof PortalAdminOrdersRoute
+  PortalAdminPayoutsRoute: typeof PortalAdminPayoutsRoute
+  PortalAdminSettingsRoute: typeof PortalAdminSettingsRoute
+  PortalAdminShopsRoute: typeof PortalAdminShopsRoute
+  PortalAdminSubscriptionsRoute: typeof PortalAdminSubscriptionsRoute
+  PortalAdminUsersRoute: typeof PortalAdminUsersRoute
+  PortalAdminIndexRoute: typeof PortalAdminIndexRoute
+}
+
+const PortalAdminRouteChildren: PortalAdminRouteChildren = {
+  PortalAdminActivityRoute: PortalAdminActivityRoute,
+  PortalAdminCatalogRoute: PortalAdminCatalogRoute,
+  PortalAdminOrdersRoute: PortalAdminOrdersRoute,
+  PortalAdminPayoutsRoute: PortalAdminPayoutsRoute,
+  PortalAdminSettingsRoute: PortalAdminSettingsRoute,
+  PortalAdminShopsRoute: PortalAdminShopsRoute,
+  PortalAdminSubscriptionsRoute: PortalAdminSubscriptionsRoute,
+  PortalAdminUsersRoute: PortalAdminUsersRoute,
+  PortalAdminIndexRoute: PortalAdminIndexRoute,
+}
+
+const PortalAdminRouteWithChildren = PortalAdminRoute._addFileChildren(
+  PortalAdminRouteChildren,
+)
+
+interface PortalDeliveryRouteChildren {
+  PortalDeliveryHistoryRoute: typeof PortalDeliveryHistoryRoute
+  PortalDeliveryProfileRoute: typeof PortalDeliveryProfileRoute
+  PortalDeliveryIndexRoute: typeof PortalDeliveryIndexRoute
+}
+
+const PortalDeliveryRouteChildren: PortalDeliveryRouteChildren = {
+  PortalDeliveryHistoryRoute: PortalDeliveryHistoryRoute,
+  PortalDeliveryProfileRoute: PortalDeliveryProfileRoute,
+  PortalDeliveryIndexRoute: PortalDeliveryIndexRoute,
+}
+
+const PortalDeliveryRouteWithChildren = PortalDeliveryRoute._addFileChildren(
+  PortalDeliveryRouteChildren,
+)
+
+interface PortalSellerRouteChildren {
+  PortalSellerEarningsRoute: typeof PortalSellerEarningsRoute
+  PortalSellerListingsRoute: typeof PortalSellerListingsRoute
+  PortalSellerOrdersRoute: typeof PortalSellerOrdersRoute
+  PortalSellerPlanRoute: typeof PortalSellerPlanRoute
+  PortalSellerRequestsRoute: typeof PortalSellerRequestsRoute
+  PortalSellerShopRoute: typeof PortalSellerShopRoute
+  PortalSellerIndexRoute: typeof PortalSellerIndexRoute
+}
+
+const PortalSellerRouteChildren: PortalSellerRouteChildren = {
+  PortalSellerEarningsRoute: PortalSellerEarningsRoute,
+  PortalSellerListingsRoute: PortalSellerListingsRoute,
+  PortalSellerOrdersRoute: PortalSellerOrdersRoute,
+  PortalSellerPlanRoute: PortalSellerPlanRoute,
+  PortalSellerRequestsRoute: PortalSellerRequestsRoute,
+  PortalSellerShopRoute: PortalSellerShopRoute,
+  PortalSellerIndexRoute: PortalSellerIndexRoute,
+}
+
+const PortalSellerRouteWithChildren = PortalSellerRoute._addFileChildren(
+  PortalSellerRouteChildren,
+)
+
+interface PortalRouteChildren {
+  PortalAdminRoute: typeof PortalAdminRouteWithChildren
+  PortalDeliveryRoute: typeof PortalDeliveryRouteWithChildren
+  PortalSellerRoute: typeof PortalSellerRouteWithChildren
+  PortalIndexRoute: typeof PortalIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAdminRoute: PortalAdminRouteWithChildren,
+  PortalDeliveryRoute: PortalDeliveryRouteWithChildren,
+  PortalSellerRoute: PortalSellerRouteWithChildren,
+  PortalIndexRoute: PortalIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -567,6 +1102,7 @@ const rootRouteChildren: RootRouteChildren = {
   DealsRoute: DealsRoute,
   HelpRoute: HelpRoute,
   PaygoRoute: PaygoRoute,
+  PortalRoute: PortalRouteWithChildren,
   ProductsRoute: ProductsRoute,
   SearchRoute: SearchRoute,
   TradeInRoute: TradeInRoute,
