@@ -8,7 +8,7 @@ import { HorizontalRail } from "@/components/HorizontalRail";
 import { formatMwk } from "@/data/catalog";
 import type { CatalogProduct } from "@/lib/catalog-api";
 import { ctaHref, type Promotion } from "@/lib/cms/promotions";
-import { resolvePromotionProducts, resolvePromotionShops } from "@/lib/promotion-commerce";
+import { resolvePromotionProducts, resolvePromotionShops, resolveParticipatingOffers } from "@/lib/promotion-commerce";
 import { themeClass } from "./promotion-theme";
 import { PromotionAction, PromotionCopy, PromotionMedia } from "./PromotionPrimitives";
 import { PromotionCountdown, PromotionHero, PromotionHeroFrame } from "./PromotionVisuals";
@@ -16,9 +16,9 @@ import { PromotionCountdown, PromotionHero, PromotionHeroFrame } from "./Promoti
 function useRailProducts(promotion?: Promotion) {
   const ids = promotion?.productRefs.slice(0, 12).map((ref) => ref.externalId) ?? [];
   return useQuery({
-    queryKey: ["promotion-rail-products", ids],
-    queryFn: () => resolvePromotionProducts(ids),
-    enabled: ids.length >= 2,
+    queryKey: ["promotion-rail-products", promotion?.slug, promotion?.useParticipatingOffers, ids],
+    queryFn: () => promotion?.useParticipatingOffers ? resolveParticipatingOffers(promotion.slug) : resolvePromotionProducts(ids),
+    enabled: Boolean(promotion?.useParticipatingOffers) || ids.length >= 2,
     refetchInterval: 30_000,
   }).data ?? [];
 }
@@ -31,14 +31,15 @@ export function BannerWithRail({
   heading: "h1" | "h2";
 }) {
   const products = useRailProducts(promotion);
+  const desktopArtwork = promotion.desktopBackground ?? promotion.desktopStripArtwork;
   return (
     <section className="pb-10 md:pb-14">
       <div className="max-md:shell">
         <div className={`relative isolate overflow-hidden rounded-2xl max-md:[container-type:inline-size] md:rounded-none md:bg-brand-700 md:text-white ${themeClass[promotion.theme]}`}>
-          {promotion.desktopStripArtwork && (
+          {desktopArtwork && (
             <div aria-hidden="true" className="absolute inset-0 -z-10 hidden md:block">
               <img
-                src={promotion.desktopStripArtwork.url}
+                src={desktopArtwork.url}
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -60,7 +61,7 @@ export function BannerWithRail({
           </div>
         </div>
       </div>
-      {products.length >= 2 && (
+      {products.length >= (promotion.useParticipatingOffers ? 1 : 2) && (
         <div className="shell mt-6">
           <ProductRail products={products} label={promotion.headline} scrollOnDesktop />
         </div>
@@ -77,7 +78,7 @@ export function SideBannerWithRail({
   heading: "h1" | "h2";
 }) {
   const products = useRailProducts(promotion);
-  const hasRail = products.length >= 2;
+  const hasRail = products.length >= (promotion.useParticipatingOffers ? 1 : 2);
   return (
     <section className="shell pb-10 md:pb-14">
       <div className={`overflow-hidden rounded-2xl bg-stage ${hasRail ? "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" : ""}`}>
@@ -105,7 +106,7 @@ export function SideBannerWithRail({
 
 export function SquarePromotionTiles({ promotions }: { promotions: Promotion[] }) {
   const [selectedId, setSelectedId] = useState<string>();
-  const tilesWithProducts = promotions.filter((promotion) => promotion.productRefs.length > 0);
+  const tilesWithProducts = promotions.filter((promotion) => promotion.useParticipatingOffers || promotion.productRefs.length > 0);
   const selected = tilesWithProducts.find((promotion) => promotion.id === selectedId) ?? tilesWithProducts[0];
   const products = useRailProducts(selected);
   const tileClass = "relative isolate block aspect-square w-full overflow-hidden rounded-xl bg-brand-800 text-left text-white ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400";
@@ -132,7 +133,7 @@ export function SquarePromotionTiles({ promotions }: { promotions: Promotion[] }
           );
           return (
             <div key={promotion.id} className="w-[72%] max-w-[300px] shrink-0 snap-start sm:w-[42%] lg:w-auto lg:max-w-none">
-              {promotion.productRefs.length ? (
+              {promotion.useParticipatingOffers || promotion.productRefs.length ? (
                 <button
                   type="button"
                   aria-pressed={isSelected}
@@ -151,13 +152,13 @@ export function SquarePromotionTiles({ promotions }: { promotions: Promotion[] }
           );
         })}
       </HorizontalRail>
-      {selected && (products.length >= 2 || selected.cta) && (
+      {selected && (products.length >= (selected.useParticipatingOffers ? 1 : 2) || selected.cta) && (
         <div key={selected.id} className="mt-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold text-ink-800">{selected.headline}</h2>
             <PromotionAction promotion={selected} />
           </div>
-          {products.length >= 2 && <ProductRail products={products} label={selected.headline} scrollOnDesktop />}
+          {products.length >= (selected.useParticipatingOffers ? 1 : 2) && <ProductRail products={products} label={selected.headline} scrollOnDesktop />}
         </div>
       )}
     </section>

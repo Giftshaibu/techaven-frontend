@@ -2,6 +2,7 @@ import { TechavenApiError, techavenRequest } from "@/integrations/techaven/clien
 import { getMarketplaceDevices, getShop } from "@/integrations/techaven/customer";
 import type { ApiShop } from "@/integrations/techaven/types";
 import { mapMarketplaceDeviceToCatalog, mapApiShopToCatalog } from "@/lib/catalog-api";
+import type { MarketplaceDevice } from "@/integrations/techaven/types";
 
 const MAX_REFS = 12;
 function deviceIds(values: string[]) {
@@ -49,6 +50,13 @@ export async function resolvePromotionProducts(values: string[]) {
   } catch {
     return [];
   }
+}
+export async function resolveParticipatingOffers(slug: string) {
+  // Fail closed: an unavailable review service must never fall back to other shops.
+  try {
+    const devices = await techavenRequest<MarketplaceDevice[]>(`/api/promotion-participation/offers/${encodeURIComponent(slug)}`, { auth: false });
+    return devices.map(mapMarketplaceDeviceToCatalog);
+  } catch { return []; }
 }
 export async function resolvePromotionShops(values: string[]) {
   const wanted = ids(values);

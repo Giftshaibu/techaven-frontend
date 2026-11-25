@@ -16,6 +16,7 @@ export const Route = createFileRoute("/portal/seller")({
 const nav: PortalNavItem[] = [
   { to: "/portal/seller", label: "Today", icon: "widget-2-linear", exact: true },
   { to: "/portal/seller/listings", label: "Listings", icon: "tag-price-linear" },
+  { to: "/portal/seller/promotions", label: "Promotions", icon: "tag-price-linear" },
   { to: "/portal/seller/orders", label: "Orders", icon: "bag-4-linear" },
   { to: "/portal/seller/earnings", label: "Earnings", icon: "wallet-money-linear" },
   { to: "/portal/seller/plan", label: "Plan", icon: "card-linear" },

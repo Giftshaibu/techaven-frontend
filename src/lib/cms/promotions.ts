@@ -115,6 +115,7 @@ export const promotionSchema = z.object({
     .object({ title: z.string().nullable(), description: z.string().nullable(), image: media })
     .default({ title: null, description: null, image: null }),
   productRefs: z.array(ref),
+  useParticipatingOffers: z.boolean().default(false),
   anchorProductRef: ref.nullable().default(null),
   secondaryProductRefs: z.array(ref).default([]),
   shopRefs: z.array(ref),

@@ -54,7 +54,7 @@ export function ProductRail({
     >
       {products.map((p) => (
         <div
-          key={p.slug}
+          key={`${p.slug}:${(p as { listingId?: number }).listingId ?? "catalogue"}`}
           className={cn("w-[72%] max-w-[280px] shrink-0 snap-start", scrollOnDesktop ? "md:w-[240px]" : "md:w-auto md:max-w-none")}
         >
           <ProductCard product={p} />
