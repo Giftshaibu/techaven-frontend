@@ -90,7 +90,7 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
             <li key={o.id} className="flex flex-wrap justify-between gap-2">
               <Link
                 to="/orders/$reference"
-                params={{ reference: o.reference }}
+                params={{ reference: String(o.id) }}
                 className="underline"
               >
                 {o.reference}

@@ -35,7 +35,7 @@ function CartPage() {
     (sum, i) => sum + (i.product?.price ?? 0) * i.line.quantity,
     0,
   );
-  const delivery = subtotal > 900000 || subtotal === 0 ? 0 : 6000;
+  const delivery = 0; // The orders API charges no delivery fee.
 
   return (
     <section className="shell py-10 md:py-14">

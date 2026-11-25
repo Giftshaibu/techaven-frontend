@@ -43,6 +43,7 @@ import { Route as PortalAdminIndexRouteImport } from './routes/portal.admin.inde
 import { Route as PortalAdminActivityRouteImport } from './routes/portal.admin.activity'
 import { Route as PortalAdminCatalogRouteImport } from './routes/portal.admin.catalog'
 import { Route as PortalAdminOrdersRouteImport } from './routes/portal.admin.orders'
+import { Route as PortalAdminPaymentsRouteImport } from './routes/portal.admin.payments'
 import { Route as PortalAdminPayoutsRouteImport } from './routes/portal.admin.payouts'
 import { Route as PortalAdminPromotionsRouteImport } from './routes/portal.admin.promotions'
 import { Route as PortalAdminSettingsRouteImport } from './routes/portal.admin.settings'
@@ -234,6 +235,11 @@ const PortalAdminOrdersRoute = PortalAdminOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => PortalAdminRoute,
 } as any)
+const PortalAdminPaymentsRoute = PortalAdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
 const PortalAdminPayoutsRoute = PortalAdminPayoutsRouteImport.update({
   id: '/payouts',
   path: '/payouts',
@@ -353,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
   '/portal/admin/promotions': typeof PortalAdminPromotionsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
@@ -400,6 +407,7 @@ export interface FileRoutesByTo {
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
   '/portal/admin/promotions': typeof PortalAdminPromotionsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
+  '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
   '/portal/admin/promotions': typeof PortalAdminPromotionsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
@@ -508,6 +517,7 @@ export interface FileRouteTypes {
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
     | '/portal/admin/orders'
+    | '/portal/admin/payments'
     | '/portal/admin/payouts'
     | '/portal/admin/promotions'
     | '/portal/admin/settings'
@@ -555,6 +565,7 @@ export interface FileRouteTypes {
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
     | '/portal/admin/orders'
+    | '/portal/admin/payments'
     | '/portal/admin/payouts'
     | '/portal/admin/promotions'
     | '/portal/admin/settings'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
     | '/portal/admin/orders'
+    | '/portal/admin/payments'
     | '/portal/admin/payouts'
     | '/portal/admin/promotions'
     | '/portal/admin/settings'
@@ -892,6 +904,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalAdminOrdersRouteImport
       parentRoute: typeof PortalAdminRoute
     }
+    '/portal/admin/payments': {
+      id: '/portal/admin/payments'
+      path: '/payments'
+      fullPath: '/portal/admin/payments'
+      preLoaderRoute: typeof PortalAdminPaymentsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
     '/portal/admin/payouts': {
       id: '/portal/admin/payouts'
       path: '/payouts'
@@ -1048,6 +1067,7 @@ interface PortalAdminRouteChildren {
   PortalAdminActivityRoute: typeof PortalAdminActivityRoute
   PortalAdminCatalogRoute: typeof PortalAdminCatalogRoute
   PortalAdminOrdersRoute: typeof PortalAdminOrdersRoute
+  PortalAdminPaymentsRoute: typeof PortalAdminPaymentsRoute
   PortalAdminPayoutsRoute: typeof PortalAdminPayoutsRoute
   PortalAdminPromotionsRoute: typeof PortalAdminPromotionsRoute
   PortalAdminSettingsRoute: typeof PortalAdminSettingsRoute
@@ -1061,6 +1081,7 @@ const PortalAdminRouteChildren: PortalAdminRouteChildren = {
   PortalAdminActivityRoute: PortalAdminActivityRoute,
   PortalAdminCatalogRoute: PortalAdminCatalogRoute,
   PortalAdminOrdersRoute: PortalAdminOrdersRoute,
+  PortalAdminPaymentsRoute: PortalAdminPaymentsRoute,
   PortalAdminPayoutsRoute: PortalAdminPayoutsRoute,
   PortalAdminPromotionsRoute: PortalAdminPromotionsRoute,
   PortalAdminSettingsRoute: PortalAdminSettingsRoute,

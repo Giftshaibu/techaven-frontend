@@ -40,10 +40,8 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 type Step = 1 | 2 | 3;
 
 const paymentOptions = [
-  { id: "bank-transfer", label: "Bank transfer", hint: "Transfer through your bank, then submit proof." },
-  { id: "airtel-money", label: "Airtel Money", hint: "Pay using the Techaven code, then submit proof." },
-  { id: "mpamba", label: "TNM Mpamba", hint: "Payment instructions are currently unavailable." },
-  { id: "cash-on-delivery", label: "Cash on delivery", hint: "Pay the courier when your order arrives." },
+  { id: "airtel", label: "Airtel Money", hint: "Place the order, then approve the payment prompt on your phone." },
+  { id: "bank-transfer", label: "Bank transfer", hint: "Transfer to our account, then upload your proof of payment. We confirm the order once it’s verified." },
 ] as const;
 
 const emptyAddress: AddressForm = {
@@ -69,9 +67,11 @@ function CheckoutPage() {
   const [addressOpen, setAddressOpen] = useState(false);
 
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
-  const [payment, setPayment] = useState<(typeof paymentOptions)[number]["id"]>("cash-on-delivery");
+  const [payment, setPayment] = useState<(typeof paymentOptions)[number]["id"]>("airtel");
   const manualPaymentAvailable = commerceConfig.data?.manual_payment.enabled === true;
-  const canPay = payment === "cash-on-delivery" || (payment !== "mpamba" && manualPaymentAvailable);
+  const isAvailable = (id: (typeof paymentOptions)[number]["id"]) =>
+    id === "airtel" || manualPaymentAvailable;
+  const canPay = isAvailable(payment);
 
   const items = useMemo(
     () =>
@@ -89,7 +89,8 @@ function CheckoutPage() {
   );
 
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.line.quantity, 0);
-  const deliveryFee = fulfilment === "pickup" || subtotal === 0 || subtotal > 900000 ? 0 : 6000;
+  // The orders API charges no delivery fee; quoting one would not match the amount paid.
+  const deliveryFee = 0;
   const total = subtotal + deliveryFee;
 
   const addresses = useQuery({
@@ -164,7 +165,7 @@ function CheckoutPage() {
       }));
 
       const result = await createOrder({
-        payment_method: payment === "cash-on-delivery" ? payment : "bank-transfer",
+        payment_method: payment,
         shipping_address_id: shippingAddressId,
         items: orderItems,
         ...(delivery.notes ? { notes: delivery.notes } : {}),
@@ -172,16 +173,15 @@ function CheckoutPage() {
       const order = result.orders[0];
       if (!order) throw new Error("Checkout did not create an order");
 
-      const orderKey = order.order_number ?? order.reference ?? String(order.id);
-
-      return orderKey;
+      // The orders API looks orders up by id, not order number.
+      return String(order.id);
     },
     onSuccess: (reference) => {
       clear();
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
       navigate({ to: "/orders/$reference", params: { reference }, replace: true,
-        ...(payment === "cash-on-delivery" ? {} : { hash: "payment-proof" }) });
+        hash: payment === "airtel" ? "airtel-payment" : "payment-proof" });
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "We couldn't place your order");
@@ -316,12 +316,12 @@ function CheckoutPage() {
               <fieldset className="mt-4 grid gap-2">
                 <legend className="sr-only">Payment method</legend>
                 {paymentOptions.map(option => {
-                  const available = option.id === "cash-on-delivery" || (option.id !== "mpamba" && manualPaymentAvailable);
+                  const available = isAvailable(option.id);
                   return <label key={option.id} className="flex items-start gap-3 rounded-xl border border-border p-4 has-[:checked]:border-brand-500 has-[:disabled]:opacity-60">
                     <input type="radio" name="payment" value={option.id} checked={payment === option.id}
                       disabled={!available} onChange={() => setPayment(option.id)} className="mt-1 accent-brand-500" />
                     <span><strong className="block text-sm">{option.label}</strong>
-                      <span className="text-sm text-muted-foreground">{available || option.id === "mpamba" ? option.hint : "Temporarily unavailable."}</span>
+                      <span className="text-sm text-muted-foreground">{available ? option.hint : "Temporarily unavailable."}</span>
                     </span>
                   </label>;
                 })}
@@ -411,7 +411,7 @@ function CheckoutPage() {
                   onClick={() => placeOrder.mutate()}
                   className="rounded-lg bg-ink-900 px-6 py-3.5 text-[15px] font-semibold text-white hover:bg-ink-800 disabled:opacity-60"
                 >
-                  {placeOrder.isPending ? "Placing order…" : "Place order"}
+                  {placeOrder.isPending ? "Placing order…" : "Place order and pay"}
                 </button>
               </div>
             </div>

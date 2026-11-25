@@ -136,6 +136,19 @@ export async function staffRequest<T>(
   return (parsed && "data" in parsed ? parsed.data : parsed) as T;
 }
 
+async function staffBlob(path: string): Promise<Blob> {
+  const session = getStaffSession();
+  if (!session) throw new StaffApiError("Sign in to continue", 401);
+  const response = await fetch(`${getTechavenApiBaseUrl()}${path}`, {
+    headers: { Authorization: `Bearer ${session.token}` },
+  });
+  if (!response.ok) {
+    if (response.status === 401) clearStaffSession();
+    throw new StaffApiError(`Receipt could not be loaded (${response.status})`, response.status);
+  }
+  return response.blob();
+}
+
 export const ROLE_HOME: Record<StaffRole, string> = {
   admin: "/portal/admin",
   seller: "/portal/seller",
@@ -247,6 +260,22 @@ export type Withdrawal = {
   createdAt?: string;
   created_at?: string;
   user?: { id: number; name: string; email?: string | null } | null;
+};
+
+export type PaymentProofStatus = "pending_review" | "approved" | "rejected";
+export type PaymentProof = {
+  id: string;
+  order_ids: number[];
+  order_references: string[];
+  amount: string;
+  currency: string;
+  payer_name: string;
+  payment_reference: string;
+  payment_date: string;
+  status: PaymentProofStatus;
+  rejection_reason: string | null;
+  reviewed_at: string | null;
+  created_at: string;
 };
 
 export type AuditLog = {
@@ -392,6 +421,17 @@ export const adminApi = {
       method: "PATCH",
       body: { status, admin_notes },
     }),
+  paymentProofs: (status: PaymentProofStatus, page: number) =>
+    staffRequest<{ submissions: PaymentProof[]; total: number; page: number }>(
+      `/api/admin/payment-submissions${q({ status, page })}`,
+    ),
+  reviewPaymentProof: (id: string, decision: "approve" | "reject", reason = "") =>
+    staffRequest<PaymentProof>(`/api/admin/payment-submissions/${id}/${decision}`, {
+      method: "POST",
+      body: { reason },
+    }),
+  /** Receipts are private, so they are fetched with the staff token rather than linked. */
+  paymentReceipt: (id: string) => staffBlob(`/api/payment-submissions/${id}/receipt`),
   auditLogs: () => staffRequest<AuditLog[]>("/api/admin/audit-logs"),
   settings: () =>
     staffRequest<{

@@ -64,6 +64,7 @@ const STATUS_TONE: Record<string, keyof typeof TONES> = {
   verified: "good",
   released: "good",
   pending: "warn",
+  pending_review: "warn",
   processing: "warn",
   draft: "muted",
   paused: "muted",
