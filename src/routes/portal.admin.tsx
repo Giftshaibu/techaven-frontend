@@ -13,6 +13,7 @@ const nav: PortalNavItem[] = [
   { to: "/portal/admin", label: "Overview", icon: "widget-2-linear", exact: true, mobile: true },
   { to: "/portal/admin/shops", label: "Shops", icon: "shop-2-linear" },
   { to: "/portal/admin/catalog", label: "Catalogue", icon: "layers-linear" },
+  { to: "/portal/admin/promotions", label: "Promotions", icon: "tag-price-linear" },
   { to: "/portal/admin/orders", label: "Orders", icon: "bag-4-linear", mobile: true },
   { to: "/portal/admin/payments", label: "Payments", icon: "bill-check-linear" },
   { to: "/portal/admin/deliveries", label: "Deliveries", icon: "box-linear", mobile: true },

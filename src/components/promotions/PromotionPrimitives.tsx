@@ -66,10 +66,11 @@ export function PromotionMedia({
   priority?: boolean;
   mobileMediaQuery?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSource, setFailedSource] = useState<string>();
   const [source, setSource] = useState<string>();
   const media = promotion.desktopBackground ?? promotion.foregroundImage;
-  if (!media || failed) return null;
+  const mediaKey = `${media?.url ?? ''}|${promotion.mobileBackground?.url ?? ''}`;
+  if (!media || failedSource === mediaKey) return null;
   return (
     <picture
       className={cn(
@@ -93,7 +94,7 @@ export function PromotionMedia({
         fetchPriority={priority ? "high" : "auto"}
         decoding="async"
         onError={() => {
-          setFailed(true);
+          setFailedSource(mediaKey);
           onUnavailable?.();
         }}
         className={cn(
