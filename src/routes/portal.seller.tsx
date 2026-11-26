@@ -14,10 +14,11 @@ export const Route = createFileRoute("/portal/seller")({
 });
 
 const nav: PortalNavItem[] = [
-  { to: "/portal/seller", label: "Today", icon: "widget-2-linear", exact: true },
-  { to: "/portal/seller/listings", label: "Listings", icon: "tag-price-linear" },
-  { to: "/portal/seller/orders", label: "Orders", icon: "bag-4-linear" },
-  { to: "/portal/seller/earnings", label: "Earnings", icon: "wallet-money-linear" },
+  { to: "/portal/seller", label: "Today", icon: "widget-2-linear", exact: true, mobile: true },
+  { to: "/portal/seller/listings", label: "Listings", icon: "tag-price-linear", mobile: true },
+  { to: "/portal/seller/orders", label: "Orders", icon: "bag-4-linear", mobile: true },
+  { to: "/portal/seller/earnings", label: "Earnings", icon: "wallet-money-linear", mobile: true },
+  { to: "/portal/seller/reports", label: "Reports", icon: "chart-2-linear" },
   { to: "/portal/seller/plan", label: "Plan", icon: "card-linear" },
   { to: "/portal/seller/requests", label: "Requests", icon: "document-add-linear" },
   { to: "/portal/seller/shop", label: "My shop", icon: "shop-2-linear" },

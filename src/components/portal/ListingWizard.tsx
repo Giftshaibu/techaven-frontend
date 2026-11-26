@@ -1,3 +1,4 @@
+import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -176,7 +177,7 @@ function DeviceStep({ onPick }: { onPick: (device: PublicDevice) => void }) {
         />
       </div>
       {results.isLoading ? (
-        <LoadingBlock rows={3} />
+        <LoadingBlock rows={3} label="Searching the catalogue" />
       ) : results.error ? (
         <p className="text-sm text-rose-700">{errorMessage(results.error)}</p>
       ) : (
@@ -263,7 +264,7 @@ function VariantStep({
     .filter((item) => item.ram_gb === activeRam)
     .sort((a, b) => (a.storage_gb ?? 0) - (b.storage_gb ?? 0));
 
-  if (detail.isLoading) return <LoadingBlock rows={3} />;
+  if (detail.isLoading) return <LoadingBlock rows={3} label="Loading device details" />;
   if (detail.error) return <p className="text-sm text-rose-700">{errorMessage(detail.error)}</p>;
 
   return (
@@ -435,6 +436,7 @@ function OfferStep({
   const [battery, setBattery] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [publish, setPublish] = useState(true);
   const needsPhoto = condition !== "new";
 
@@ -443,7 +445,8 @@ function OfferStep({
     setUploading(true);
     try {
       for (const file of Array.from(files).slice(0, 6 - images.length)) {
-        const url = await uploadStaffImage(file);
+        setProgress(0);
+        const url = await uploadStaffImage(file, setProgress);
         setImages((current) => [...current, url]);
       }
     } catch (error) {
@@ -607,7 +610,9 @@ function OfferStep({
             {images.length < 6 ? (
               <label className="grid h-20 w-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-brand-300 hover:text-brand-500">
                 {uploading ? (
-                  <span className="text-[11px]">Uploading…</span>
+                  <span className="w-full px-1.5">
+                    <UploadProgressBar percent={progress} label="Photo" />
+                  </span>
                 ) : (
                   <Icon name="camera-add-linear" className="h-6 w-6" />
                 )}

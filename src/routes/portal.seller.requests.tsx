@@ -160,7 +160,7 @@ function SellerRequests() {
         <Panel title="Your requests" bodyClassName="p-0">
           {requests.isLoading ? (
             <div className="p-5">
-              <LoadingBlock rows={2} />
+              <LoadingBlock rows={2} label="Loading requests" />
             </div>
           ) : requests.error ? (
             <div className="p-5">

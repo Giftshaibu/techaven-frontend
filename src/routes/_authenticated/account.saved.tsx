@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { useAuth } from "@/lib/auth";
@@ -36,7 +37,7 @@ function SavedPage() {
   });
 
   if (wishlist.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading your saved products…</p>;
+    return <TechavenLoader label="Gathering your saved products" minHeight="20rem" />;
   }
 
   if (!wishlist.data?.length) {

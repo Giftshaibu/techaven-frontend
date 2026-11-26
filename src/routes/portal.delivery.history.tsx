@@ -44,7 +44,7 @@ function RiderHistory() {
         />
       </div>
       {jobs.isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock label="Loading your deliveries" />
       ) : jobs.error ? (
         <ErrorBlock error={jobs.error} />
       ) : !all.length ? (

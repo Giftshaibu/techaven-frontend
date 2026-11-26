@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FilteredProductGrid } from "@/components/FilteredProductGrid";
 import { searchCatalogProducts } from "@/lib/resolve-catalog";
@@ -76,7 +77,10 @@ function SearchPage() {
             Type at least two characters to search.
           </p>
         ) : results.isLoading ? (
-          <p className="mt-6 text-sm text-muted-foreground">Searching…</p>
+          <TechavenLoader
+            messages={[`Searching for “${query}”`, "Checking every shop", "Comparing prices"]}
+            minHeight="22rem"
+          />
         ) : results.isError ? (
           <p className="mt-6 text-sm text-muted-foreground">
             Search is unavailable right now. Try again shortly.

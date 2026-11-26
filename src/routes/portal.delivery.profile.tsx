@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import {
   buttonClass,
+  CenteredLoader,
   errorMessage,
   Field,
   inputClass,
-  LoadingBlock,
   PageHeader,
   Panel,
   useStaffSession,
@@ -55,7 +55,7 @@ function RiderProfile() {
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  if (profile.isLoading) return <LoadingBlock />;
+  if (profile.isLoading) return <CenteredLoader label="Loading your profile" />;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">

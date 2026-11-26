@@ -109,7 +109,7 @@ function AdminOverview() {
       ) : null}
 
       {dashboard.isLoading ? (
-        <LoadingBlock rows={3} />
+        <LoadingBlock rows={3} label="Crunching today's numbers" />
       ) : dashboard.error ? (
         <ErrorBlock error={dashboard.error} onRetry={() => dashboard.refetch()} />
       ) : data && periods ? (

@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ManualPayment } from "./ManualPayment";
 import { AddressLocation } from "./AddressLocation";
-const mock = vi.hoisted(() => ({ config: vi.fn(), context: vi.fn(), submit: vi.fn(), request: vi.fn() }));
-vi.mock("@/lib/manual-payments", () => ({ getCommerceConfig: mock.config, getPaymentContext: mock.context, submitPaymentProof: mock.submit }));
+const mock = vi.hoisted(() => ({ config: vi.fn(), context: vi.fn(), submit: vi.fn(), request: vi.fn(), upload: vi.fn() }));
+vi.mock("@/lib/manual-payments", () => ({ getCommerceConfig: mock.config, getPaymentContext: mock.context, submitPaymentProof: mock.submit,
+  uploadPaymentProof: mock.upload, RECEIPT_TYPES: ["image/jpeg", "image/png", "application/pdf"] }));
 vi.mock("@/integrations/techaven/client", () => ({ techavenRequest: mock.request }));
 vi.mock("@tanstack/react-router", () => ({ Link: ({ children }: { children: React.ReactNode }) => createElement("a", {}, children) }));
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -33,7 +34,31 @@ describe("mobile commerce task states",()=>{
  it("a rejected proof shows its reason and allows a corrected receipt",async()=>{
   mock.config.mockResolvedValue({manual_payment:{enabled:true,account_name:"Fixture",account_number:"123",provider:"Fixture bank"}});mock.context.mockResolvedValue({...context,submissions:[{id:"proof",status:"rejected",rejection_reason:"Incorrect reference"}]});
   const host=await mount(<ManualPayment orderId={1}/>);
-  expect(host.textContent).toContain("Incorrect reference");expect(host.querySelector('input[name="receipt"]')).not.toBeNull();
+  expect(host.textContent).toContain("Incorrect reference");expect(host.querySelector('input[type="file"]')).not.toBeNull();
+ });
+ it("uploads the receipt first, then submits bank, account name, amount and the stored receipt key",async()=>{
+  mock.config.mockResolvedValue({manual_payment:{enabled:true,account_name:"Fixture",account_number:"123",provider:"Fixture bank"}});mock.context.mockResolvedValue(context);
+  let finish:(value:{key:string;url:string})=>void=()=>{};
+  mock.upload.mockImplementation((_file:File,onProgress:(n:number)=>void)=>{onProgress(42);return new Promise(resolve=>{finish=resolve;});});
+  mock.submit.mockResolvedValue({id:"proof",status:"pending_review"});
+  const host=await mount(<ManualPayment orderId={1}/>);
+  const type=async(name:string,value:string)=>{const input=host.querySelector<HTMLInputElement>(`input[name="${name}"]`)!;
+   await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")!.set!.call(input,value);input.dispatchEvent(new Event("input",{bubbles:true}));});};
+  expect(host.querySelector<HTMLInputElement>('input[name="declared_amount"]')!.value).toBe("30");
+  await type("payer_bank","National Bank");await type("payer_name","Test Shopper");
+  const file=new File(["%PDF-1.7"],"receipt.pdf",{type:"application/pdf"});
+  const picker=host.querySelector<HTMLInputElement>('input[type="file"]')!;
+  Object.defineProperty(picker,"files",{value:[file],configurable:true});
+  await act(async()=>{picker.dispatchEvent(new Event("change",{bubbles:true}));});
+  expect(host.querySelector('[role="progressbar"]')?.getAttribute("aria-valuenow")).toBe("42");
+  await act(async()=>{host.querySelector("form")!.requestSubmit();});
+  expect(mock.submit).not.toHaveBeenCalled();expect(host.textContent).toContain("finish uploading");
+  await act(async()=>{finish({key:"payment-proofs/u1/receipt.pdf",url:"https://cdn.example.com/payment-proofs/u1/receipt.pdf"});});
+  expect(host.querySelector('[role="progressbar"]')).toBeNull();expect(host.textContent).toContain("receipt.pdf");
+  await act(async()=>{host.querySelector("form")!.requestSubmit();await new Promise(resolve=>setTimeout(resolve,10));});
+  expect(mock.submit).toHaveBeenCalledWith(expect.objectContaining({order_ids:[1,2],payer_bank:"National Bank",payer_name:"Test Shopper",
+   declared_amount:"30",receipt_key:"payment-proofs/u1/receipt.pdf"}));
+  expect(mock.submit.mock.calls[0]![0]).not.toHaveProperty("payment_reference");
  });
  it("reveals the transaction-specific WhatsApp message only after a successful copy", async () => {
   const writeText = vi.fn(async (_value: string) => {});

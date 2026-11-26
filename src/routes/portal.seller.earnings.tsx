@@ -212,7 +212,7 @@ function SellerEarnings() {
         <Panel title="Withdrawal history" bodyClassName="p-0">
           {history.isLoading ? (
             <div className="p-5">
-              <LoadingBlock rows={2} />
+              <LoadingBlock rows={2} label="Loading withdrawals" />
             </div>
           ) : !history.data?.withdrawals.length ? (
             <EmptyState icon="history-linear" title="No withdrawals yet" />

@@ -90,7 +90,7 @@ function AdminOrders() {
       <Panel bodyClassName="p-0">
         {orders.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading orders" />
           </div>
         ) : orders.error ? (
           <div className="p-5">

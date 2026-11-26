@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
+import { UploadProgressBar } from "@/components/UploadProgressBar";
 import {
   buttonClass,
+  CenteredLoader,
   ErrorBlock,
   errorMessage,
   Field,
   inputClass,
-  LoadingBlock,
   PageHeader,
   Panel,
   StatusPill,
@@ -36,6 +37,7 @@ function SellerShop() {
     logo: "",
   });
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   useEffect(() => {
     if (shop)
       setForm({
@@ -63,7 +65,8 @@ function SellerShop() {
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadStaffImage(file);
+      setProgress(0);
+      const url = await uploadStaffImage(file, setProgress);
       setForm((current) => ({ ...current, logo: url }));
     } catch (error) {
       toast.error(errorMessage(error));
@@ -72,7 +75,7 @@ function SellerShop() {
     }
   }
 
-  if (dashboard.isLoading) return <LoadingBlock />;
+  if (dashboard.isLoading) return <CenteredLoader label="Opening your shop" />;
   if (dashboard.error || !shop)
     return <ErrorBlock error={dashboard.error ?? new Error("Shop not found")} />;
 
@@ -111,6 +114,9 @@ function SellerShop() {
                   onChange={(event) => void uploadLogo(event.target.files?.[0])}
                 />
               </label>
+              {uploading ? (
+                <UploadProgressBar percent={progress} label="Uploading logo" className="max-w-40" />
+              ) : null}
             </div>
             <div className="sm:col-span-2">
               <Field label="Shop name">

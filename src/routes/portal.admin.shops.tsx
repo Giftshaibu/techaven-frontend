@@ -17,7 +17,8 @@ import {
   StatusPill,
 } from "@/components/portal/kit";
 import { ReasonDialog } from "@/components/portal/ReasonDialog";
-import { adminApi, type Shop } from "@/integrations/techaven/staff";
+import { ShopDialog } from "@/components/portal/ShopDialog";
+import { adminApi, type Shop, type ShopInput } from "@/integrations/techaven/staff";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/portal/admin/shops")({ component: AdminShops });
@@ -30,6 +31,21 @@ function AdminShops() {
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [rejecting, setRejecting] = useState<Shop | null>(null);
+  // undefined = closed, null = adding, Shop = editing
+  const [editing, setEditing] = useState<Shop | null | undefined>(undefined);
+  const [deleting, setDeleting] = useState<Shop | null>(null);
+
+  async function saveShop(values: ShopInput) {
+    if (editing) {
+      await adminApi.updateShop(editing.id, values);
+      toast.success(`${values.shop_name} updated`);
+    } else {
+      await adminApi.createShop(values);
+      toast.success(`${values.shop_name} added and live`);
+      setFilter("all");
+    }
+    await refresh();
+  }
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["portal", "admin"] });
   const action = useMutation({
@@ -86,7 +102,13 @@ function AdminShops() {
       <PageHeader
         eyebrow="Marketplace"
         title="Shops"
-        description="Every storefront in the Techaven mall. Approve new applications and keep the line-up healthy."
+        description="Every storefront in the Techaven mall. Add shops, approve new applications and keep the line-up healthy."
+        actions={
+          <button type="button" className={buttonClass.primary} onClick={() => setEditing(null)}>
+            <Icon name="add-circle-linear" className="h-4 w-4" />
+            Add shop
+          </button>
+        }
       />
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -115,7 +137,7 @@ function AdminShops() {
       </div>
 
       {shops.isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock label="Loading shops" />
       ) : shops.error ? (
         <ErrorBlock error={shops.error} onRetry={() => shops.refetch()} />
       ) : visible.length === 0 ? (
@@ -171,6 +193,12 @@ function AdminShops() {
                   <dt className="text-muted-foreground">Products</dt>
                   <dd className="font-semibold text-ink-800">{shop.total_products ?? 0}</dd>
                 </div>
+                <div className="col-span-2">
+                  <dt className="text-muted-foreground">Owner</dt>
+                  <dd className="truncate font-semibold text-ink-800">
+                    {shop.owners?.length ? shop.owners.map((owner) => owner.name).join(", ") : "Not invited yet"}
+                  </dd>
+                </div>
               </dl>
               <div className="mt-4 flex flex-wrap gap-2 pt-1">
                 {shop.application_status === "pending" ? (
@@ -213,12 +241,47 @@ function AdminShops() {
                     Reactivate
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={cn(buttonClass.ghost, "ml-auto")}
+                  onClick={() => setEditing(shop)}
+                  aria-label={`Edit ${shop.name}`}
+                >
+                  <Icon name="pen-linear" className="h-4 w-4" />
+                  Edit
+                </button>
               </div>
             </article>
           ))}
         </div>
       )}
 
+      <ShopDialog
+        open={editing !== undefined}
+        onOpenChange={(open) => !open && setEditing(undefined)}
+        shop={editing ?? null}
+        onSave={saveShop}
+        onDelete={(shop) => setDeleting(shop)}
+      />
+      <ReasonDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete ${deleting?.name ?? "shop"}?`}
+        description="This permanently removes the shop. Shops with sellers, listings, orders or subscriptions can't be deleted; suspend them instead so their history is kept."
+        confirmLabel="Delete permanently"
+        onConfirm={async () => {
+          if (!deleting) return;
+          try {
+            await adminApi.deleteShop(deleting.id);
+            toast.success(`${deleting.name} deleted`);
+            setEditing(undefined);
+            void refresh();
+          } catch (error) {
+            toast.error(errorMessage(error));
+            throw error;
+          }
+        }}
+      />
       <ReasonDialog
         open={!!rejecting}
         onOpenChange={(open) => !open && setRejecting(null)}

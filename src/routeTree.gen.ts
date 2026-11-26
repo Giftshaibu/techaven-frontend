@@ -42,9 +42,11 @@ import { Route as AuthenticatedOrdersReferenceRouteImport } from './routes/_auth
 import { Route as PortalAdminIndexRouteImport } from './routes/portal.admin.index'
 import { Route as PortalAdminActivityRouteImport } from './routes/portal.admin.activity'
 import { Route as PortalAdminCatalogRouteImport } from './routes/portal.admin.catalog'
+import { Route as PortalAdminDeliveriesRouteImport } from './routes/portal.admin.deliveries'
 import { Route as PortalAdminOrdersRouteImport } from './routes/portal.admin.orders'
 import { Route as PortalAdminPaymentsRouteImport } from './routes/portal.admin.payments'
 import { Route as PortalAdminPayoutsRouteImport } from './routes/portal.admin.payouts'
+import { Route as PortalAdminReportsRouteImport } from './routes/portal.admin.reports'
 import { Route as PortalAdminSettingsRouteImport } from './routes/portal.admin.settings'
 import { Route as PortalAdminShopsRouteImport } from './routes/portal.admin.shops'
 import { Route as PortalAdminSubscriptionsRouteImport } from './routes/portal.admin.subscriptions'
@@ -57,6 +59,7 @@ import { Route as PortalSellerEarningsRouteImport } from './routes/portal.seller
 import { Route as PortalSellerListingsRouteImport } from './routes/portal.seller.listings'
 import { Route as PortalSellerOrdersRouteImport } from './routes/portal.seller.orders'
 import { Route as PortalSellerPlanRouteImport } from './routes/portal.seller.plan'
+import { Route as PortalSellerReportsRouteImport } from './routes/portal.seller.reports'
 import { Route as PortalSellerRequestsRouteImport } from './routes/portal.seller.requests'
 import { Route as PortalSellerShopRouteImport } from './routes/portal.seller.shop'
 
@@ -228,6 +231,11 @@ const PortalAdminCatalogRoute = PortalAdminCatalogRouteImport.update({
   path: '/catalog',
   getParentRoute: () => PortalAdminRoute,
 } as any)
+const PortalAdminDeliveriesRoute = PortalAdminDeliveriesRouteImport.update({
+  id: '/deliveries',
+  path: '/deliveries',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
 const PortalAdminOrdersRoute = PortalAdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -241,6 +249,11 @@ const PortalAdminPaymentsRoute = PortalAdminPaymentsRouteImport.update({
 const PortalAdminPayoutsRoute = PortalAdminPayoutsRouteImport.update({
   id: '/payouts',
   path: '/payouts',
+  getParentRoute: () => PortalAdminRoute,
+} as any)
+const PortalAdminReportsRoute = PortalAdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => PortalAdminRoute,
 } as any)
 const PortalAdminSettingsRoute = PortalAdminSettingsRouteImport.update({
@@ -304,6 +317,11 @@ const PortalSellerPlanRoute = PortalSellerPlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => PortalSellerRoute,
 } as any)
+const PortalSellerReportsRoute = PortalSellerReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => PortalSellerRoute,
+} as any)
 const PortalSellerRequestsRoute = PortalSellerRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
@@ -346,9 +364,11 @@ export interface FileRoutesByFullPath {
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/deliveries': typeof PortalAdminDeliveriesRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
   '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/reports': typeof PortalAdminReportsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
   '/portal/admin/shops': typeof PortalAdminShopsRoute
   '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
@@ -359,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/portal/seller/listings': typeof PortalSellerListingsRoute
   '/portal/seller/orders': typeof PortalSellerOrdersRoute
   '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/reports': typeof PortalSellerReportsRoute
   '/portal/seller/requests': typeof PortalSellerRequestsRoute
   '/portal/seller/shop': typeof PortalSellerShopRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
@@ -392,9 +413,11 @@ export interface FileRoutesByTo {
   '/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/deliveries': typeof PortalAdminDeliveriesRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
   '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/reports': typeof PortalAdminReportsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
   '/portal/admin/shops': typeof PortalAdminShopsRoute
   '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
@@ -405,6 +428,7 @@ export interface FileRoutesByTo {
   '/portal/seller/listings': typeof PortalSellerListingsRoute
   '/portal/seller/orders': typeof PortalSellerOrdersRoute
   '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/reports': typeof PortalSellerReportsRoute
   '/portal/seller/requests': typeof PortalSellerRequestsRoute
   '/portal/seller/shop': typeof PortalSellerShopRoute
   '/account': typeof AuthenticatedAccountIndexRoute
@@ -445,9 +469,11 @@ export interface FileRoutesById {
   '/_authenticated/orders/$reference': typeof AuthenticatedOrdersReferenceRoute
   '/portal/admin/activity': typeof PortalAdminActivityRoute
   '/portal/admin/catalog': typeof PortalAdminCatalogRoute
+  '/portal/admin/deliveries': typeof PortalAdminDeliveriesRoute
   '/portal/admin/orders': typeof PortalAdminOrdersRoute
   '/portal/admin/payments': typeof PortalAdminPaymentsRoute
   '/portal/admin/payouts': typeof PortalAdminPayoutsRoute
+  '/portal/admin/reports': typeof PortalAdminReportsRoute
   '/portal/admin/settings': typeof PortalAdminSettingsRoute
   '/portal/admin/shops': typeof PortalAdminShopsRoute
   '/portal/admin/subscriptions': typeof PortalAdminSubscriptionsRoute
@@ -458,6 +484,7 @@ export interface FileRoutesById {
   '/portal/seller/listings': typeof PortalSellerListingsRoute
   '/portal/seller/orders': typeof PortalSellerOrdersRoute
   '/portal/seller/plan': typeof PortalSellerPlanRoute
+  '/portal/seller/reports': typeof PortalSellerReportsRoute
   '/portal/seller/requests': typeof PortalSellerRequestsRoute
   '/portal/seller/shop': typeof PortalSellerShopRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
@@ -498,9 +525,11 @@ export interface FileRouteTypes {
     | '/orders/$reference'
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
+    | '/portal/admin/deliveries'
     | '/portal/admin/orders'
     | '/portal/admin/payments'
     | '/portal/admin/payouts'
+    | '/portal/admin/reports'
     | '/portal/admin/settings'
     | '/portal/admin/shops'
     | '/portal/admin/subscriptions'
@@ -511,6 +540,7 @@ export interface FileRouteTypes {
     | '/portal/seller/listings'
     | '/portal/seller/orders'
     | '/portal/seller/plan'
+    | '/portal/seller/reports'
     | '/portal/seller/requests'
     | '/portal/seller/shop'
     | '/account/'
@@ -544,9 +574,11 @@ export interface FileRouteTypes {
     | '/orders/$reference'
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
+    | '/portal/admin/deliveries'
     | '/portal/admin/orders'
     | '/portal/admin/payments'
     | '/portal/admin/payouts'
+    | '/portal/admin/reports'
     | '/portal/admin/settings'
     | '/portal/admin/shops'
     | '/portal/admin/subscriptions'
@@ -557,6 +589,7 @@ export interface FileRouteTypes {
     | '/portal/seller/listings'
     | '/portal/seller/orders'
     | '/portal/seller/plan'
+    | '/portal/seller/reports'
     | '/portal/seller/requests'
     | '/portal/seller/shop'
     | '/account'
@@ -596,9 +629,11 @@ export interface FileRouteTypes {
     | '/_authenticated/orders/$reference'
     | '/portal/admin/activity'
     | '/portal/admin/catalog'
+    | '/portal/admin/deliveries'
     | '/portal/admin/orders'
     | '/portal/admin/payments'
     | '/portal/admin/payouts'
+    | '/portal/admin/reports'
     | '/portal/admin/settings'
     | '/portal/admin/shops'
     | '/portal/admin/subscriptions'
@@ -609,6 +644,7 @@ export interface FileRouteTypes {
     | '/portal/seller/listings'
     | '/portal/seller/orders'
     | '/portal/seller/plan'
+    | '/portal/seller/reports'
     | '/portal/seller/requests'
     | '/portal/seller/shop'
     | '/_authenticated/account/'
@@ -873,6 +909,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalAdminCatalogRouteImport
       parentRoute: typeof PortalAdminRoute
     }
+    '/portal/admin/deliveries': {
+      id: '/portal/admin/deliveries'
+      path: '/deliveries'
+      fullPath: '/portal/admin/deliveries'
+      preLoaderRoute: typeof PortalAdminDeliveriesRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
     '/portal/admin/orders': {
       id: '/portal/admin/orders'
       path: '/orders'
@@ -892,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/payouts'
       fullPath: '/portal/admin/payouts'
       preLoaderRoute: typeof PortalAdminPayoutsRouteImport
+      parentRoute: typeof PortalAdminRoute
+    }
+    '/portal/admin/reports': {
+      id: '/portal/admin/reports'
+      path: '/reports'
+      fullPath: '/portal/admin/reports'
+      preLoaderRoute: typeof PortalAdminReportsRouteImport
       parentRoute: typeof PortalAdminRoute
     }
     '/portal/admin/settings': {
@@ -978,6 +1028,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalSellerPlanRouteImport
       parentRoute: typeof PortalSellerRoute
     }
+    '/portal/seller/reports': {
+      id: '/portal/seller/reports'
+      path: '/reports'
+      fullPath: '/portal/seller/reports'
+      preLoaderRoute: typeof PortalSellerReportsRouteImport
+      parentRoute: typeof PortalSellerRoute
+    }
     '/portal/seller/requests': {
       id: '/portal/seller/requests'
       path: '/requests'
@@ -1028,9 +1085,11 @@ const AuthenticatedRouteRouteWithChildren =
 interface PortalAdminRouteChildren {
   PortalAdminActivityRoute: typeof PortalAdminActivityRoute
   PortalAdminCatalogRoute: typeof PortalAdminCatalogRoute
+  PortalAdminDeliveriesRoute: typeof PortalAdminDeliveriesRoute
   PortalAdminOrdersRoute: typeof PortalAdminOrdersRoute
   PortalAdminPaymentsRoute: typeof PortalAdminPaymentsRoute
   PortalAdminPayoutsRoute: typeof PortalAdminPayoutsRoute
+  PortalAdminReportsRoute: typeof PortalAdminReportsRoute
   PortalAdminSettingsRoute: typeof PortalAdminSettingsRoute
   PortalAdminShopsRoute: typeof PortalAdminShopsRoute
   PortalAdminSubscriptionsRoute: typeof PortalAdminSubscriptionsRoute
@@ -1041,9 +1100,11 @@ interface PortalAdminRouteChildren {
 const PortalAdminRouteChildren: PortalAdminRouteChildren = {
   PortalAdminActivityRoute: PortalAdminActivityRoute,
   PortalAdminCatalogRoute: PortalAdminCatalogRoute,
+  PortalAdminDeliveriesRoute: PortalAdminDeliveriesRoute,
   PortalAdminOrdersRoute: PortalAdminOrdersRoute,
   PortalAdminPaymentsRoute: PortalAdminPaymentsRoute,
   PortalAdminPayoutsRoute: PortalAdminPayoutsRoute,
+  PortalAdminReportsRoute: PortalAdminReportsRoute,
   PortalAdminSettingsRoute: PortalAdminSettingsRoute,
   PortalAdminShopsRoute: PortalAdminShopsRoute,
   PortalAdminSubscriptionsRoute: PortalAdminSubscriptionsRoute,
@@ -1076,6 +1137,7 @@ interface PortalSellerRouteChildren {
   PortalSellerListingsRoute: typeof PortalSellerListingsRoute
   PortalSellerOrdersRoute: typeof PortalSellerOrdersRoute
   PortalSellerPlanRoute: typeof PortalSellerPlanRoute
+  PortalSellerReportsRoute: typeof PortalSellerReportsRoute
   PortalSellerRequestsRoute: typeof PortalSellerRequestsRoute
   PortalSellerShopRoute: typeof PortalSellerShopRoute
   PortalSellerIndexRoute: typeof PortalSellerIndexRoute
@@ -1086,6 +1148,7 @@ const PortalSellerRouteChildren: PortalSellerRouteChildren = {
   PortalSellerListingsRoute: PortalSellerListingsRoute,
   PortalSellerOrdersRoute: PortalSellerOrdersRoute,
   PortalSellerPlanRoute: PortalSellerPlanRoute,
+  PortalSellerReportsRoute: PortalSellerReportsRoute,
   PortalSellerRequestsRoute: PortalSellerRequestsRoute,
   PortalSellerShopRoute: PortalSellerShopRoute,
   PortalSellerIndexRoute: PortalSellerIndexRoute,

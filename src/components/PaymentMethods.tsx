@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addPaymentMethod,
@@ -162,9 +163,7 @@ export function AccountPaymentMethods({ disabled = false }: { disabled?: boolean
         </button>
       </div>
       {methods.isPending ? (
-        <p role="status" className="mt-3 text-sm">
-          Loading payment methods…
-        </p>
+        <TechavenLoader size="sm" label="Loading payment methods" minHeight="8rem" />
       ) : methods.isError ? (
         <p role="alert" className="text-sm">
           Unable to load methods.{" "}

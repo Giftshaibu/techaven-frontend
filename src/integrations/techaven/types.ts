@@ -215,6 +215,14 @@ export type ApiOrder = {
   courier_tracking_number?: string | null;
   delivery_confirmed_at?: string | null;
   delivery_confirmation_proof_url?: string | null;
+  fulfilment_type?: "delivery" | "pickup" | string;
+  courier_service?: string | null;
+  dispatched_at?: string | null;
+  delivered_at?: string | null;
+  delivery_proof_status?: "pending_review" | "approved" | "rejected" | null;
+  delivery_proof_submitted_at?: string | null;
+  delivery_proof_rejection_reason?: string | null;
+  funds_released_at?: string | null;
   created_at?: string;
   [key: string]: unknown;
 };

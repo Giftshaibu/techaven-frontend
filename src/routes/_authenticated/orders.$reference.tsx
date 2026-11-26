@@ -1,6 +1,8 @@
 import { ImageStage } from "@/components/ImageStage";
+import { PageLoader } from "@/components/TechavenLoader";
 import { useEffect, useState } from "react";
 import { AirtelPayment } from "@/components/AirtelPayment";
+import { DeliveryConfirmation } from "@/components/DeliveryConfirmation";
 import { ManualPayment } from "@/components/ManualPayment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -52,7 +54,11 @@ function OrderPage() {
   }, [order.data]);
 
   if (order.isLoading) {
-    return <p className="shell py-14 text-sm text-muted-foreground">Loading your order…</p>;
+    return (
+      <section className="shell">
+        <PageLoader messages={["Loading your order", "Checking payment status", "Tracking delivery"]} />
+      </section>
+    );
   }
 
   if (!order.data) {
@@ -137,6 +143,8 @@ function OrderPage() {
           </p>
         ) : null}
       </div>
+
+      <DeliveryConfirmation order={data} />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
         <div className="rounded-3xl bg-surface p-6 md:p-8">

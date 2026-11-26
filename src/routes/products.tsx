@@ -1,4 +1,5 @@
 import { CatalogueControls } from "@/components/CatalogueControls";
+import { LoaderMark } from "@/components/TechavenLoader";
 import { getCategories } from "@/integrations/techaven/customer";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
@@ -161,7 +162,14 @@ function ProductResults() {
                     busy && "opacity-60",
                   )}
                 >
-                  {busy ? "Loading…" : "Load more products"}
+                  {busy ? (
+                    <span className="inline-flex items-center gap-2">
+                      <LoaderMark size="xs" />
+                      Loading more…
+                    </span>
+                  ) : (
+                    "Load more products"
+                  )}
                 </button>
               </div>
             ) : null}

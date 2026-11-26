@@ -97,7 +97,7 @@ function SellerPlan() {
       />
 
       {current.isLoading ? (
-        <LoadingBlock rows={2} />
+        <LoadingBlock rows={2} label="Loading your plan" />
       ) : current.error ? (
         <ErrorBlock error={current.error} onRetry={() => current.refetch()} />
       ) : live ? (
@@ -207,7 +207,7 @@ function SellerPlan() {
         </h2>
         {packages.isLoading ? (
           <div className="mt-3">
-            <LoadingBlock rows={2} />
+            <LoadingBlock rows={2} label="Loading plans" />
           </div>
         ) : packages.error ? (
           <ErrorBlock error={packages.error} />

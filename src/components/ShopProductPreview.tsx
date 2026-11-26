@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { fetchShopProducts } from "@/lib/resolve-catalog";
@@ -110,11 +111,7 @@ export function ShopProductPreview({ shopId, name }: { shopId: number; name: str
             No products available yet.
           </p>
         ) : !products.data ? (
-          <div aria-label="Loading shop products" className="flex gap-3 overflow-hidden">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[170px] w-28 shrink-0 rounded-xl bg-stage" />
-            ))}
-          </div>
+          <TechavenLoader size="sm" label="Loading shop products" minHeight="170px" className="py-0" />
         ) : (
           <div
             ref={rail}
