@@ -1,3 +1,4 @@
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CategoryCard } from "@/components/CategoryTile";
 import { ImageStage } from "@/components/ImageStage";
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/categories")({
 });
 
 function CategoriesPage() {
+  const showShops = useShopsTabVisible();
   const { categories, shops, promotions } = Route.useLoaderData();
   const fallbackHero = (
     <MegaHeader
@@ -131,7 +133,7 @@ function CategoriesPage() {
         </div>
       </section>
 
-      <section className="shell pb-12 md:pb-16">
+      {showShops ? <section className="shell pb-12 md:pb-16">
         <SectionHeader
           title="Shops by specialty"
           description="Go straight to a shop that focuses on what you need."
@@ -142,7 +144,7 @@ function CategoriesPage() {
             <ShopCard key={s.slug} shop={s} />
           ))}
         </div>
-      </section>
+      </section> : null}
     </>
   );
 }

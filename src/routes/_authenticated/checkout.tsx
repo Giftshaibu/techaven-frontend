@@ -1,5 +1,8 @@
+import { Landmark } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { getCommerceConfig } from "@/lib/manual-payments";
+import { getCommerceConfig, submitPaymentProof } from "@/lib/manual-payments";
+import { BankProofFields } from "@/components/BankProofFields";
+import { bankProofProblem, emptyBankProof, toProofPayload, type BankProof } from "@/lib/bank-proof";
 import { AddressDrawer } from "@/components/AddressDrawer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -13,6 +16,7 @@ import type { CatalogProduct } from "@/lib/catalog-api";
 import {
   addShippingAddress,
   createOrder,
+  getCourierServices,
   getProfile,
   getShippingAddresses,
 } from "@/integrations/techaven/customer";
@@ -40,9 +44,14 @@ export const Route = createFileRoute("/_authenticated/checkout")({
 type Step = 1 | 2 | 3;
 
 const paymentOptions = [
-  { id: "airtel", label: "Airtel Money", hint: "Place the order, then approve the payment prompt on your phone." },
-  { id: "bank-transfer", label: "Bank transfer", hint: "Transfer to our account, then upload your proof of payment. We confirm the order once it’s verified." },
+  { id: "airtel", label: "Airtel Money", logo: "/airtel.jpg", hint: "Place the order, then approve the payment prompt on your phone." },
+  { id: "tnm-mpamba", label: "TNM Mpamba", logo: "/tnm.jpeg", hint: "Pay from your Mpamba wallet." },
+  { id: "bank-transfer", label: "Bank transfer", logo: null, hint: "Transfer to our account, then enter the payment details and upload your proof of payment. We confirm the order once it’s verified." },
 ] as const;
+
+type PaymentId = (typeof paymentOptions)[number]["id"];
+/** Payment options shown to shoppers but not yet connected to a provider. */
+const COMING_SOON: ReadonlySet<PaymentId> = new Set(["tnm-mpamba"]);
 
 const emptyAddress: AddressForm = {
   label: "Home",
@@ -67,11 +76,22 @@ function CheckoutPage() {
   const [addressOpen, setAddressOpen] = useState(false);
 
   const [fulfilment, setFulfilment] = useState<"delivery" | "pickup">("delivery");
-  const [payment, setPayment] = useState<(typeof paymentOptions)[number]["id"]>("airtel");
+  const [payment, setPayment] = useState<PaymentId>("airtel");
+  const [courierId, setCourierId] = useState<number | null>(null);
+  const [bankProof, setBankProof] = useState<BankProof>(() => emptyBankProof());
+  const couriers = useQuery({ queryKey: ["courier-services"], queryFn: getCourierServices });
+  const chosenCourier = couriers.data?.find((courier) => courier.id === courierId) ?? null;
   const manualPaymentAvailable = commerceConfig.data?.manual_payment.enabled === true;
-  const isAvailable = (id: (typeof paymentOptions)[number]["id"]) =>
-    id === "airtel" || manualPaymentAvailable;
-  const canPay = isAvailable(payment);
+  const isAvailable = (id: PaymentId) =>
+    !COMING_SOON.has(id) && (id === "airtel" || manualPaymentAvailable);
+  const bankProblem = payment === "bank-transfer" ? bankProofProblem(bankProof) : null;
+  const canPay = isAvailable(payment) && !bankProblem;
+  const manual = commerceConfig.data?.manual_payment;
+  const destinations =
+    manual?.destinations ??
+    (manual?.account_number
+      ? [{ provider: manual.provider ?? "Bank", account_name: manual.account_name ?? "", account_number: manual.account_number, brand: "" }]
+      : []);
 
   const items = useMemo(
     () =>
@@ -92,6 +112,11 @@ function CheckoutPage() {
   // The orders API charges no delivery fee; quoting one would not match the amount paid.
   const deliveryFee = 0;
   const total = subtotal + deliveryFee;
+
+  // Pre-fill the amount with the order total; the shopper can correct it to what they sent.
+  useEffect(() => {
+    if (total > 0) setBankProof((current) => (current.amount ? current : { ...current, amount: String(total) }));
+  }, [total]);
 
   const addresses = useQuery({
     queryKey: ["addresses", user?.id ?? "anon"],
@@ -168,10 +193,27 @@ function CheckoutPage() {
         payment_method: payment,
         shipping_address_id: shippingAddressId,
         items: orderItems,
+        fulfilment,
+        ...(fulfilment === "delivery" && courierId ? { courier_service_id: courierId } : {}),
         ...(delivery.notes ? { notes: delivery.notes } : {}),
       });
       const order = result.orders[0];
       if (!order) throw new Error("Checkout did not create an order");
+
+      if (payment === "bank-transfer") {
+        try {
+          await submitPaymentProof({
+            submission_key: crypto.randomUUID(),
+            order_ids: result.orders.map((item) => Number(String(item.id).replace("ord_", ""))),
+            ...toProofPayload(bankProof),
+          });
+        } catch (error) {
+          // The order exists; the order page lets the shopper resubmit the proof.
+          toast.error(
+            `Order placed, but the payment proof was not saved: ${error instanceof Error ? error.message : "try again"}. Please submit it again.`,
+          );
+        }
+      }
 
       // The orders API looks orders up by id, not order number.
       return String(order.id);
@@ -291,6 +333,51 @@ function CheckoutPage() {
                   Add address
                 </button>
               </div>
+              {fulfilment === "delivery" ? (
+                <fieldset className="mt-7">
+                  <legend className="text-base font-bold text-ink-800">Who should deliver it?</legend>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {[
+                      { id: null, name: "Techaven rider", description: "We arrange delivery with a Techaven rider.", logo_url: undefined as string | undefined },
+                      ...(couriers.data ?? []).map((courier) => ({ ...courier, id: courier.id as number | null })),
+                    ].map((option) => (
+                      <label
+                        key={option.id ?? "techaven"}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-left focus-within:ring-2 focus-within:ring-brand-500",
+                          courierId === option.id ? "border-brand-500 bg-brand-100" : "border-border hover:bg-stage",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="courier"
+                          className="sr-only"
+                          checked={courierId === option.id}
+                          onChange={() => setCourierId(option.id)}
+                        />
+                        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface text-brand-500">
+                          {option.logo_url ? (
+                            <img src={option.logo_url} alt="" className="size-full object-contain p-1" />
+                          ) : (
+                            <Icon name="delivery-linear" className="size-5" />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-ink-800">{option.name}</span>
+                          {option.description ? (
+                            <span className="block truncate text-xs text-muted-foreground">{option.description}</span>
+                          ) : null}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {couriers.isError ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Courier options could not load. Your order will go with a Techaven rider.
+                    </p>
+                  ) : null}
+                </fieldset>
+              ) : null}
               <AddressDrawer open={addressOpen} close={() => setAddressOpen(false)} title="Delivery address"
                 value={form} onChange={setForm} onSave={() => saveDeliveryAddress.mutate()} busy={saveDeliveryAddress.isPending}
                 savedPhone={profile.data?.phone_number ?? undefined} />
@@ -317,15 +404,48 @@ function CheckoutPage() {
                 <legend className="sr-only">Payment method</legend>
                 {paymentOptions.map(option => {
                   const available = isAvailable(option.id);
+                  const soon = COMING_SOON.has(option.id);
                   return <label key={option.id} className="flex items-start gap-3 rounded-xl border border-border p-4 has-[:checked]:border-brand-500 has-[:disabled]:opacity-60">
                     <input type="radio" name="payment" value={option.id} checked={payment === option.id}
-                      disabled={!available} onChange={() => setPayment(option.id)} className="mt-1 accent-brand-500" />
-                    <span><strong className="block text-sm">{option.label}</strong>
-                      <span className="text-sm text-muted-foreground">{available ? option.hint : "Temporarily unavailable."}</span>
+                      disabled={!available} onChange={() => setPayment(option.id)} className="mt-3 accent-brand-500" />
+                    <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white">
+                      {option.logo
+                        ? <img src={option.logo} alt="" className="size-full object-contain" />
+                        : <Landmark aria-hidden="true" className="size-6 text-ink-800" strokeWidth={1.75} />}
+                    </span>
+                    <span className="min-w-0"><strong className="flex items-center gap-2 text-sm">{option.label}
+                      {soon ? <span className="rounded-full bg-stage px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Coming soon</span> : null}</strong>
+                      <span className="text-sm text-muted-foreground">{soon ? "Not available yet." : available ? option.hint : "Temporarily unavailable."}</span>
                     </span>
                   </label>;
                 })}
               </fieldset>
+              {payment === "bank-transfer" && manualPaymentAvailable ? (
+                <div className="mt-5 space-y-4">
+                  {destinations.length ? (
+                    <div>
+                      <p className="text-sm font-semibold text-ink-800">Transfer {formatMwk(total)} to</p>
+                      <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
+                        {destinations.map((destination) => (
+                          <li key={destination.account_number} className="p-3 text-sm">
+                            <strong className="block">{destination.provider}</strong>
+                            <span className="block">{destination.account_name}</span>
+                            <span className="break-all tabular-nums">{destination.account_number}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  <div>
+                    <p className="text-sm font-semibold text-ink-800">Your payment details</p>
+                    <p className="text-xs text-muted-foreground">Enter the details of the transfer you made and upload the receipt.</p>
+                    <div className="mt-3">
+                      <BankProofFields value={bankProof} onChange={setBankProof} idPrefix="checkout-proof" />
+                    </div>
+                  </div>
+                  {bankProblem ? <p className="text-xs text-muted-foreground">{bankProblem}</p> : null}
+                </div>
+              ) : null}
               </div>
               <footer className="flex flex-wrap gap-3 border-t border-border bg-surface p-4">
                 <button
@@ -361,6 +481,11 @@ function CheckoutPage() {
                     {[delivery.street, delivery.area, delivery.city].filter(Boolean).join(", ")}
                   </p>
                   <p className="text-xs text-muted-foreground">{delivery.phone}</p>
+                  {fulfilment === "delivery" ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Delivery by <strong className="text-ink-800">{chosenCourier?.name ?? "Techaven rider"}</strong>
+                    </p>
+                  ) : null}
                   {delivery.notes ? (
                     <p className="mt-2 text-xs text-muted-foreground">{delivery.notes}</p>
                   ) : null}
@@ -372,9 +497,15 @@ function CheckoutPage() {
                   <p className="mt-2 text-sm font-semibold text-ink-800">
                     {paymentOptions.find(option => option.id === payment)?.label}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {paymentOptions.find(option => option.id === payment)?.hint}
-                  </p>
+                  {payment === "bank-transfer" && bankProof.receipt ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatMwk(Number(bankProof.amount))} from {bankProof.payerName} ({bankProof.payerBank}) · receipt uploaded
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {paymentOptions.find(option => option.id === payment)?.hint}
+                    </p>
+                  )}
                 </div>
               </div>
 

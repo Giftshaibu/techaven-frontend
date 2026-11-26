@@ -148,7 +148,7 @@ function SellerListings() {
       </div>
 
       {listings.isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock label="Loading your listings" />
       ) : listings.error ? (
         <ErrorBlock error={listings.error} onRetry={() => listings.refetch()} />
       ) : visible.length === 0 ? (

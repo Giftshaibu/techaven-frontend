@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import {
   buttonClass,
+  EmptyState,
   ErrorBlock,
   errorMessage,
   Field,
@@ -16,8 +17,10 @@ import {
   relativeTime,
   StatusPill,
 } from "@/components/portal/kit";
+import { CourierDialog } from "@/components/portal/CourierDialog";
+import { ReasonDialog } from "@/components/portal/ReasonDialog";
 import { Switch } from "@/components/ui/switch";
-import { adminApi } from "@/integrations/techaven/staff";
+import { adminApi, type Courier, type CourierInput } from "@/integrations/techaven/staff";
 
 export const Route = createFileRoute("/portal/admin/settings")({ component: AdminSettings });
 
@@ -27,13 +30,71 @@ function AdminSettings() {
       <PageHeader
         eyebrow="Platform"
         title="Settings"
-        description="Commission, loyalty points and the courier options shoppers see at checkout."
+        description="Commission, loyalty points, what the storefront shows and the courier options shoppers see at checkout."
       />
       <div className="grid gap-6 lg:grid-cols-2">
-        <EconomicsPanel />
+        <div className="space-y-6">
+          <EconomicsPanel />
+          <StorefrontPanel />
+        </div>
         <CourierPanel />
       </div>
     </div>
+  );
+}
+
+function StorefrontPanel() {
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: ["portal", "admin", "settings"],
+    queryFn: adminApi.settings,
+  });
+  const hidden = Boolean(settings.data?.shops_tab_hidden);
+  const toggle = useMutation({
+    mutationFn: (shops_tab_hidden: boolean) => adminApi.updateSettings({ shops_tab_hidden }),
+    onSuccess: (_data, shops_tab_hidden) => {
+      toast.success(shops_tab_hidden ? "Shops tab hidden on the storefront" : "Shops tab is showing again");
+      void queryClient.invalidateQueries({ queryKey: ["portal", "admin", "settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["techaven", "platform-settings"] });
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const value = toggle.isPending ? Boolean(toggle.variables) : hidden;
+
+  return (
+    <Panel title="Storefront" description="Choose what shoppers see on the Techaven website.">
+      {settings.isLoading ? (
+        <LoadingBlock rows={1} label="Loading settings" />
+      ) : settings.error ? (
+        <ErrorBlock error={settings.error} />
+      ) : (
+        <div className="space-y-3">
+          <label className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
+            <span className="flex items-start gap-3">
+              <Icon name="shop-2-linear" className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
+              <span>
+                <span className="block text-sm font-semibold text-ink-800">Hide the Shops tab</span>
+                <span className="block text-xs text-muted-foreground">
+                  Removes Shops from the website menus and footer. Products stay on sale.
+                </span>
+              </span>
+            </span>
+            <Switch
+              checked={value}
+              disabled={toggle.isPending}
+              onCheckedChange={(checked) => toggle.mutate(checked)}
+              aria-label="Hide the Shops tab"
+            />
+          </label>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <StatusPill tone={value ? "warn" : "good"}>{value ? "Hidden" : "Showing"}</StatusPill>
+            {value
+              ? "Shoppers don't see the Shops tab right now."
+              : "Shoppers can browse all shops from the menu."}
+          </p>
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -79,7 +140,7 @@ function EconomicsPanel() {
       }
     >
       {settings.isLoading ? (
-        <LoadingBlock rows={2} />
+        <LoadingBlock rows={2} label="Loading settings" />
       ) : settings.error ? (
         <ErrorBlock error={settings.error} />
       ) : (
@@ -148,46 +209,74 @@ function CourierPanel() {
     queryKey: ["portal", "admin", "couriers"],
     queryFn: adminApi.couriers,
   });
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  // undefined = closed, null = adding, Courier = editing
+  const [editing, setEditing] = useState<Courier | null | undefined>(undefined);
+  const [deleting, setDeleting] = useState<Courier | null>(null);
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["portal", "admin", "couriers"] });
+  const list = couriers.data ?? [];
+  const nextSortOrder = list.reduce((max, courier) => Math.max(max, courier.sort_order), 0) + 1;
+
   const toggle = useMutation({
     mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) =>
       adminApi.updateCourier(id, { is_active }),
     onSuccess: () => void refresh(),
     onError: (error) => toast.error(errorMessage(error)),
   });
-  const create = useMutation({
-    mutationFn: () =>
-      adminApi.createCourier({
-        name: name.trim(),
-        description: description.trim() || null,
-        is_active: true,
-        sort_order: (couriers.data?.length ?? 0) + 1,
-      }),
-    onSuccess: () => {
+
+  async function save(values: CourierInput) {
+    if (editing) {
+      await adminApi.updateCourier(editing.id, values);
+      toast.success("Courier updated");
+    } else {
+      await adminApi.createCourier(values);
       toast.success("Courier added");
-      setName("");
-      setDescription("");
-      void refresh();
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  });
+    }
+    await refresh();
+  }
+
+  async function remove() {
+    if (!deleting) return;
+    try {
+      await adminApi.deleteCourier(deleting.id);
+      toast.success(`${deleting.name} deleted`);
+      await refresh();
+    } catch (error) {
+      toast.error(errorMessage(error));
+      throw error;
+    }
+  }
+
   return (
     <Panel
       title="Courier services"
       description="Options offered at checkout besides Techaven riders"
+      actions={
+        <button type="button" className={buttonClass.primary} onClick={() => setEditing(null)}>
+          <Icon name="add-circle-linear" className="h-4 w-4" />
+          Add courier
+        </button>
+      }
     >
       {couriers.isLoading ? (
-        <LoadingBlock rows={2} />
+        <LoadingBlock rows={2} label="Loading couriers" />
       ) : couriers.error ? (
-        <ErrorBlock error={couriers.error} />
+        <ErrorBlock error={couriers.error} onRetry={() => void couriers.refetch()} />
+      ) : !list.length ? (
+        <EmptyState icon="delivery-linear" title="No couriers yet">
+          Add a courier so shoppers can choose it at checkout.
+        </EmptyState>
       ) : (
         <ul className="divide-y divide-border rounded-xl border border-border">
-          {couriers.data?.map((courier) => (
+          {list.map((courier) => (
             <li key={courier.id} className="flex items-center gap-3 px-4 py-3">
-              <Icon name="delivery-linear" className="h-5 w-5 text-brand-500" />
+              <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-surface text-brand-500">
+                {courier.logo_url ? (
+                  <img src={courier.logo_url} alt="" className="h-full w-full object-contain p-1" />
+                ) : (
+                  <Icon name="delivery-linear" className="h-5 w-5" />
+                )}
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink-800">{courier.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
@@ -198,39 +287,46 @@ function CourierPanel() {
               <Switch
                 checked={courier.is_active}
                 aria-label={`Offer ${courier.name}`}
+                disabled={toggle.isPending && toggle.variables.id === courier.id}
                 onCheckedChange={(checked) => toggle.mutate({ id: courier.id, is_active: checked })}
               />
+              <button
+                type="button"
+                className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-stage hover:text-ink-800"
+                aria-label={`Edit ${courier.name}`}
+                title="Edit"
+                onClick={() => setEditing(courier)}
+              >
+                <Icon name="pen-linear" className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-danger-soft hover:text-rose-700"
+                aria-label={`Delete ${courier.name}`}
+                title="Delete"
+                onClick={() => setDeleting(courier)}
+              >
+                <Icon name="trash-bin-trash-linear" className="h-4 w-4" />
+              </button>
             </li>
           ))}
         </ul>
       )}
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          create.mutate();
-        }}
-        className="mt-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
-      >
-        <input
-          required
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Courier name"
-          className={inputClass}
-          aria-label="Courier name"
-        />
-        <input
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          placeholder="Short description"
-          className={inputClass}
-          aria-label="Courier description"
-        />
-        <button type="submit" disabled={create.isPending} className={buttonClass.primary}>
-          <Icon name="add-circle-linear" className="h-4 w-4" />
-          Add
-        </button>
-      </form>
+      <CourierDialog
+        open={editing !== undefined}
+        onOpenChange={(open) => !open && setEditing(undefined)}
+        courier={editing ?? null}
+        nextSortOrder={nextSortOrder}
+        onSave={save}
+      />
+      <ReasonDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete ${deleting?.name ?? "courier"}?`}
+        description="Shoppers will no longer see it at checkout. Past orders keep the courier's name. To hide it temporarily, turn it off instead."
+        confirmLabel="Delete courier"
+        onConfirm={remove}
+      />
     </Panel>
   );
 }

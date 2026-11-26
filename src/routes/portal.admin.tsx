@@ -10,15 +10,17 @@ export const Route = createFileRoute("/portal/admin")({
 });
 
 const nav: PortalNavItem[] = [
-  { to: "/portal/admin", label: "Overview", icon: "widget-2-linear", exact: true },
+  { to: "/portal/admin", label: "Overview", icon: "widget-2-linear", exact: true, mobile: true },
   { to: "/portal/admin/shops", label: "Shops", icon: "shop-2-linear" },
   { to: "/portal/admin/catalog", label: "Catalogue", icon: "layers-linear" },
   { to: "/portal/admin/promotions", label: "Promotions", icon: "tag-price-linear" },
-  { to: "/portal/admin/orders", label: "Orders", icon: "bag-4-linear" },
+  { to: "/portal/admin/orders", label: "Orders", icon: "bag-4-linear", mobile: true },
   { to: "/portal/admin/payments", label: "Payments", icon: "bill-check-linear" },
+  { to: "/portal/admin/deliveries", label: "Deliveries", icon: "box-linear", mobile: true },
   { to: "/portal/admin/users", label: "People", icon: "users-group-rounded-linear" },
   { to: "/portal/admin/subscriptions", label: "Subscriptions", icon: "card-linear" },
   { to: "/portal/admin/payouts", label: "Payouts", icon: "wallet-money-linear" },
+  { to: "/portal/admin/reports", label: "Reports", icon: "chart-2-linear", mobile: true },
   { to: "/portal/admin/settings", label: "Settings", icon: "settings-linear" },
   { to: "/portal/admin/activity", label: "Activity", icon: "history-linear" },
 ];

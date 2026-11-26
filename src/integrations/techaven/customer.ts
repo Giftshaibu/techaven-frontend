@@ -295,6 +295,8 @@ export function createOrder(body: {
   payment_method?: string;
   shipping_address_id: number;
   courier_service_id?: number;
+  /** "pickup" when the shopper collects at the shop. */
+  fulfilment?: "delivery" | "pickup";
   items: { seller_listing_id: number; quantity: number }[];
   notes?: string;
 }) {
@@ -340,6 +342,15 @@ export function payOrderAirtel(orderId: number | string, body: { msisdn: string 
   return techavenRequest<unknown>(`/api/orders/${orderId}/pay/airtel`, {
     method: "POST",
     body,
+    auth: true,
+  });
+}
+
+/** Buyer confirms delivery with the key returned by uploadDeliveryProof; an admin then reviews it. */
+export function submitDeliveryProof(orderId: number | string, proofKey: string) {
+  return techavenRequest<ApiOrder>(`/api/orders/${orderId}/delivery/proof`, {
+    method: "POST",
+    body: { proof_key: proofKey },
     auth: true,
   });
 }

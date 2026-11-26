@@ -1,5 +1,8 @@
 import { ImageStage } from "@/components/ImageStage";
-import { Copy, Upload, Check } from "lucide-react";
+import { TechavenLoader } from "@/components/TechavenLoader";
+import { Copy, Check } from "lucide-react";
+import { BankProofFields } from "@/components/BankProofFields";
+import { bankProofProblem, emptyBankProof, toProofPayload, type BankProof } from "@/lib/bank-proof";
 import { brandLogoUrl } from "@/lib/brand-logos";
 import { useEffect, useState, useRef, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
@@ -23,7 +26,7 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
   const handoff = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(handoff.current), []);
   const [copyFailed, setCopyFailed] = useState(false);
-  const [receiptName, setReceiptName] = useState("");
+  const [proof, setProof] = useState<BankProof>(() => emptyBankProof());
   const [now, setNow] = useState(() => Date.now());
   const data = context.data,
     instructions = config.data?.manual_payment;
@@ -37,6 +40,11 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
   const remaining = deadline ? Math.max(0, Math.ceil((deadline - now) / 1000)) : null;
   const expired = data?.expired || remaining === 0;
   const references = data?.orders.map(order => order.reference).join(", ");
+  useEffect(() => {
+    if (data?.amount && Number(data.amount) > 0) {
+      setProof(current => current.amount ? current : { ...current, amount: String(Number(data.amount)) });
+    }
+  }, [data?.amount]);
   const publicPhoto = data?.items?.map(item => item.product_image).find(image =>
     Boolean(image?.startsWith("https://") && !/^https:\/\/(?:localhost|127\.|0\.0\.0\.0)(?=[:/])/i.test(image)));
   function buildMessage(destination?: { provider: string; account_number: string } | null) {
@@ -75,6 +83,9 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
       <h2 id="manual-payment-heading" className="text-lg font-bold">
         Payment details
       </h2>
+      {context.isLoading || config.isLoading ? (
+        <TechavenLoader size="sm" label="Loading payment details" minHeight="10rem" />
+      ) : null}
       {data?.items?.length ? (
         <ul className="mt-3 divide-y divide-border">
           {data.items.map(item => <li key={item.id} className="flex items-center gap-3 py-2">
@@ -178,34 +189,28 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
             </div>}
             <p className="mt-3 text-sm text-muted-foreground">Use your order reference and upload the receipt after you transfer.</p>
             <form
-              className="mt-4 grid gap-4 sm:grid-cols-2"
+              className="mt-4 grid gap-4"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (busy) return;
-                const form = e.currentTarget,
-                  body = new FormData(form);
-                const file = body.get("receipt");
-                if (
-                  !(file instanceof File) ||
-                  !file.size ||
-                  file.size > 10 * 1024 * 1024 ||
-                  !["image/jpeg", "image/png", "application/pdf"].includes(file.type)
-                ) {
-                  setError("Choose a JPEG, PNG or PDF receipt, no larger than 10MB.");
+                const problem = bankProofProblem(proof);
+                if (problem) {
+                  setError(problem);
                   return;
                 }
                 key.current ||= crypto.randomUUID();
-                body.set("submission_key", key.current);
-                body.set("order_ids", JSON.stringify(data.payable_order_ids));
                 setBusy(true);
                 setError("");
                 try {
-                  const result = await submitPaymentProof(body);
+                  const result = await submitPaymentProof({
+                    submission_key: key.current,
+                    order_ids: data.payable_order_ids,
+                    ...toProofPayload(proof),
+                  });
                   setWhatsapp(result.whatsapp_url || "");
                   await client.invalidateQueries({ queryKey: ["payment-context", orderId] });
                   client.invalidateQueries({ queryKey: ["orders"] });
-                  form.reset();
-                  setReceiptName("");
+                  setProof(emptyBankProof());
                   key.current = "";
                   if (!deadline && result.whatsapp_url) window.location.assign(result.whatsapp_url);
                 } catch (error) {
@@ -217,63 +222,15 @@ export function ManualPayment({ orderId, footer }: { orderId: number | string; f
                 }
               }}
             >
-              <label className="text-sm font-semibold">
-                Payer name
-                <input
-                  name="payer_name"
-                  autoComplete="name"
-                  required
-                  maxLength={160}
-                  className="mt-1 min-h-11 w-full rounded-lg border border-border p-3"
-                />
-              </label>
-              <label className="text-sm font-semibold">
-                Transaction reference
-                <input
-                  name="payment_reference"
-                  required
-                  maxLength={160}
-                  className="mt-1 min-h-11 w-full rounded-lg border border-border p-3"
-                />
-              </label>
-              <label className="text-sm font-semibold">
-                Payment date
-                <input
-                  name="payment_date"
-                  type="date"
-                  required
-                  max={new Date().toISOString().slice(0, 10)}
-                  className="mt-1 min-h-11 w-full rounded-lg border border-border p-3"
-                />
-              </label>
-              <label className="block min-w-0 text-sm font-semibold">
-                <span>Payment receipt</span>
-                <span className="relative mt-1 flex min-h-14 items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors hover:bg-stage focus-within:ring-2 focus-within:ring-brand-500">
-                  <Upload size={19} aria-hidden="true" className="shrink-0 text-brand-500" />
-                  <span className="min-w-0">
-                    <span className="block truncate">{receiptName || "Choose a receipt"}</span>
-                    <span id="receipt-file-types" className="block text-xs font-normal text-muted-foreground">JPEG, PNG or PDF · Up to 10 MB</span>
-                  </span>
-                  <input
-                    name="receipt"
-                    type="file"
-                    aria-label="Upload payment receipt"
-                    aria-describedby="receipt-file-types"
-                    accept="image/jpeg,image/png,application/pdf"
-                    required
-                    onChange={event => setReceiptName(event.target.files?.[0]?.name ?? "")}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                  />
-                </span>
-              </label>
+              <BankProofFields value={proof} onChange={setProof} idPrefix="order-proof" />
               {error && (
-                <p role="alert" className="sm:col-span-2 text-sm text-red-700">
+                <p role="alert" className="text-sm text-red-700">
                   {error}
                 </p>
               )}
               <button
-                disabled={busy}
-                className="min-h-11 rounded-lg bg-brand-500 px-4 py-3 font-semibold text-white disabled:opacity-50"
+                disabled={busy || proof.uploading}
+                className="min-h-11 justify-self-start rounded-lg bg-brand-500 px-4 py-3 font-semibold text-white disabled:opacity-50"
               >
                 {busy ? "Submitting…" : "Submit payment proof"}
               </button>

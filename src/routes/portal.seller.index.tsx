@@ -136,7 +136,7 @@ function SellerToday() {
         >
           {orders.isLoading ? (
             <div className="p-5">
-              <LoadingBlock rows={2} />
+              <LoadingBlock rows={2} label="Loading orders" />
             </div>
           ) : awaiting.length === 0 ? (
             <EmptyState icon="bag-check-linear" title="No orders to accept">
@@ -169,7 +169,7 @@ function SellerToday() {
         >
           {listings.isLoading ? (
             <div className="p-5">
-              <LoadingBlock rows={2} />
+              <LoadingBlock rows={2} label="Loading listings" />
             </div>
           ) : lowStock.length === 0 ? (
             <EmptyState
@@ -234,7 +234,7 @@ function SellerToday() {
           </div>
         </Panel>
       ) : dashboard.isLoading ? (
-        <LoadingBlock rows={1} />
+        <LoadingBlock rows={1} label="Loading your shop" />
       ) : null}
     </div>
   );

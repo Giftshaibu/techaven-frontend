@@ -4,6 +4,7 @@ import { techavenRequest } from "@/integrations/techaven/client";
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, Phone } from "lucide-react";
 import { categories } from "@/data/catalog";
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 
 const socialProfiles = [
   { label: "X", url: import.meta.env["VITE_TECHAVEN_X_URL"], icon: <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-7.4L5.5 22H2.4l7.3-8.4L2 2h6.5l4.5 6.8L18.9 2Zm-1.1 18h1.7L7.5 4H5.7l12.1 16Z" /></svg> },
@@ -35,6 +36,7 @@ export function Footer() {
       techavenRequest<{ legal: { privacy: string; terms: string } }>("/api/commerce-config"),
     staleTime: 300000,
   });
+  const showShops = useShopsTabVisible();
   return (
     <footer className="bg-ink-900 text-white">
       <div className="shell py-7 md:hidden">
@@ -53,7 +55,7 @@ export function Footer() {
               { label: "Products", to: "/products" },
               { label: "Shops", to: "/shops" },
               { label: "Deals", to: "/deals" },
-            ],
+            ].filter((link) => showShops || link.to !== "/shops"),
           },
           {
             title: "Help",
@@ -138,19 +140,21 @@ export function Footer() {
                 </ul>
               </div>
 
-              <div>
-                <h3 className="text-sm font-semibold tracking-normal text-white">Stores</h3>
-                <ul className="mt-4 space-y-2.5 text-sm">
-                  <li>
-                    <Link
-                      to="/shops"
-                      className="text-white/80 transition-colors hover:text-white hover:underline"
-                    >
-                      All shops
-                    </Link>
-                  </li>
-                </ul>
-              </div>
+              {showShops ? (
+                <div>
+                  <h3 className="text-sm font-semibold tracking-normal text-white">Stores</h3>
+                  <ul className="mt-4 space-y-2.5 text-sm">
+                    <li>
+                      <Link
+                        to="/shops"
+                        className="text-white/80 transition-colors hover:text-white hover:underline"
+                      >
+                        All shops
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              ) : null}
 
               <div>
                 <h3 className="text-sm font-semibold tracking-normal text-white">Help</h3>

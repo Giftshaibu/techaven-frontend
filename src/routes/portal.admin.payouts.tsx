@@ -93,7 +93,7 @@ function AdminPayouts() {
       <Panel title="Requests" bodyClassName="p-0">
         {withdrawals.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading payout requests" />
           </div>
         ) : withdrawals.error ? (
           <div className="p-5">

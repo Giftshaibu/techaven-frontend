@@ -115,7 +115,7 @@ function AdminUsers() {
       <Panel bodyClassName="p-0">
         {users.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading users" />
           </div>
         ) : users.error ? (
           <div className="p-5">

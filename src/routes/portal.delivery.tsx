@@ -18,5 +18,5 @@ const nav: PortalNavItem[] = [
 ];
 
 function DeliveryLayout() {
-  return <PortalShell theme={PORTAL_THEMES.delivery} nav={nav} mobileTabs />;
+  return <PortalShell theme={PORTAL_THEMES.delivery} nav={nav} />;
 }

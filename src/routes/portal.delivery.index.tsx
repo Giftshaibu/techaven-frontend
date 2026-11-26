@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/Icon";
 import {
   buttonClass,
+  CenteredLoader,
   EmptyState,
   ErrorBlock,
   errorMessage,
@@ -74,7 +75,7 @@ function RiderJobs() {
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  if (profile.isLoading) return <LoadingBlock rows={3} />;
+  if (profile.isLoading) return <CenteredLoader label="Getting you on the road" />;
   if (profile.error) {
     if (profile.error instanceof StaffApiError && profile.error.status === 404) {
       return (
@@ -205,7 +206,7 @@ function RiderJobs() {
             </EmptyState>
           </div>
         ) : available.isLoading ? (
-          <LoadingBlock rows={2} />
+          <LoadingBlock rows={2} label="Finding jobs near you" />
         ) : available.error ? (
           <ErrorBlock error={available.error} />
         ) : !available.data?.jobs.length ? (

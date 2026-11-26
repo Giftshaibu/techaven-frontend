@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 
 import {
   getBanners,
@@ -78,5 +79,20 @@ export function usePlatformSettings() {
   return useQuery({
     queryKey: techavenKeys.platformSettings(),
     queryFn: getPlatformSettings,
+    staleTime: 60_000,
   });
+}
+
+/**
+ * Whether the storefront shows its Shops tab and "browse shops" links. Admins can hide them in
+ * Settings; products, and the shop name on each offer, stay visible either way.
+ */
+export function useShopsTabVisible() {
+  // The root loader reads the switch during the server render; the query keeps it fresh afterwards.
+  const fromServer = useRouterState({
+    select: (state) =>
+      (state.matches[0]?.loaderData as { shopsTabHidden?: boolean } | undefined)?.shopsTabHidden,
+  });
+  const live = usePlatformSettings().data?.shops_tab_hidden;
+  return !(live ?? fromServer ?? false);
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 
 import { Icon } from "@/components/Icon";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { getStaffSession, subscribeStaffSession, type Money } from "@/integrations/techaven/staff";
 import { cn } from "@/lib/utils";
 
@@ -242,13 +243,35 @@ export function EmptyState({
   );
 }
 
-export function LoadingBlock({ rows = 4 }: { rows?: number }) {
+/**
+ * Loader for a panel or list that is waiting on the API. It keeps roughly the height of the
+ * content it stands in for (`rows` of about 3.75rem), so the page does not jump when data arrives.
+ */
+export function LoadingBlock({ rows = 4, label = "Loading" }: { rows?: number; label?: string }) {
   return (
-    <div className="space-y-3" aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="h-12 animate-pulse rounded-xl bg-stage" />
-      ))}
-    </div>
+    <TechavenLoader
+      label={label}
+      size={rows <= 1 ? "sm" : rows <= 2 ? "sm" : "md"}
+      minHeight={`${Math.max(rows * 3.75, 7.5)}rem`}
+      className="rounded-xl bg-stage/40"
+    />
+  );
+}
+
+/** Animated Techaven loader centred in the space it fills: a whole page (md) or a panel (sm). */
+export function CenteredLoader({
+  label = "Loading",
+  size = "md",
+  className,
+}: {
+  label?: string;
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  return size === "md" ? (
+    <TechavenLoader label={label} size="lg" minHeight="55vh" {...(className ? { className } : {})} />
+  ) : (
+    <TechavenLoader label={label} size="sm" minHeight="10rem" {...(className ? { className } : {})} />
   );
 }
 

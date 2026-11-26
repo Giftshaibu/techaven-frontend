@@ -138,7 +138,7 @@ function ShopSubscriptions() {
       <Panel bodyClassName="p-0">
         {subs.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading subscriptions" />
           </div>
         ) : subs.error ? (
           <div className="p-5">
@@ -272,7 +272,7 @@ function Plans() {
         </button>
       </div>
       {packages.isLoading ? (
-        <LoadingBlock />
+        <LoadingBlock label="Loading packages" />
       ) : packages.error ? (
         <ErrorBlock error={packages.error} />
       ) : !plans.length ? (

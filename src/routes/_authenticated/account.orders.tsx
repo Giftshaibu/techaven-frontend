@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
@@ -53,7 +54,7 @@ function OrdersPage() {
   });
 
   if (orders.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading your orders…</p>;
+    return <TechavenLoader label="Fetching your orders" minHeight="20rem" />;
   }
 
   if (!orders.data?.length) {

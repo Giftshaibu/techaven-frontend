@@ -6,6 +6,8 @@
  * sessionStorage (or localStorage when "keep me signed in" is chosen), separate from the
  * customer session, so a shopper and a staff member never share credentials.
  */
+import { uploadFile, UploadError, type UploadProgress } from "@/lib/upload";
+
 import { getTechavenApiBaseUrl } from "./env";
 
 export type StaffRole = "admin" | "seller" | "delivery_agent";
@@ -176,15 +178,26 @@ export async function staffLogin(
   return session;
 }
 
-/** Uploads a JPEG/PNG/GIF/WebP image (admin & seller only) and returns its public URL. */
-export async function uploadStaffImage(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("image", file);
-  const data = await staffRequest<{ url: string; path: string }>("/api/uploads/image", {
-    method: "POST",
-    formData,
-  });
-  return data.url;
+/**
+ * Uploads a JPEG/PNG/GIF/WebP image (admin & seller only) to Cloudflare R2 and returns
+ * its public URL, which callers save in their payloads. Reports progress (0–100).
+ */
+export async function uploadStaffImage(file: File, onProgress?: UploadProgress): Promise<string> {
+  const session = getStaffSession();
+  if (!session) throw new StaffApiError("Sign in to continue", 401);
+  try {
+    const data = await uploadFile<{ url: string; key: string }>("/api/uploads/image", file, {
+      token: session.token,
+      onProgress,
+    });
+    return data.url;
+  } catch (error) {
+    if (error instanceof UploadError) {
+      if (error.status === 401) clearStaffSession();
+      throw new StaffApiError(error.message, error.status);
+    }
+    throw error;
+  }
 }
 
 /* ───────────────────────── Shared shapes ───────────────────────── */
@@ -207,6 +220,19 @@ export type Shop = {
   total_sales?: number;
   createdAt?: string;
   owners?: { id: number; name: string; email: string | null }[];
+};
+
+/** Fields an admin sets on a shop. Empty strings clear optional fields. */
+export type ShopInput = {
+  shop_name: string;
+  location?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  description?: string;
+  logo_url?: string;
+  status?: "active" | "inactive";
+  is_verified?: boolean;
 };
 
 export type AdminUser = {
@@ -237,6 +263,17 @@ export type Order = {
   created_at?: string;
   seller_accepted_at?: string | null;
   delivery_agent_name?: string | null;
+  escrow_amount?: Money;
+  /** "delivery" (courier / rider) or "pickup" (collect at the shop). */
+  fulfilment_type?: "delivery" | "pickup" | string;
+  courier_service?: string | null;
+  courier_tracking_number?: string | null;
+  dispatched_at?: string | null;
+  delivered_at?: string | null;
+  delivery_proof_status?: "pending_review" | "approved" | "rejected" | null;
+  delivery_proof_submitted_at?: string | null;
+  delivery_proof_rejection_reason?: string | null;
+  funds_released_at?: string | null;
   user?: { id: number; name: string; email?: string | null } | null;
   buyer?: { id: number; name: string; email?: string | null } | null;
   items?: {
@@ -246,6 +283,128 @@ export type Order = {
     price?: Money;
     subtotal?: Money;
   }[];
+};
+
+export type ReportGranularity = "day" | "week" | "month";
+export type AdminReport = {
+  range: { from: string; to: string; granularity: ReportGranularity; timezone: string; generated_at: string };
+  basis: Record<string, string>;
+  summary: {
+    orders: number;
+    items_sold: number;
+    gross_sales: number;
+    commission: number;
+    seller_share: number;
+    subscription_income: number;
+    platform_revenue: number;
+    average_order: number;
+    buyers: number;
+    selling_shops: number;
+  };
+  series: { bucket: string; orders: number; items: number; gross: number; commission: number; subscriptions: number }[];
+  shops: { shop_id: number | null; shop: string; orders: number; items: number; gross: number; commission: number; seller_share: number; released: number; held: number }[];
+  products: { product: string; shop: string; quantity: number; revenue: number; orders: number }[];
+  escrow: {
+    held_now: number;
+    held_orders_now: number;
+    awaiting_approval_now: number;
+    released: number;
+    released_orders: number;
+    refunded: number;
+    rows: {
+      id: number; order_number: string; shop: string; buyer: string | null; total_amount: number; escrow_amount: number;
+      commission: number; escrow_status: string; status: string; delivery_proof_status: string | null;
+      paid_at: string | null; funds_released_at: string | null;
+    }[];
+  };
+  payouts: { total: number; count: number; rows: PayoutRow[] };
+  payout_requests: {
+    count: number;
+    by_status: Record<string, number>;
+    pending_now: { amount: number; count: number };
+    rows: (PayoutRow & { status: string })[];
+  };
+  subscriptions: {
+    income: number;
+    payments: number;
+    active_now: number;
+    past_due_now: number;
+    ended: number;
+    by_package: { package: string; count: number; amount: number }[];
+    rows: {
+      id: number; shop: string | null; package: string | null; billing_period: string | null; amount: number;
+      status: string; payment_reference: string | null; current_period_start: string | null; current_period_end: string | null;
+    }[];
+  };
+  truncated: boolean;
+};
+export type SellerReport = {
+  range: AdminReport["range"];
+  basis: Record<string, string>;
+  summary: {
+    orders: number;
+    items_sold: number;
+    products_sold: number;
+    gross_sales: number;
+    commission: number;
+    net_earnings: number;
+    average_order: number;
+    buyers: number;
+    released: number;
+    released_orders: number;
+    cancelled: number;
+    cancelled_value: number;
+    unpaid: number;
+    unpaid_value: number;
+    best_weekday: string | null;
+    best_period: { bucket: string; gross: number } | null;
+  };
+  now: {
+    in_escrow: number;
+    to_send: number;
+    awaiting_buyer: number;
+    awaiting_approval: number;
+    approval_amount: number;
+    wallet_balance: number;
+    pending_withdrawals: { amount: number; count: number };
+  };
+  series: { bucket: string; orders: number; items: number; gross: number; net: number; commission: number }[];
+  products: { product: string; quantity: number; revenue: number; orders: number; last_sold: string | null }[];
+  orders: {
+    id: number; order_number: string; buyer: string | null; placed_at: string; paid_at: string | null; items: number;
+    total_amount: number; commission: number; net: number; status: string; payment_status: string; escrow_status: string;
+    fulfilment_type: string | null; courier_service: string | null; dispatched_at: string | null;
+    delivery_proof_status: string | null; funds_released_at: string | null;
+  }[];
+  fulfilment: {
+    sent: number;
+    average_hours_to_send: number | null;
+    sent_within_a_day: number | null;
+    by_type: { type: string; orders: number; gross: number }[];
+    couriers: { courier: string; orders: number }[];
+    by_weekday: { day: string; orders: number; gross: number }[];
+  };
+  withdrawals: {
+    by_status: Record<string, number>;
+    completed_total: number;
+    rows: { id: number; amount: number; status: string; method: string; account_name: string | null; account_number: string | null; admin_notes: string | null; requested_at: string; processed_at: string | null }[];
+  };
+  plan: { package: string | null; price: number; billing_period: string | null; status: string; current_period_end: string | null } | null;
+  truncated: boolean;
+};
+
+export type PayoutRow = {
+  id: number; amount: number; currency: string; method: string; account_name: string | null; account_number: string | null;
+  admin_notes: string | null; processed_at: string | null; requested_at: string; seller: string | null; shop: string;
+};
+
+export type DeliveryReview = Order & {
+  shop_name?: string | null;
+  has_proof_file: boolean;
+  /** Legacy proof link from the mobile app, when no file was uploaded here. */
+  delivery_confirmation_proof_url?: string | null;
+  createdAt?: string;
+  user?: { id: number; name: string; phone_number?: string | null } | null;
 };
 
 export type Withdrawal = {
@@ -262,7 +421,17 @@ export type Withdrawal = {
   user?: { id: number; name: string; email?: string | null } | null;
 };
 
-export type PaymentProofStatus = "pending_review" | "approved" | "rejected";
+export type Courier = {
+  id: number;
+  name: string;
+  description: string | null;
+  logo_url: string | null;
+  is_active: boolean;
+  sort_order: number;
+};
+export type CourierInput = Omit<Courier, "id">;
+
+export type PaymentProofStatus ="pending_review" | "approved" | "rejected";
 export type PaymentProof = {
   id: string;
   order_ids: number[];
@@ -270,7 +439,9 @@ export type PaymentProof = {
   amount: string;
   currency: string;
   payer_name: string;
-  payment_reference: string;
+  payer_bank?: string | null;
+  declared_amount?: string | null;
+  payment_reference: string | null;
   payment_date: string;
   status: PaymentProofStatus;
   rejection_reason: string | null;
@@ -394,6 +565,9 @@ const q = (params: Record<string, string | number | undefined>) => {
 export const adminApi = {
   dashboard: () => staffRequest<AdminDashboard>("/api/admin/dashboard"),
   shops: () => staffRequest<Shop[]>("/api/admin/shops"),
+  createShop: (body: ShopInput) => staffRequest<Shop>("/api/admin/shops", { method: "POST", body }),
+  /** Refused (409) when the shop has sellers, listings, orders or subscriptions; suspend those instead. */
+  deleteShop: (id: number) => staffRequest(`/api/admin/shops/${id}`, { method: "DELETE" }),
   approveShop: (id: number) =>
     staffRequest(`/api/admin/shops/${id}/approve`, { method: "POST", body: {} }),
   rejectShop: (id: number, reason: string) =>
@@ -413,6 +587,22 @@ export const adminApi = {
       body: {},
     }),
   orders: () => staffRequest<Order[]>("/api/admin/orders"),
+  /** Sales, escrow, payouts, payout requests and subscription income for a Malawi-time date range. */
+  report: (params: { from: string; to: string; granularity: ReportGranularity }) =>
+    staffRequest<AdminReport>(`/api/admin/reports${q(params)}`),
+  deliveryProofs: (status: "pending_review" | "approved" | "rejected", page = 1) =>
+    staffRequest<{ orders: DeliveryReview[]; total: number; page: number }>(
+      `/api/admin/delivery-proofs${q({ status, page })}`,
+    ),
+  /** Approving releases the order's escrow to the seller's wallet. */
+  approveDelivery: (id: number) =>
+    staffRequest<Order>(`/api/admin/orders/${id}/delivery/approve`, { method: "POST", body: {} }),
+  rejectDelivery: (id: number, reason: string) =>
+    staffRequest<Order>(`/api/admin/orders/${id}/delivery/reject`, {
+      method: "POST",
+      body: { reason },
+    }),
+  deliveryProofFile: (id: number) => staffBlob(`/api/orders/${id}/delivery/proof`),
   updateOrderStatus: (id: number, status: string) =>
     staffRequest(`/api/admin/orders/${id}/status`, { method: "PATCH", body: { status } }),
   withdrawals: () => staffRequest<{ withdrawals: Withdrawal[] }>("/api/admin/withdrawals"),
@@ -437,24 +627,18 @@ export const adminApi = {
     staffRequest<{
       seller_commission_percent: number;
       default_points_mwk_per_point: number | null;
+      shops_tab_hidden?: boolean;
       updated_at?: string;
     }>("/api/admin/platform-settings"),
   updateSettings: (body: Record<string, unknown>) =>
     staffRequest("/api/admin/platform-settings", { method: "PATCH", body }),
-  couriers: () =>
-    staffRequest<
-      {
-        id: number;
-        name: string;
-        description: string | null;
-        is_active: boolean;
-        sort_order: number;
-      }[]
-    >("/api/admin/courier-services"),
-  createCourier: (body: Record<string, unknown>) =>
-    staffRequest("/api/admin/courier-services", { method: "POST", body }),
-  updateCourier: (id: number, body: Record<string, unknown>) =>
-    staffRequest(`/api/admin/courier-services/${id}`, { method: "PATCH", body }),
+  couriers: () => staffRequest<Courier[]>("/api/admin/courier-services"),
+  createCourier: (body: CourierInput) =>
+    staffRequest<Courier>("/api/admin/courier-services", { method: "POST", body }),
+  updateCourier: (id: number, body: Partial<CourierInput>) =>
+    staffRequest<Courier>(`/api/admin/courier-services/${id}`, { method: "PATCH", body }),
+  deleteCourier: (id: number) =>
+    staffRequest(`/api/admin/courier-services/${id}`, { method: "DELETE" }),
   categories: () =>
     staffRequest<{ id: number; name: string; status: string; shop_id: number | null }[]>(
       "/api/admin/categories",
@@ -462,7 +646,19 @@ export const adminApi = {
   brands: () => staffRequest<Brand[]>("/api/v2/admin/catalog/brands"),
   createBrand: (name: string) =>
     staffRequest<Brand>("/api/v2/admin/catalog/brands", { method: "POST", body: { name } }),
-  devices: () => staffRequest<CatalogDevice[]>("/api/v2/admin/catalog/devices"),
+  /** One page of devices (sorted by name), optionally filtered by a search over name and brand. */
+  devicesPage: (params: { page: number; limit?: number; search?: string; brand_id?: number }) =>
+    staffRequest<{
+      devices: CatalogDevice[];
+      pagination: { page: number; limit: number; total: number; total_pages: number; has_more: boolean };
+    }>(
+      `/api/v2/admin/catalog/devices${q({
+        page: params.page,
+        limit: params.limit ?? 50,
+        search: params.search || undefined,
+        brand_id: params.brand_id,
+      })}`,
+    ),
   createDevice: (body: Record<string, unknown>) =>
     staffRequest<CatalogDevice>("/api/v2/admin/catalog/devices", { method: "POST", body }),
   variants: (deviceId: number) =>
@@ -584,11 +780,18 @@ export const sellerApi = {
     staffRequest<{ onboarding_status: string; shop: Shop | null }>("/api/sellers/status"),
   dashboard: () => staffRequest<SellerDashboard>("/api/sellers/dashboard"),
   orders: () => staffRequest<Order[]>("/api/sellers/orders"),
-  acceptOrder: (id: number) =>
-    staffRequest(`/api/sellers/orders/${id}/accept`, { method: "POST", body: {} }),
+  /** Marks a paid order as sent (delivery) or handed over at the shop (pickup). */
+  dispatchOrder: (id: number, tracking_number?: string) =>
+    staffRequest<Order>(`/api/sellers/orders/${id}/dispatch`, {
+      method: "POST",
+      body: tracking_number ? { tracking_number } : {},
+    }),
   rejectOrder: (id: number, reason: string) =>
     staffRequest(`/api/sellers/orders/${id}/reject`, { method: "POST", body: { reason } }),
   earnings: () => staffRequest<SellerEarnings>("/api/sellers/earnings"),
+  /** The signed-in seller's own sales report for a Malawi-time date range. */
+  report: (params: { from: string; to: string; granularity: ReportGranularity }) =>
+    staffRequest<SellerReport>(`/api/sellers/reports${q(params)}`),
   withdrawals: () => staffRequest<{ withdrawals: Withdrawal[] }>("/api/sellers/withdrawals"),
   withdraw: (body: Record<string, unknown>) =>
     staffRequest("/api/sellers/withdraw", { method: "POST", body }),

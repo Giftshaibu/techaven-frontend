@@ -101,7 +101,7 @@ function AdminPayments() {
       <Panel bodyClassName="p-0">
         {proofs.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading payment proofs" />
           </div>
         ) : proofs.error ? (
           <div className="p-5">
@@ -123,10 +123,12 @@ function AdminPayments() {
                     {mwk(proof.amount)}{" "}
                     <span className="font-normal text-muted-foreground">
                       from {proof.payer_name}
+                      {proof.payer_bank ? ` · ${proof.payer_bank}` : ""}
                     </span>
                   </p>
                   <p className="break-words text-xs text-muted-foreground">
-                    {proof.order_references.join(", ")} · Ref {proof.payment_reference} · Submitted{" "}
+                    {proof.order_references.join(", ")}
+                    {proof.payment_reference ? ` · Ref ${proof.payment_reference}` : ""} · Submitted{" "}
                     {shortDate(proof.created_at)}
                   </p>
                   {proof.rejection_reason ? (
@@ -185,8 +187,14 @@ function AdminPayments() {
               <dl className="grid gap-3 rounded-xl bg-stage p-4 text-sm sm:grid-cols-2">
                 {[
                   ["Orders", reviewing.order_references.join(", ")],
-                  ["Payer", reviewing.payer_name],
-                  ["Transaction reference", reviewing.payment_reference],
+                  ["Order total", mwk(reviewing.amount)],
+                  [
+                    "Amount the customer says they paid",
+                    reviewing.declared_amount ? mwk(reviewing.declared_amount) : "Not provided",
+                  ],
+                  ["Bank", reviewing.payer_bank || "Not provided"],
+                  ["Account name", reviewing.payer_name],
+                  ["Transaction reference", reviewing.payment_reference || "Not provided"],
                   ["Payment date", shortDate(reviewing.payment_date)],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
@@ -195,6 +203,13 @@ function AdminPayments() {
                   </div>
                 ))}
               </dl>
+              {reviewing.declared_amount &&
+              Number(reviewing.declared_amount) !== Number(reviewing.amount) ? (
+                <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                  The amount entered ({mwk(reviewing.declared_amount)}) differs from the order total
+                  ({mwk(reviewing.amount)}). Check the receipt before approving.
+                </p>
+              ) : null}
               <Receipt key={reviewing.id} id={reviewing.id} />
               {reviewing.status === "pending_review" ? (
                 <div className="flex justify-end gap-2">
@@ -268,7 +283,7 @@ function Receipt({ id }: { id: string }) {
 
   if (receipt.error)
     return <ErrorBlock error={receipt.error} onRetry={() => void receipt.refetch()} />;
-  if (!receipt.data || !url) return <LoadingBlock rows={3} />;
+  if (!receipt.data || !url) return <LoadingBlock rows={3} label="Opening receipt" />;
   return (
     <div className="space-y-2">
       {receipt.data.type === "application/pdf" ? (

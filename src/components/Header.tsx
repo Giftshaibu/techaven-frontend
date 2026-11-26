@@ -10,7 +10,7 @@ import {
   mapApiCategoryToCatalog,
   mapApiShopToCatalog,
 } from "@/lib/catalog-api";
-import { useTechavenCategories, useTechavenShops } from "@/lib/techaven-hooks";
+import { useShopsTabVisible, useTechavenCategories, useTechavenShops } from "@/lib/techaven-hooks";
 import { cn } from "@/lib/utils";
 import { ctaHref, getPromotions, matchesTarget, type Promotion } from "@/lib/cms/promotions";
 import { PromotionMedia } from "@/components/promotions/PromotionPrimitives";
@@ -88,9 +88,10 @@ function MegaMenu({
   onLeave: () => void;
   onNavigate: () => void;
 }) {
+  const showShops = useShopsTabVisible();
   const category = categories.find((c) => c.slug === slug);
   if (!category) return null;
-  const featuredShops = shops.slice(0, 3);
+  const featuredShops = showShops ? shops.slice(0, 3) : [];
   const columnCount =
     Number(category.subcategories.length > 0) +
     Number(category.brands.length > 0) +
@@ -105,7 +106,7 @@ function MegaMenu({
         <aside className="border-r border-border pr-6">
           <h3 className="text-sm font-semibold text-ink-800">Explore {category.name.toLowerCase()}</h3>
           <Link to="/category/$slug" params={{ slug: category.slug }} onClick={onNavigate} className="mt-5 block text-sm underline underline-offset-4">See all {category.name.toLowerCase()}</Link>
-          <Link to="/shops" onClick={onNavigate} className="mt-4 block text-sm hover:underline">Browse shops</Link>
+          {showShops ? <Link to="/shops" onClick={onNavigate} className="mt-4 block text-sm hover:underline">Browse shops</Link> : null}
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">Compare available models and prices from local shops.</p>
         </aside>
         <div className="min-w-0"><div className="mb-5 flex items-center justify-between"><h3 className="text-sm font-semibold">Shop by brand</h3>
@@ -238,6 +239,7 @@ export function Header() {
   const signedIn = Boolean(user);
   const apiCategories = useTechavenCategories();
   const apiShops = useTechavenShops();
+  const showShops = useShopsTabVisible();
   const announcementPromotion = useQuery({
     queryKey: ["promotions", "site_announcement"],
     queryFn: () => getPromotions("site_announcement"),
@@ -455,12 +457,14 @@ export function Header() {
             >
               Products
             </Link>
-            <Link
-              to="/shops"
-              className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500 lg:block"
-            >
-              Shops
-            </Link>
+            {showShops ? (
+              <Link
+                to="/shops"
+                className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500 lg:block"
+              >
+                Shops
+              </Link>
+            ) : null}
             <Link
               to="/compare"
               className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-800 hover:text-brand-500 lg:block"
@@ -715,7 +719,7 @@ export function Header() {
                     { label: "Help", to: "/help", icon: "question-circle-linear" },
                     { label: "Catalogs", to: "/catalogs", icon: "notebook-bookmark-linear" },
                     { label: "Categories", to: "/categories", icon: "widget-4-linear" },
-                  ].map((item) => (
+                  ].filter((item) => showShops || item.to !== "/shops").map((item) => (
                     <Link
                       key={item.label}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any

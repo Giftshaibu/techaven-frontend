@@ -65,7 +65,7 @@ function AdminActivity() {
       <Panel bodyClassName="p-0">
         {logs.isLoading ? (
           <div className="p-5">
-            <LoadingBlock />
+            <LoadingBlock label="Loading activity" />
           </div>
         ) : logs.error ? (
           <div className="p-5">

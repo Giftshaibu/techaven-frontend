@@ -1,17 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "@/components/Icon";
 import {
   buttonClass,
+  CenteredLoader,
   EmptyState,
   ErrorBlock,
   errorMessage,
   Field,
   inputClass,
-  LoadingBlock,
   PageHeader,
   Panel,
   StatusPill,
@@ -31,34 +37,69 @@ import {
   type Variant,
   type VariantColor,
 } from "@/integrations/techaven/staff";
+import { LoaderMark } from "@/components/TechavenLoader";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/portal/admin/catalog")({ component: VariantStudio });
 
 const ram = (value: Variant["ram_gb"]) => (value == null ? null : Number(value));
 
+/** Debounces a fast-changing value (the search box) so the API is asked once typing pauses. */
+function useDebounced<T>(value: T, delayMs = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+const PAGE_SIZE = 50;
+
 function VariantStudio() {
-  const devices = useQuery({ queryKey: ["portal", "admin", "devices"], queryFn: adminApi.devices });
   const [search, setSearch] = useState("");
-  const [deviceId, setDeviceId] = useState<number | null>(null);
+  const term = useDebounced(search.trim());
+  // The catalogue has tens of thousands of devices: the server searches and pages them
+  // (50 at a time) instead of the browser downloading the whole table.
+  const devices = useInfiniteQuery({
+    queryKey: ["portal", "admin", "devices", term],
+    queryFn: ({ pageParam }) => adminApi.devicesPage({ page: pageParam, limit: PAGE_SIZE, search: term }),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.pagination.has_more ? last.pagination.page + 1 : undefined),
+    placeholderData: keepPreviousData,
+  });
+  const [selected, setSelected] = useState<CatalogDevice | null>(null);
   const [newDevice, setNewDevice] = useState(false);
+  const list = useMemo(() => devices.data?.pages.flatMap((page) => page.devices) ?? [], [devices.data]);
+  const total = devices.data?.pages[0]?.pagination.total ?? 0;
+  const searching = devices.isFetching && !devices.isFetchingNextPage;
 
   useEffect(() => {
-    if (deviceId == null && devices.data?.length) setDeviceId(devices.data[0]!.id);
-  }, [deviceId, devices.data]);
+    if (!selected && list.length) setSelected(list[0]!);
+  }, [selected, list]);
+
+  // Load the next page when the end of the list scrolls into view.
+  const sentinel = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !devices.hasNextPage) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && !devices.isFetchingNextPage) void devices.fetchNextPage();
+    }, { rootMargin: "200px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [devices, list.length]);
 
   const groups = useMemo(() => {
-    const term = search.trim().toLowerCase();
     const map = new Map<string, CatalogDevice[]>();
-    for (const device of devices.data ?? []) {
-      if (term && !`${device.brand?.name} ${device.name}`.toLowerCase().includes(term)) continue;
+    for (const device of list) {
       const key = device.brand?.name ?? "Other";
       map.set(key, [...(map.get(key) ?? []), device]);
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [devices.data, search]);
+    return [...map.entries()];
+  }, [list]);
 
-  const selected = devices.data?.find((device) => device.id === deviceId) ?? null;
+  const catalogueEmpty = !term && devices.isSuccess && total === 0;
 
   return (
     <div className="space-y-6">
@@ -75,10 +116,10 @@ function VariantStudio() {
       />
 
       {devices.isLoading ? (
-        <LoadingBlock />
-      ) : devices.error ? (
+        <CenteredLoader label="Loading catalogue" />
+      ) : devices.error && !devices.data ? (
         <ErrorBlock error={devices.error} onRetry={() => devices.refetch()} />
-      ) : !devices.data?.length ? (
+      ) : catalogueEmpty ? (
         <Panel>
           <EmptyState
             icon="layers-linear"
@@ -109,14 +150,35 @@ function VariantStudio() {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder={`Search ${devices.data.length} devices`}
-                  className={cn(inputClass, "pl-9")}
+                  placeholder={term ? "Search devices" : `Search ${total.toLocaleString("en-GB")} devices`}
+                  aria-label="Search devices by name or brand"
+                  className={cn(inputClass, "pl-9 pr-9")}
                 />
+                {searching ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <LoaderMark size="xs" />
+                  </span>
+                ) : null}
               </div>
+              <p className="mt-2 px-1 text-[11px] text-muted-foreground" aria-live="polite">
+                {term
+                  ? `${total.toLocaleString("en-GB")} match${total === 1 ? "" : "es"} for “${term}”`
+                  : `Showing ${list.length.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}, A–Z`}
+              </p>
             </div>
-            <div className="max-h-[32vh] overflow-y-auto p-2 lg:max-h-[68vh]">
-              {groups.map(([brand, items]) => (
-                <div key={brand} className="mb-2">
+            <div
+              className={cn(
+                "max-h-[32vh] overflow-y-auto p-2 transition-opacity lg:max-h-[68vh]",
+                searching && "opacity-60",
+              )}
+            >
+              {!list.length ? (
+                <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                  No devices match “{term}”. Try a brand or model, e.g. “samsung a55”.
+                </p>
+              ) : null}
+              {groups.map(([brand, items], index) => (
+                <div key={`${brand}-${index}`} className="mb-2">
                   <p className="px-2 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {brand}
                   </p>
@@ -124,10 +186,10 @@ function VariantStudio() {
                     <button
                       key={device.id}
                       type="button"
-                      onClick={() => setDeviceId(device.id)}
+                      onClick={() => setSelected(device)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm",
-                        device.id === deviceId
+                        device.id === selected?.id
                           ? "bg-brand-100 font-semibold text-brand-800"
                           : "text-ink-800 hover:bg-stage",
                         !device.is_active && "opacity-50",
@@ -141,6 +203,25 @@ function VariantStudio() {
                   ))}
                 </div>
               ))}
+              {devices.hasNextPage ? (
+                <div ref={sentinel} className="px-2 py-2">
+                  <button
+                    type="button"
+                    className={cn(buttonClass.secondary, "w-full")}
+                    disabled={devices.isFetchingNextPage}
+                    onClick={() => void devices.fetchNextPage()}
+                  >
+                    {devices.isFetchingNextPage ? (
+                      <>
+                        <LoaderMark size="xs" />
+                        Loading more…
+                      </>
+                    ) : (
+                      "Load more devices"
+                    )}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </Panel>
           {selected ? <DeviceWorkbench key={selected.id} device={selected} /> : null}
@@ -150,7 +231,10 @@ function VariantStudio() {
       <NewDeviceDialog
         open={newDevice}
         onOpenChange={setNewDevice}
-        onCreated={(id) => setDeviceId(id)}
+        onCreated={(device) => {
+          setSelected(device);
+          setSearch(device.name);
+        }}
       />
     </div>
   );
@@ -243,7 +327,7 @@ function DeviceWorkbench({ device }: { device: CatalogDevice }) {
         }
       >
         {variants.isLoading ? (
-          <LoadingBlock rows={2} />
+          <CenteredLoader size="sm" label="Loading variants" />
         ) : variants.error ? (
           <ErrorBlock error={variants.error} />
         ) : list.length === 0 ? (
@@ -774,7 +858,7 @@ function NewDeviceDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (id: number) => void;
+  onCreated: (device: CatalogDevice) => void;
 }) {
   const queryClient = useQueryClient();
   const brands = useQuery({
@@ -816,7 +900,7 @@ function NewDeviceDialog({
     onSuccess: async (device) => {
       toast.success(`${device.name} added`);
       await queryClient.invalidateQueries({ queryKey: ["portal", "admin"] });
-      onCreated(device.id);
+      onCreated(device);
       onOpenChange(false);
       setForm({
         brand_id: "",

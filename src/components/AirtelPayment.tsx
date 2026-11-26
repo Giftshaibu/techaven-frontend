@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { Icon } from "@/components/Icon";
@@ -120,7 +121,7 @@ export function AirtelPayment({
       <h2 id="airtel-payment-heading" className="text-lg font-bold">
         Pay with Airtel Money
       </h2>
-      {context.isLoading && <p className="mt-3 text-sm text-muted-foreground">Loading payment…</p>}
+      {context.isLoading && <TechavenLoader size="sm" label="Preparing your Airtel Money payment" minHeight="10rem" />}
       {context.isError && (
         <p role="alert" className="mt-3 text-sm">
           Payment details could not load.{" "}

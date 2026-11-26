@@ -1,4 +1,6 @@
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { useQuery } from "@tanstack/react-query";
+import { TechavenLoader } from "@/components/TechavenLoader";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FilteredProductGrid } from "@/components/FilteredProductGrid";
 import { searchCatalogProducts } from "@/lib/resolve-catalog";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
+  const showShops = useShopsTabVisible();
   const { q } = Route.useSearch();
   const query = (q ?? "").trim();
 
@@ -76,18 +79,33 @@ function SearchPage() {
             Type at least two characters to search.
           </p>
         ) : results.isLoading ? (
-          <p className="mt-6 text-sm text-muted-foreground">Searching…</p>
+          <TechavenLoader
+            messages={[`Searching for “${query}”`, "Checking every shop", "Comparing prices"]}
+            minHeight="22rem"
+          />
         ) : results.isError ? (
           <p className="mt-6 text-sm text-muted-foreground">
             Search is unavailable right now. Try again shortly.
           </p>
         ) : !results.data?.products.length ? (
           <p className="mt-6 text-sm text-muted-foreground">
-            No products matched. Try another name or{" "}
-            <Link to="/shops" className="font-semibold text-brand-500 hover:underline">
-              browse shops
-            </Link>
-            .
+            {showShops ? (
+              <>
+                No products matched. Try another name or{" "}
+                <Link to="/shops" className="font-semibold text-brand-500 hover:underline">
+                  browse shops
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                No products matched. Try another name or{" "}
+                <Link to="/products" className="font-semibold text-brand-500 hover:underline">
+                  browse all products
+                </Link>
+                .
+              </>
+            )}
           </p>
         ) : (
           <div className="mt-8">
