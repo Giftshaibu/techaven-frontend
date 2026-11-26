@@ -16,7 +16,7 @@ export function CampaignProducts({
   const products =
     useQuery({
       queryKey: ["campaign-products", campaign.id, secondary],
-      queryFn: () => resolvePromotionProducts(refs.map((r) => r.externalId)),
+      queryFn: () => resolvePromotionProducts(refs),
       enabled: refs.length > 0,
     }).data ?? [];
   if (products.length < 2) return null;
