@@ -19,6 +19,8 @@ import { CompareBar } from "@/components/CompareBar";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
+import { getPlatformSettings } from "@/integrations/techaven/customer";
+import { techavenKeys } from "@/lib/techaven-hooks";
 
 function NotFoundComponent() {
   return (
@@ -98,6 +100,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/techaven-favicon.jpg", type: "image/jpeg" },
     ],
   }),
+  // Storefront switches the server render needs, so hidden sections never flash on first paint.
+  loader: async ({ context }) => {
+    const settings = await context.queryClient
+      .ensureQueryData({ queryKey: techavenKeys.platformSettings(), queryFn: getPlatformSettings, staleTime: 60_000 })
+      .catch(() => null);
+    return { shopsTabHidden: Boolean(settings?.shops_tab_hidden) };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

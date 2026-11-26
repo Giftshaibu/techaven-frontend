@@ -256,4 +256,6 @@ export type PointBalance = {
 export type PlatformSettings = {
   seller_commission_percent: number;
   default_points_mwk_per_point: number | null;
+  /** Admin switch: hide the storefront's Shops tab and links (products stay visible). */
+  shops_tab_hidden?: boolean;
 };

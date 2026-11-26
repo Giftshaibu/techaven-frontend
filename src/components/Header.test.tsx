@@ -18,6 +18,7 @@ vi.mock("@/lib/techaven-hooks", () => ({
     error: state.error,
   }),
   useTechavenShops: () => ({ data: state.shops, isLoading: state.loading, error: state.error }),
+  useShopsTabVisible: () => true,
 }));
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: [] }) }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: null }) }));

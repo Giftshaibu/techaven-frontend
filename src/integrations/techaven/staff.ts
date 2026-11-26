@@ -627,6 +627,7 @@ export const adminApi = {
     staffRequest<{
       seller_commission_percent: number;
       default_points_mwk_per_point: number | null;
+      shops_tab_hidden?: boolean;
       updated_at?: string;
     }>("/api/admin/platform-settings"),
   updateSettings: (body: Record<string, unknown>) =>

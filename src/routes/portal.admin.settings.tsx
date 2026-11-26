@@ -30,13 +30,71 @@ function AdminSettings() {
       <PageHeader
         eyebrow="Platform"
         title="Settings"
-        description="Commission, loyalty points and the courier options shoppers see at checkout."
+        description="Commission, loyalty points, what the storefront shows and the courier options shoppers see at checkout."
       />
       <div className="grid gap-6 lg:grid-cols-2">
-        <EconomicsPanel />
+        <div className="space-y-6">
+          <EconomicsPanel />
+          <StorefrontPanel />
+        </div>
         <CourierPanel />
       </div>
     </div>
+  );
+}
+
+function StorefrontPanel() {
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: ["portal", "admin", "settings"],
+    queryFn: adminApi.settings,
+  });
+  const hidden = Boolean(settings.data?.shops_tab_hidden);
+  const toggle = useMutation({
+    mutationFn: (shops_tab_hidden: boolean) => adminApi.updateSettings({ shops_tab_hidden }),
+    onSuccess: (_data, shops_tab_hidden) => {
+      toast.success(shops_tab_hidden ? "Shops tab hidden on the storefront" : "Shops tab is showing again");
+      void queryClient.invalidateQueries({ queryKey: ["portal", "admin", "settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["techaven", "platform-settings"] });
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const value = toggle.isPending ? Boolean(toggle.variables) : hidden;
+
+  return (
+    <Panel title="Storefront" description="Choose what shoppers see on the Techaven website.">
+      {settings.isLoading ? (
+        <LoadingBlock rows={1} label="Loading settings" />
+      ) : settings.error ? (
+        <ErrorBlock error={settings.error} />
+      ) : (
+        <div className="space-y-3">
+          <label className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
+            <span className="flex items-start gap-3">
+              <Icon name="shop-2-linear" className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
+              <span>
+                <span className="block text-sm font-semibold text-ink-800">Hide the Shops tab</span>
+                <span className="block text-xs text-muted-foreground">
+                  Removes Shops from the website menus and footer. Products stay on sale.
+                </span>
+              </span>
+            </span>
+            <Switch
+              checked={value}
+              disabled={toggle.isPending}
+              onCheckedChange={(checked) => toggle.mutate(checked)}
+              aria-label="Hide the Shops tab"
+            />
+          </label>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <StatusPill tone={value ? "warn" : "good"}>{value ? "Hidden" : "Showing"}</StatusPill>
+            {value
+              ? "Shoppers don't see the Shops tab right now."
+              : "Shoppers can browse all shops from the menu."}
+          </p>
+        </div>
+      )}
+    </Panel>
   );
 }
 

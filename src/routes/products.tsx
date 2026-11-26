@@ -1,3 +1,4 @@
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { CatalogueControls } from "@/components/CatalogueControls";
 import { LoaderMark } from "@/components/TechavenLoader";
 import { getCategories } from "@/integrations/techaven/customer";
@@ -69,6 +70,7 @@ function ProductsPage() {
 }
 
 function ProductResults() {
+  const showShops = useShopsTabVisible();
   const initial = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -86,7 +88,7 @@ function ProductResults() {
       support="Every live listing from Techaven shops — same catalog as the mobile app."
       actions={[
         { label: "Shop deals", to: "/deals" },
-        { label: "Browse shops", to: "/shops" },
+        ...(showShops ? [{ label: "Browse shops", to: "/shops" }] : []),
       ]}
       media={[]}
       tone="neutral"
@@ -141,12 +143,14 @@ function ProductResults() {
         ) : !products.length ? (
           <div className="rounded-3xl bg-surface p-10 text-center">
             <p className="text-sm text-muted-foreground">No products are listed yet.</p>
-            <Link
-              to="/shops"
-              className="mt-4 inline-block text-sm font-semibold text-brand-500 hover:underline"
-            >
-              Browse shops instead
-            </Link>
+            {showShops ? (
+              <Link
+                to="/shops"
+                className="mt-4 inline-block text-sm font-semibold text-brand-500 hover:underline"
+              >
+                Browse shops instead
+              </Link>
+            ) : null}
           </div>
         ) : (
           <>

@@ -1,3 +1,4 @@
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Icon } from "@/components/Icon";
 import { ImageStage } from "@/components/ImageStage";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
+  const showShops = useShopsTabVisible();
   const { lines, setQuantity, remove, clear, ready, syncing } = useCart();
 
   const items = lines
@@ -64,12 +66,21 @@ function CartPage() {
             >
               Shop the deals
             </Link>
-            <Link
-              to="/shops"
-              className="rounded-lg border border-border px-5 py-3 text-sm font-semibold text-ink-800 hover:bg-stage"
-            >
-              Browse shops
-            </Link>
+            {showShops ? (
+              <Link
+                to="/shops"
+                className="rounded-lg border border-border px-5 py-3 text-sm font-semibold text-ink-800 hover:bg-stage"
+              >
+                Browse shops
+              </Link>
+            ) : (
+              <Link
+                to="/products"
+                className="rounded-lg border border-border px-5 py-3 text-sm font-semibold text-ink-800 hover:bg-stage"
+              >
+                Browse products
+              </Link>
+            )}
           </div>
         </div>
       ) : (

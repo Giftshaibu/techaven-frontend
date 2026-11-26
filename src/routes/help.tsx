@@ -1,3 +1,4 @@
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { ContactInfo } from "@/components/ContactInfo";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +61,7 @@ const topics = [
 ];
 
 function HelpPage() {
+  const showShops = useShopsTabVisible();
   const heroPromotions =
     useQuery({
       queryKey: ["promotions", "help_hero"],
@@ -105,10 +107,10 @@ function HelpPage() {
             </p>
           </div>
           <Link
-            to="/shops"
+            to={showShops ? "/shops" : "/products"}
             className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-ink-900 hover:bg-neutral-200"
           >
-            Browse the shops
+            {showShops ? "Browse the shops" : "Browse products"}
           </Link>
         </div>
       </section>
