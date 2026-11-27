@@ -1,5 +1,5 @@
 import { TechavenApiError, techavenRequest } from "@/integrations/techaven/client";
-import { getMarketplaceDevices, getShop } from "@/integrations/techaven/customer";
+import { getMarketplaceDevice, getMarketplaceDevices, getShop } from "@/integrations/techaven/customer";
 import type { ApiShop } from "@/integrations/techaven/types";
 import { mapMarketplaceDeviceToCatalog, mapApiShopToCatalog } from "@/lib/catalog-api";
 import type { MarketplaceDevice } from "@/integrations/techaven/types";
@@ -41,8 +41,16 @@ async function concurrent<T>(values: string[], fn: (id: string) => Promise<T>) {
     );
   return out.filter((x): x is T => x !== null);
 }
-export async function resolvePromotionProducts(values: string[]) {
-  const wanted = deviceIds(values);
+export async function resolvePromotionProducts(values: (string | { externalId: string; slug: string })[]) {
+  // CMS numeric IDs belong to its source database. Slugs survive a catalogue import.
+  const refs = values.slice(0, MAX_REFS);
+  const slugs = [...new Set(refs.flatMap((ref) => typeof ref === "object" && ref.slug.trim() ? [ref.slug.trim()] : []))];
+  if (slugs.length) {
+    const products = await concurrent(slugs, getMarketplaceDevice);
+    return [...new Map(products.map((product) => [product.id, product])).values()].map(mapMarketplaceDeviceToCatalog);
+  }
+  const identifiers = refs.map((ref) => typeof ref === "string" ? ref : ref.externalId);
+  const wanted = deviceIds(identifiers);
   if (!wanted.length) return [];
   try {
     const data = await getMarketplaceDevices({ ids: wanted.map(Number) });

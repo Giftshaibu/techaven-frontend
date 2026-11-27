@@ -14,7 +14,7 @@ import { PromotionAction, PromotionCopy, PromotionMedia } from "./PromotionPrimi
 import { PromotionCountdown, PromotionHero, PromotionHeroFrame } from "./PromotionVisuals";
 
 function useRailProducts(promotion?: Promotion) {
-  const ids = promotion?.productRefs.slice(0, 12).map((ref) => ref.externalId) ?? [];
+  const ids = promotion?.productRefs.slice(0, 12) ?? [];
   return useQuery({
     queryKey: ["promotion-rail-products", promotion?.slug, promotion?.useParticipatingOffers, ids],
     queryFn: () => promotion?.useParticipatingOffers ? resolveParticipatingOffers(promotion.slug) : resolvePromotionProducts(ids),
@@ -176,7 +176,7 @@ export function PromotionHeroProduct({
   const products =
     useQuery({
       queryKey: ["promotion-anchor-product", promotion.id, ref?.externalId],
-      queryFn: () => resolvePromotionProducts(ref ? [ref.externalId] : []),
+      queryFn: () => resolvePromotionProducts(ref ? [ref] : []),
       enabled: Boolean(ref),
     }).data ?? [];
   const product = products[0];
@@ -224,7 +224,7 @@ export function PromotionProducts({
   const products =
     useQuery({
       queryKey: ["promotion-products", promotion.id],
-      queryFn: () => resolvePromotionProducts(promotion.productRefs.map((r) => r.externalId)),
+      queryFn: () => resolvePromotionProducts(promotion.productRefs),
     }).data ?? [];
   if (products.length < 2) return null;
   return (
@@ -270,7 +270,7 @@ export function PromotionFlashDeals({ promotion }: { promotion: Promotion }) {
   const products =
     useQuery({
       queryKey: ["promotion-flash-products", promotion.id],
-      queryFn: () => resolvePromotionProducts(promotion.productRefs.map((r) => r.externalId)),
+      queryFn: () => resolvePromotionProducts(promotion.productRefs),
     }).data ?? [];
   if (!promotion.schedule.endsAt || new Date(promotion.schedule.endsAt).getTime() <= Date.now())
     return null;
