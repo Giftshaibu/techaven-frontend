@@ -25,6 +25,7 @@ import {
 } from "@/lib/resolve-catalog";
 import { useCart } from "@/lib/cart";
 import { useCompareSelection } from "@/lib/compare";
+import { useShopsTabVisible } from "@/lib/techaven-hooks";
 import { cn } from "@/lib/utils";
 import { getPromotions, type Promotion } from "@/lib/cms/promotions";
 import { PromotionSlot } from "@/components/promotions/PromotionSlot";
@@ -109,6 +110,8 @@ function ProductDetails({ data }: { data: ProductPageData }) {
   const { product, shops, related, promotions } = data;
   const categorySlug = product.category;
   const { add, count } = useCart();
+  // Admins can hide shops on the storefront; the offer chosen by default (or via ?listing=) still sells.
+  const showShops = useShopsTabVisible();
   const [shareStatus, setShareStatus] = useState("");
   const { toggle, isSelected } = useCompareSelection();
   const [added, setAdded] = useState(false);
@@ -386,7 +389,7 @@ function ProductDetails({ data }: { data: ProductPageData }) {
         </div>
       </section>
 
-      {product.offers?.length ? (
+      {showShops && product.offers?.length ? (
         <section className="shell pb-12" aria-labelledby="offers-heading">
           <h2 id="offers-heading" className="text-2xl font-bold tracking-tight text-ink-800">
             Available offers
